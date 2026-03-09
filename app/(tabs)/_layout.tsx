@@ -1,33 +1,55 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Tabs } from "expo-router";
+import { Text } from "react-native";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+        tabBarActiveTintColor: "#1B4F72",
+        tabBarInactiveTintColor: "#94a3b8",
+        tabBarStyle: {
+          backgroundColor: "#ffffff",
+          borderTopColor: "#e2e8f0",
+          paddingBottom: 8,
+          paddingTop: 4,
+          height: 60,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text>,
+          tabBarLabel: "Inicio",
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="trips"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🗺️</Text>,
+          tabBarLabel: "Mis Paseos",
+        }}
+      />
+      <Tabs.Screen
+        name="menu"
+        options={{
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🍽️</Text>,
+          tabBarLabel: "Menú",
+        }}
+      />
+      <Tabs.Screen
+        name="grocery"
+        options={{
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🛒</Text>,
+          tabBarLabel: "Mercado",
+        }}
+      />
+      <Tabs.Screen
+        name="expenses"
+        options={{
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>💸</Text>,
+          tabBarLabel: "Gastos",
         }}
       />
     </Tabs>
