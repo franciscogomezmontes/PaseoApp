@@ -32,10 +32,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="menu"
+        name="recipes"
         options={{
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🍽️</Text>,
-          tabBarLabel: "Menú",
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>📖</Text>,
+          tabBarLabel: "Recetas",
         }}
       />
       <Tabs.Screen
@@ -50,6 +50,13 @@ export default function TabLayout() {
         options={{
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>💸</Text>,
           tabBarLabel: "Gastos",
+        }}
+      />
+
+      <Tabs.Screen
+        name="menu"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

@@ -42,17 +42,7 @@ export default function RootLayout() {
         }}
       />
       <Stack.Screen name="tripDetail" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="recipes"
-        options={{
-          presentation: "modal",
-          headerShown: true,
-          headerTitle: "Recetas",
-          headerStyle: { backgroundColor: "#1B4F72" },
-          headerTintColor: "#fff",
-          headerTitleStyle: { fontWeight: "800" },
-        }}
-      />
+
       <Stack.Screen
         name="joinTrip"
         options={{
@@ -66,6 +56,8 @@ export default function RootLayout() {
       />
       <Stack.Screen name="participantDetail" options={{ headerShown: false }} />
       <Stack.Screen name="attendance" options={{ headerShown: false }} />
+      <Stack.Screen name="recipeDetail" options={{ headerShown: false }} />
+      <Stack.Screen name="newRecipe" options={{ headerShown: false }} />
     </Stack>
   );
 }

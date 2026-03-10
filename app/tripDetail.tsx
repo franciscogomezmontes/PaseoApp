@@ -2,17 +2,19 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Linking,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -447,11 +449,16 @@ export default function TripDetailScreen() {
   const handleAddMeal = async () => {
     if (!fechaActiva) return;
     setSavingMeal(true);
+
+    const numParticipantes = participaciones.length;
+    console.log("Participantes en el paseo:", numParticipantes);
+
     const { error } = await supabase.from("momentos_comida").insert({
       paseo_id: id,
       fecha: fechaActiva,
       tipo_comida: selectedTipo,
       receta_id: selectedRecetaId,
+      porciones: numParticipantes > 0 ? numParticipantes : 1,
     });
     if (error) {
       Alert.alert("Error", error.message);
@@ -498,772 +505,809 @@ export default function TripDetailScreen() {
     ESTADO_CONFIG[paseo?.estado] ?? ESTADO_CONFIG["planificacion"];
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← Volver</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleRow}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {paseo?.nombre}
-          </Text>
-          <TouchableOpacity
-            style={[styles.estadoBadge, { backgroundColor: estadoConfig.bg }]}
-            onPress={() => isOrganizer && setShowEstadoModal(true)}
-          >
-            <Text style={[styles.estadoText, { color: estadoConfig.color }]}>
-              {estadoConfig.label}
-            </Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={0}
+    >
+      <SafeAreaView style={styles.container}>
+        {/* HEADER */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.backText}>← Volver</Text>
           </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* TABS */}
-      <View style={styles.tabs}>
-        {(["info", "participantes", "menu", "gastos"] as const).map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tab, activeTab === tab && styles.tabActive]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === tab && styles.tabTextActive,
-              ]}
+          <View style={styles.headerTitleRow}>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {paseo?.nombre}
+            </Text>
+            <TouchableOpacity
+              style={[styles.estadoBadge, { backgroundColor: estadoConfig.bg }]}
+              onPress={() => isOrganizer && setShowEstadoModal(true)}
             >
-              {tab === "info"
-                ? "📋 Info"
-                : tab === "participantes"
-                  ? "👥 Asistentes"
-                  : tab === "menu"
-                    ? "🍽️ Menú"
-                    : "💸 Gastos"}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+              <Text style={[styles.estadoText, { color: estadoConfig.color }]}>
+                {estadoConfig.label}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-      {/* ── INFO TAB ── */}
-      {activeTab === "info" && (
-        <ScrollView contentContainerStyle={styles.content}>
-          {/* Trip photo */}
-          <TouchableOpacity
-            style={styles.tripPhotoContainer}
-            onPress={handlePickTripPhoto}
-          >
-            {uploadingPhoto ? (
-              <View style={styles.tripPhotoPlaceholder}>
-                <ActivityIndicator color="#fff" />
-              </View>
-            ) : editFotoUrl ? (
-              <Image source={{ uri: editFotoUrl }} style={styles.tripPhoto} />
-            ) : (
-              <View style={styles.tripPhotoPlaceholder}>
-                <Text style={styles.tripPhotoIcon}>📸</Text>
-                <Text style={styles.tripPhotoText}>
-                  Toca para agregar foto del paseo
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
+        {/* TABS */}
+        <View style={styles.tabs}>
+          {(["info", "participantes", "menu", "gastos"] as const).map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              style={[styles.tab, activeTab === tab && styles.tabActive]}
+              onPress={() => setActiveTab(tab)}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab && styles.tabTextActive,
+                ]}
+              >
+                {tab === "info"
+                  ? "📋 Info"
+                  : tab === "participantes"
+                    ? "👥 Asistentes"
+                    : tab === "menu"
+                      ? "🍽️ Menú"
+                      : "💸 Gastos"}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-          {/* Basic info */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>📋 Información</Text>
-              {editing ? (
-                <View style={styles.editActions}>
-                  <TouchableOpacity onPress={() => setEditing(false)}>
-                    <Text style={styles.cancelText}>Cancelar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.saveBtn}
-                    onPress={handleSaveInfo}
-                    disabled={saving}
-                  >
-                    <Text style={styles.saveBtnText}>
-                      {saving ? "..." : "Guardar"}
-                    </Text>
-                  </TouchableOpacity>
+        {/* ── INFO TAB ── */}
+        {activeTab === "info" && (
+          <ScrollView contentContainerStyle={styles.content}>
+            {/* Trip photo */}
+            <TouchableOpacity
+              style={styles.tripPhotoContainer}
+              onPress={handlePickTripPhoto}
+            >
+              {uploadingPhoto ? (
+                <View style={styles.tripPhotoPlaceholder}>
+                  <ActivityIndicator color="#fff" />
                 </View>
+              ) : editFotoUrl ? (
+                <Image source={{ uri: editFotoUrl }} style={styles.tripPhoto} />
               ) : (
-                <TouchableOpacity onPress={() => setEditing(true)}>
-                  <Text style={styles.editText}>✏️ Editar</Text>
-                </TouchableOpacity>
+                <View style={styles.tripPhotoPlaceholder}>
+                  <Text style={styles.tripPhotoIcon}>📸</Text>
+                  <Text style={styles.tripPhotoText}>
+                    Toca para agregar foto del paseo
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Basic info */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>📋 Información</Text>
+                {editing ? (
+                  <View style={styles.editActions}>
+                    <TouchableOpacity onPress={() => setEditing(false)}>
+                      <Text style={styles.cancelText}>Cancelar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.saveBtn}
+                      onPress={handleSaveInfo}
+                      disabled={saving}
+                    >
+                      <Text style={styles.saveBtnText}>
+                        {saving ? "..." : "Guardar"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity onPress={() => setEditing(true)}>
+                    <Text style={styles.editText}>✏️ Editar</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {editing ? (
+                <>
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Nombre</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={editNombre}
+                      onChangeText={setEditNombre}
+                    />
+                  </View>
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Lugar</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={editLugar}
+                      onChangeText={setEditLugar}
+                    />
+                  </View>
+                  <View style={styles.row}>
+                    <View style={[styles.field, { flex: 1 }]}>
+                      <Text style={styles.fieldLabel}>Fecha inicio</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={editFechaInicio}
+                        onChangeText={setEditFechaInicio}
+                        placeholder="AAAA-MM-DD"
+                      />
+                    </View>
+                    <View style={{ width: 8 }} />
+                    <View style={[styles.field, { flex: 1 }]}>
+                      <Text style={styles.fieldLabel}>Fecha fin</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={editFechaFin}
+                        onChangeText={setEditFechaFin}
+                        placeholder="AAAA-MM-DD"
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Link de alojamiento</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={editLink}
+                      onChangeText={setEditLink}
+                      placeholder="https://airbnb.com/..."
+                      autoCapitalize="none"
+                    />
+                  </View>
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>
+                      Recomendaciones de llegada
+                    </Text>
+                    <TextInput
+                      style={[styles.input, { height: 80 }]}
+                      value={editRecomendaciones}
+                      onChangeText={setEditRecomendaciones}
+                      multiline
+                      placeholder="Ej: Llegar antes de las 3pm..."
+                    />
+                  </View>
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>
+                      Link de ubicación (Google Maps, Waze, etc.)
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      value={editLinkMapa}
+                      onChangeText={setEditLinkMapa}
+                      placeholder="https://maps.google.com/..."
+                      autoCapitalize="none"
+                    />
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>📍 Lugar</Text>
+                    <Text style={styles.infoValue}>{paseo?.lugar}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>📅 Fechas</Text>
+                    <Text style={styles.infoValue}>
+                      {paseo?.fecha_inicio} → {paseo?.fecha_fin}
+                    </Text>
+                  </View>
+                  {paseo?.link_alojamiento && (
+                    <TouchableOpacity
+                      style={styles.infoRow}
+                      onPress={() => Linking.openURL(paseo.link_alojamiento)}
+                    >
+                      <Text style={styles.infoLabel}>🏠 Alojamiento</Text>
+                      <Text style={[styles.infoValue, styles.link]}>
+                        Ver enlace →
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {paseo?.recomendaciones && (
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>💡 Llegada</Text>
+                      <Text style={styles.infoValue}>
+                        {paseo.recomendaciones}
+                      </Text>
+                    </View>
+                  )}
+                </>
               )}
             </View>
 
-            {editing ? (
-              <>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Nombre</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={editNombre}
-                    onChangeText={setEditNombre}
-                  />
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Lugar</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={editLugar}
-                    onChangeText={setEditLugar}
-                  />
-                </View>
-                <View style={styles.row}>
-                  <View style={[styles.field, { flex: 1 }]}>
-                    <Text style={styles.fieldLabel}>Fecha inicio</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={editFechaInicio}
-                      onChangeText={setEditFechaInicio}
-                      placeholder="AAAA-MM-DD"
-                    />
-                  </View>
-                  <View style={{ width: 8 }} />
-                  <View style={[styles.field, { flex: 1 }]}>
-                    <Text style={styles.fieldLabel}>Fecha fin</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={editFechaFin}
-                      onChangeText={setEditFechaFin}
-                      placeholder="AAAA-MM-DD"
-                    />
-                  </View>
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Link de alojamiento</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={editLink}
-                    onChangeText={setEditLink}
-                    placeholder="https://airbnb.com/..."
-                    autoCapitalize="none"
-                  />
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>
-                    Recomendaciones de llegada
-                  </Text>
-                  <TextInput
-                    style={[styles.input, { height: 80 }]}
-                    value={editRecomendaciones}
-                    onChangeText={setEditRecomendaciones}
-                    multiline
-                    placeholder="Ej: Llegar antes de las 3pm..."
-                  />
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>
-                    Link de ubicación (Google Maps, Waze, etc.)
-                  </Text>
-                  <TextInput
-                    style={styles.input}
-                    value={editLinkMapa}
-                    onChangeText={setEditLinkMapa}
-                    placeholder="https://maps.google.com/..."
-                    autoCapitalize="none"
-                  />
-                </View>
-              </>
-            ) : (
-              <>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>📍 Lugar</Text>
-                  <Text style={styles.infoValue}>{paseo?.lugar}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>📅 Fechas</Text>
-                  <Text style={styles.infoValue}>
-                    {paseo?.fecha_inicio} → {paseo?.fecha_fin}
-                  </Text>
-                </View>
-                {paseo?.link_alojamiento && (
-                  <TouchableOpacity
-                    style={styles.infoRow}
-                    onPress={() => Linking.openURL(paseo.link_alojamiento)}
-                  >
-                    <Text style={styles.infoLabel}>🏠 Alojamiento</Text>
-                    <Text style={[styles.infoValue, styles.link]}>
-                      Ver enlace →
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                {paseo?.recomendaciones && (
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>💡 Llegada</Text>
-                    <Text style={styles.infoValue}>
-                      {paseo.recomendaciones}
-                    </Text>
-                  </View>
-                )}
-              </>
-            )}
-          </View>
+            {/* Invite code */}
+            <View style={styles.inviteCard}>
+              <Text style={styles.inviteLabel}>🔑 Código de invitación</Text>
+              <Text style={styles.inviteCode}>{paseo?.codigo_invitacion}</Text>
+              <Text style={styles.inviteHint}>
+                Comparte este código para que otros se unan
+              </Text>
+            </View>
 
-          {/* Invite code */}
-          <View style={styles.inviteCard}>
-            <Text style={styles.inviteLabel}>🔑 Código de invitación</Text>
-            <Text style={styles.inviteCode}>{paseo?.codigo_invitacion}</Text>
-            <Text style={styles.inviteHint}>
-              Comparte este código para que otros se unan
-            </Text>
-          </View>
-
-          {/* Map */}
-          {paseo?.link_mapa &&
-            (() => {
-              const coords = extractCoordsFromLink(paseo.link_mapa);
-              return (
-                <View style={styles.section}>
-                  <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.sectionTitle}>🗺️ Ubicación</Text>
-                    <TouchableOpacity
-                      onPress={() => Linking.openURL(paseo.link_mapa)}
-                    >
-                      <Text style={styles.editText}>Abrir en Maps →</Text>
-                    </TouchableOpacity>
-                  </View>
-                  {coords ? (
-                    <MapView
-                      style={styles.map}
-                      initialRegion={{
-                        latitude: coords.lat,
-                        longitude: coords.lng,
-                        latitudeDelta: 0.005,
-                        longitudeDelta: 0.005,
-                      }}
-                    >
-                      <Marker
-                        coordinate={{
+            {/* Map */}
+            {paseo?.link_mapa &&
+              (() => {
+                const coords = extractCoordsFromLink(paseo.link_mapa);
+                return (
+                  <View style={styles.section}>
+                    <View style={styles.sectionHeaderRow}>
+                      <Text style={styles.sectionTitle}>🗺️ Ubicación</Text>
+                      <TouchableOpacity
+                        onPress={() => Linking.openURL(paseo.link_mapa)}
+                      >
+                        <Text style={styles.editText}>Abrir en Maps →</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {coords ? (
+                      <MapView
+                        style={styles.map}
+                        initialRegion={{
                           latitude: coords.lat,
                           longitude: coords.lng,
+                          latitudeDelta: 0.005,
+                          longitudeDelta: 0.005,
                         }}
-                        title={paseo.nombre}
-                        description={paseo.lugar}
-                      />
-                    </MapView>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.mapLinkCard}
-                      onPress={() => Linking.openURL(paseo.link_mapa)}
-                    >
-                      <Text style={styles.mapLinkIcon}>🗺️</Text>
-                      <View style={styles.mapLinkInfo}>
-                        <Text style={styles.mapLinkTitle}>Ver ubicación</Text>
-                        <Text style={styles.mapLinkSub}>
-                          Toca para abrir en Maps
-                        </Text>
-                      </View>
-                      <Text style={styles.mapLinkArrow}>→</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              );
-            })()}
-
-          {/* Delete button (organizer only) */}
-          {isOrganizer && (
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={handleDeleteTrip}
-            >
-              <Text style={styles.deleteButtonText}>🗑️ Eliminar paseo</Text>
-            </TouchableOpacity>
-          )}
-        </ScrollView>
-      )}
-
-      {/* ── PARTICIPANTES TAB ── */}
-      {activeTab === "participantes" && (
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>
-              👥 {participaciones.length} participante
-              {participaciones.length !== 1 ? "s" : ""}
-            </Text>
-            <TouchableOpacity
-              style={styles.addBtn}
-              onPress={() => setShowAddModal(true)}
-            >
-              <Text style={styles.addBtnText}>+ Agregar</Text>
-            </TouchableOpacity>
-          </View>
-
-          {participaciones.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>👥</Text>
-              <Text style={styles.emptyText}>Aún no hay participantes</Text>
-            </View>
-          ) : (
-            familias.map((uf) => {
-              const miembros = participaciones.filter(
-                (p) => p.unidad_familiar === uf,
-              );
-              const color = UF_COLORS[(uf - 1) % UF_COLORS.length];
-              return (
-                <View key={uf} style={styles.familiaCard}>
-                  <View style={styles.familiaHeader}>
-                    <View style={[styles.dot, { backgroundColor: color }]} />
-                    <Text style={styles.familiaTitulo}>Familia {uf}</Text>
-                    <Text style={styles.familiaCount}>
-                      {miembros.length} persona
-                      {miembros.length !== 1 ? "s" : ""}
-                    </Text>
+                      >
+                        <Marker
+                          coordinate={{
+                            latitude: coords.lat,
+                            longitude: coords.lng,
+                          }}
+                          title={paseo.nombre}
+                          description={paseo.lugar}
+                        />
+                      </MapView>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.mapLinkCard}
+                        onPress={() => Linking.openURL(paseo.link_mapa)}
+                      >
+                        <Text style={styles.mapLinkIcon}>🗺️</Text>
+                        <View style={styles.mapLinkInfo}>
+                          <Text style={styles.mapLinkTitle}>Ver ubicación</Text>
+                          <Text style={styles.mapLinkSub}>
+                            Toca para abrir en Maps
+                          </Text>
+                        </View>
+                        <Text style={styles.mapLinkArrow}>→</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
-                  {miembros.map((m) => (
-                    <TouchableOpacity
-                      key={m.id}
-                      style={styles.participanteRow}
-                      onPress={() => handleParticipanteOptions(m)}
-                    >
-                      <View>
-                        {m.personas.foto_url ? (
-                          <Image
-                            source={{ uri: m.personas.foto_url }}
-                            style={[styles.avatarImage, { borderColor: color }]}
-                          />
-                        ) : (
-                          <View
-                            style={[styles.avatar, { backgroundColor: color }]}
-                          >
-                            <Text style={styles.avatarText}>
-                              {initials(m.personas.nombre)}
-                            </Text>
-                          </View>
-                        )}
-                        {m.personas.auth_user_id && (
-                          <View style={styles.accountBadge}>
-                            <Text style={{ fontSize: 8, color: "#fff" }}>
-                              ✓
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                      <View style={styles.participanteInfo}>
-                        <Text style={styles.participanteNombre}>
-                          {m.personas.nombre}
-                        </Text>
-                        <Text style={styles.participanteSub}>
-                          {m.factor === 1 ? "Adulto" : "Menor"} · Factor{" "}
-                          {m.factor}
-                        </Text>
-                      </View>
-                      <Text style={styles.chevron}>›</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              );
-            })
-          )}
-        </ScrollView>
-      )}
+                );
+              })()}
 
-      {/* ── MENU TAB ── */}
-      {activeTab === "menu" && (
-        <>
-          {/* Date selector */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.dateSelector}
-            contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
-          >
-            {fechas.map((fecha) => {
-              const d = new Date(fecha + "T12:00:00");
-              const label = d.toLocaleDateString("es-CO", {
-                weekday: "short",
-                day: "numeric",
-              });
-              return (
-                <TouchableOpacity
-                  key={fecha}
-                  style={[
-                    styles.dateChip,
-                    fechaActiva === fecha && styles.dateChipActive,
-                  ]}
-                  onPress={() => setFechaActiva(fecha)}
-                >
-                  <Text
-                    style={[
-                      styles.dateChipText,
-                      fechaActiva === fecha && styles.dateChipTextActive,
-                    ]}
-                  >
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+            {/* Delete button (organizer only) */}
+            {isOrganizer && (
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={handleDeleteTrip}
+              >
+                <Text style={styles.deleteButtonText}>🗑️ Eliminar paseo</Text>
+              </TouchableOpacity>
+            )}
           </ScrollView>
+        )}
 
+        {/* ── PARTICIPANTES TAB ── */}
+        {activeTab === "participantes" && (
           <ScrollView contentContainerStyle={styles.content}>
-            {momentosDelDia.length === 0 ? (
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>
+                👥 {participaciones.length} participante
+                {participaciones.length !== 1 ? "s" : ""}
+              </Text>
+              <TouchableOpacity
+                style={styles.addBtn}
+                onPress={() => setShowAddModal(true)}
+              >
+                <Text style={styles.addBtnText}>+ Agregar</Text>
+              </TouchableOpacity>
+            </View>
+
+            {participaciones.length === 0 ? (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyIcon}>🍴</Text>
-                <Text style={styles.emptyText}>Sin comidas para este día</Text>
+                <Text style={styles.emptyIcon}>👥</Text>
+                <Text style={styles.emptyText}>Aún no hay participantes</Text>
               </View>
             ) : (
-              momentosDelDia.map((m) => {
-                const config =
-                  TIPO_CONFIG[m.tipo_comida] ?? TIPO_CONFIG["snack"];
+              familias.map((uf) => {
+                const miembros = participaciones.filter(
+                  (p) => p.unidad_familiar === uf,
+                );
+                const color = UF_COLORS[(uf - 1) % UF_COLORS.length];
                 return (
-                  <TouchableOpacity
-                    key={m.id}
-                    style={[styles.mealCard, { borderLeftColor: config.color }]}
-                    onLongPress={() => handleDeleteMeal(m.id)}
-                  >
-                    <View style={styles.mealCardTop}>
-                      <View
-                        style={[
-                          styles.tipoBadge,
-                          { backgroundColor: config.bgColor },
-                        ]}
-                      >
-                        <Text>{config.icon}</Text>
-                        <Text
-                          style={[
-                            styles.tipoBadgeText,
-                            { color: config.color },
-                          ]}
-                        >
-                          {m.tipo_comida.charAt(0).toUpperCase() +
-                            m.tipo_comida.slice(1)}
-                        </Text>
-                      </View>
-                      <Text style={styles.longPressHint}>
-                        mantén para eliminar
+                  <View key={uf} style={styles.familiaCard}>
+                    <View style={styles.familiaHeader}>
+                      <View style={[styles.dot, { backgroundColor: color }]} />
+                      <Text style={styles.familiaTitulo}>Familia {uf}</Text>
+                      <Text style={styles.familiaCount}>
+                        {miembros.length} persona
+                        {miembros.length !== 1 ? "s" : ""}
                       </Text>
                     </View>
-                    <Text style={styles.mealNombre}>
-                      {m.recetas?.nombre ?? "Sin receta"}
-                    </Text>
-                  </TouchableOpacity>
+                    {miembros.map((m) => (
+                      <TouchableOpacity
+                        key={m.id}
+                        style={styles.participanteRow}
+                        onPress={() => handleParticipanteOptions(m)}
+                      >
+                        <View>
+                          {m.personas.foto_url ? (
+                            <Image
+                              source={{ uri: m.personas.foto_url }}
+                              style={[
+                                styles.avatarImage,
+                                { borderColor: color },
+                              ]}
+                            />
+                          ) : (
+                            <View
+                              style={[
+                                styles.avatar,
+                                { backgroundColor: color },
+                              ]}
+                            >
+                              <Text style={styles.avatarText}>
+                                {initials(m.personas.nombre)}
+                              </Text>
+                            </View>
+                          )}
+                          {m.personas.auth_user_id && (
+                            <View style={styles.accountBadge}>
+                              <Text style={{ fontSize: 8, color: "#fff" }}>
+                                ✓
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <View style={styles.participanteInfo}>
+                          <Text style={styles.participanteNombre}>
+                            {m.personas.nombre}
+                          </Text>
+                          <Text style={styles.participanteSub}>
+                            {m.factor === 1 ? "Adulto" : "Menor"} · Factor{" "}
+                            {m.factor}
+                          </Text>
+                        </View>
+                        <Text style={styles.chevron}>›</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 );
               })
             )}
-            <TouchableOpacity
-              style={styles.addMealButton}
-              onPress={() => setShowAddMealModal(true)}
-            >
-              <Text style={styles.addMealButtonText}>+ Agregar comida</Text>
-            </TouchableOpacity>
           </ScrollView>
-        </>
-      )}
+        )}
 
-      {/* ── GASTOS TAB ── */}
-      {activeTab === "gastos" && (
-        <View style={styles.centered}>
-          <Text style={styles.emptyIcon}>💸</Text>
-          <Text style={styles.emptyText}>Gastos próximamente</Text>
-          <Text style={styles.emptySub}>
-            Aquí podrás registrar y liquidar gastos del paseo
-          </Text>
-        </View>
-      )}
-
-      {/* ── MODALS ── */}
-
-      {/* Estado modal */}
-      <Modal
-        visible={showEstadoModal}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setShowEstadoModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.estadoModalBox}>
-            <Text style={styles.estadoModalTitle}>
-              Cambiar estado del paseo
-            </Text>
-            {ESTADOS.map((estado) => {
-              const config = ESTADO_CONFIG[estado];
-              return (
-                <TouchableOpacity
-                  key={estado}
-                  style={[styles.estadoOption, { backgroundColor: config.bg }]}
-                  onPress={() => handleChangeEstado(estado)}
-                >
-                  <Text
-                    style={[styles.estadoOptionText, { color: config.color }]}
-                  >
-                    {config.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-            <TouchableOpacity
-              onPress={() => setShowEstadoModal(false)}
-              style={styles.estadoCancel}
+        {/* ── MENU TAB ── */}
+        {activeTab === "menu" && (
+          <>
+            {/* Date selector */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.dateSelector}
+              contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
             >
-              <Text style={styles.estadoCancelText}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Familia modal */}
-      <Modal
-        visible={showFamiliaModal}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setShowFamiliaModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.familiaModalBox}>
-            <Text style={styles.familiaModalTitle}>Cambiar familia</Text>
-            <Text style={styles.familiaModalSub}>
-              {editingParticipante?.personas.nombre}
-            </Text>
-            <TextInput
-              style={styles.familiaInput}
-              value={nuevaFamilia}
-              onChangeText={setNuevaFamilia}
-              keyboardType="numeric"
-              autoFocus
-            />
-            <View style={styles.familiaModalButtons}>
-              <TouchableOpacity
-                style={styles.familiaModalCancel}
-                onPress={() => setShowFamiliaModal(false)}
-              >
-                <Text style={styles.familiaModalCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.familiaModalSave}
-                onPress={saveFamilia}
-              >
-                <Text style={styles.familiaModalSaveText}>Guardar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Add participant modal */}
-      <Modal
-        visible={showAddModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowAddModal(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowAddModal(false)}>
-              <Text style={styles.modalCancel}>Cancelar</Text>
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Agregar participante</Text>
-            <TouchableOpacity
-              onPress={handleAddParticipant}
-              disabled={savingParticipant}
-            >
-              <Text style={styles.modalSave}>
-                {savingParticipant ? "..." : "Guardar"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView style={styles.modalContent}>
-            <View style={styles.toggleRow}>
-              <TouchableOpacity
-                style={[styles.toggleBtn, !addingNew && styles.toggleBtnActive]}
-                onPress={() => setAddingNew(false)}
-              >
-                <Text
-                  style={[
-                    styles.toggleText,
-                    !addingNew && styles.toggleTextActive,
-                  ]}
-                >
-                  Existente
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.toggleBtn, addingNew && styles.toggleBtnActive]}
-                onPress={() => setAddingNew(true)}
-              >
-                <Text
-                  style={[
-                    styles.toggleText,
-                    addingNew && styles.toggleTextActive,
-                  ]}
-                >
-                  Nueva persona
-                </Text>
-              </TouchableOpacity>
-            </View>
-            {addingNew ? (
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Nombre *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ej: Francisco"
-                  placeholderTextColor="#94a3b8"
-                  value={newPersonaNombre}
-                  onChangeText={setNewPersonaNombre}
-                />
-              </View>
-            ) : (
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Seleccionar persona</Text>
-                {personas.length === 0 ? (
-                  <Text style={styles.noPersonas}>
-                    No hay personas. Usa "Nueva persona".
-                  </Text>
-                ) : (
-                  personas.map((p) => (
-                    <TouchableOpacity
-                      key={p.id}
-                      style={[
-                        styles.personaOption,
-                        selectedPersonaId === p.id &&
-                          styles.personaOptionActive,
-                      ]}
-                      onPress={() => setSelectedPersonaId(p.id)}
-                    >
-                      <Text
-                        style={[
-                          styles.personaOptionText,
-                          selectedPersonaId === p.id &&
-                            styles.personaOptionTextActive,
-                        ]}
-                      >
-                        {p.nombre}
-                      </Text>
-                    </TouchableOpacity>
-                  ))
-                )}
-              </View>
-            )}
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Unidad familiar</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="1"
-                placeholderTextColor="#94a3b8"
-                value={unidadFamiliar}
-                onChangeText={setUnidadFamiliar}
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Factor</Text>
-              <View style={styles.factorRow}>
-                {["0.5", "1"].map((f) => (
-                  <TouchableOpacity
-                    key={f}
-                    style={[
-                      styles.factorBtn,
-                      factor === f && styles.factorBtnActive,
-                    ]}
-                    onPress={() => setFactor(f)}
-                  >
-                    <Text
-                      style={[
-                        styles.factorBtnText,
-                        factor === f && styles.factorBtnTextActive,
-                      ]}
-                    >
-                      {f === "1" ? "1.0 — Adulto" : "0.5 — Menor"}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-
-      {/* Add meal modal */}
-      <Modal
-        visible={showAddMealModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowAddMealModal(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowAddMealModal(false)}>
-              <Text style={styles.modalCancel}>Cancelar</Text>
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Agregar comida</Text>
-            <TouchableOpacity onPress={handleAddMeal} disabled={savingMeal}>
-              <Text style={styles.modalSave}>
-                {savingMeal ? "..." : "Agregar"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView style={styles.modalContent}>
-            <Text style={styles.fieldLabel}>Tipo de comida</Text>
-            <View style={styles.tipoRow}>
-              {TIPOS_COMIDA.map((tipo) => {
-                const config = TIPO_CONFIG[tipo];
+              {fechas.map((fecha) => {
+                const d = new Date(fecha + "T12:00:00");
+                const label = d.toLocaleDateString("es-CO", {
+                  weekday: "short",
+                  day: "numeric",
+                });
                 return (
                   <TouchableOpacity
-                    key={tipo}
+                    key={fecha}
                     style={[
-                      styles.tipoBtn,
-                      selectedTipo === tipo && {
-                        backgroundColor: config.bgColor,
-                        borderColor: config.color,
-                      },
+                      styles.dateChip,
+                      fechaActiva === fecha && styles.dateChipActive,
                     ]}
-                    onPress={() => setSelectedTipo(tipo)}
+                    onPress={() => setFechaActiva(fecha)}
                   >
-                    <Text style={{ fontSize: 20 }}>{config.icon}</Text>
                     <Text
                       style={[
-                        styles.tipoBtnText,
-                        selectedTipo === tipo && { color: config.color },
+                        styles.dateChipText,
+                        fechaActiva === fecha && styles.dateChipTextActive,
                       ]}
                     >
-                      {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
+                      {label}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
-            </View>
-            <Text style={styles.fieldLabel}>Receta (opcional)</Text>
-            <TouchableOpacity
-              style={[
-                styles.recetaOption,
-                !selectedRecetaId && styles.recetaOptionActive,
-              ]}
-              onPress={() => setSelectedRecetaId(null)}
-            >
-              <Text style={styles.recetaOptionText}>Sin receta específica</Text>
-            </TouchableOpacity>
-            {recetas.map((r) => (
+            </ScrollView>
+
+            <ScrollView contentContainerStyle={styles.content}>
+              {momentosDelDia.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyIcon}>🍴</Text>
+                  <Text style={styles.emptyText}>
+                    Sin comidas para este día
+                  </Text>
+                </View>
+              ) : (
+                momentosDelDia.map((m) => {
+                  const config =
+                    TIPO_CONFIG[m.tipo_comida] ?? TIPO_CONFIG["snack"];
+                  return (
+                    <TouchableOpacity
+                      key={m.id}
+                      style={[
+                        styles.mealCard,
+                        { borderLeftColor: config.color },
+                      ]}
+                      onLongPress={() => handleDeleteMeal(m.id)}
+                    >
+                      <View style={styles.mealCardTop}>
+                        <View
+                          style={[
+                            styles.tipoBadge,
+                            { backgroundColor: config.bgColor },
+                          ]}
+                        >
+                          <Text>{config.icon}</Text>
+                          <Text
+                            style={[
+                              styles.tipoBadgeText,
+                              { color: config.color },
+                            ]}
+                          >
+                            {m.tipo_comida.charAt(0).toUpperCase() +
+                              m.tipo_comida.slice(1)}
+                          </Text>
+                        </View>
+                        <Text style={styles.longPressHint}>
+                          mantén para eliminar
+                        </Text>
+                      </View>
+                      <Text style={styles.mealNombre}>
+                        {m.recetas?.nombre ?? "Sin receta"}
+                      </Text>
+                      {m.porciones && (
+                        <Text style={styles.mealPorciones}>
+                          👥 {m.porciones} porciones
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })
+              )}
               <TouchableOpacity
-                key={r.id}
-                style={[
-                  styles.recetaOption,
-                  selectedRecetaId === r.id && styles.recetaOptionActive,
-                ]}
-                onPress={() => setSelectedRecetaId(r.id)}
+                style={styles.addMealButton}
+                onPress={() => setShowAddMealModal(true)}
               >
-                <Text
-                  style={[
-                    styles.recetaOptionText,
-                    selectedRecetaId === r.id && styles.recetaOptionTextActive,
-                  ]}
+                <Text style={styles.addMealButtonText}>+ Agregar comida</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </>
+        )}
+
+        {/* ── GASTOS TAB ── */}
+        {activeTab === "gastos" && (
+          <View style={styles.centered}>
+            <Text style={styles.emptyIcon}>💸</Text>
+            <Text style={styles.emptyText}>Gastos próximamente</Text>
+            <Text style={styles.emptySub}>
+              Aquí podrás registrar y liquidar gastos del paseo
+            </Text>
+          </View>
+        )}
+
+        {/* ── MODALS ── */}
+
+        {/* Estado modal */}
+        <Modal
+          visible={showEstadoModal}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setShowEstadoModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.estadoModalBox}>
+              <Text style={styles.estadoModalTitle}>
+                Cambiar estado del paseo
+              </Text>
+              {ESTADOS.map((estado) => {
+                const config = ESTADO_CONFIG[estado];
+                return (
+                  <TouchableOpacity
+                    key={estado}
+                    style={[
+                      styles.estadoOption,
+                      { backgroundColor: config.bg },
+                    ]}
+                    onPress={() => handleChangeEstado(estado)}
+                  >
+                    <Text
+                      style={[styles.estadoOptionText, { color: config.color }]}
+                    >
+                      {config.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity
+                onPress={() => setShowEstadoModal(false)}
+                style={styles.estadoCancel}
+              >
+                <Text style={styles.estadoCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Familia modal */}
+        <Modal
+          visible={showFamiliaModal}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setShowFamiliaModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.familiaModalBox}>
+              <Text style={styles.familiaModalTitle}>Cambiar familia</Text>
+              <Text style={styles.familiaModalSub}>
+                {editingParticipante?.personas.nombre}
+              </Text>
+              <TextInput
+                style={styles.familiaInput}
+                value={nuevaFamilia}
+                onChangeText={setNuevaFamilia}
+                keyboardType="numeric"
+                autoFocus
+              />
+              <View style={styles.familiaModalButtons}>
+                <TouchableOpacity
+                  style={styles.familiaModalCancel}
+                  onPress={() => setShowFamiliaModal(false)}
                 >
-                  {r.nombre}
+                  <Text style={styles.familiaModalCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.familiaModalSave}
+                  onPress={saveFamilia}
+                >
+                  <Text style={styles.familiaModalSaveText}>Guardar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Add participant modal */}
+        <Modal
+          visible={showAddModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowAddModal(false)}
+        >
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                <Text style={styles.modalCancel}>Cancelar</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Agregar participante</Text>
+              <TouchableOpacity
+                onPress={handleAddParticipant}
+                disabled={savingParticipant}
+              >
+                <Text style={styles.modalSave}>
+                  {savingParticipant ? "..." : "Guardar"}
                 </Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-    </SafeAreaView>
+            </View>
+            <ScrollView style={styles.modalContent}>
+              <View style={styles.toggleRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleBtn,
+                    !addingNew && styles.toggleBtnActive,
+                  ]}
+                  onPress={() => setAddingNew(false)}
+                >
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      !addingNew && styles.toggleTextActive,
+                    ]}
+                  >
+                    Existente
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleBtn,
+                    addingNew && styles.toggleBtnActive,
+                  ]}
+                  onPress={() => setAddingNew(true)}
+                >
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      addingNew && styles.toggleTextActive,
+                    ]}
+                  >
+                    Nueva persona
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {addingNew ? (
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Nombre *</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ej: Francisco"
+                    placeholderTextColor="#94a3b8"
+                    value={newPersonaNombre}
+                    onChangeText={setNewPersonaNombre}
+                  />
+                </View>
+              ) : (
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Seleccionar persona</Text>
+                  {personas.length === 0 ? (
+                    <Text style={styles.noPersonas}>
+                      No hay personas. Usa "Nueva persona".
+                    </Text>
+                  ) : (
+                    personas.map((p) => (
+                      <TouchableOpacity
+                        key={p.id}
+                        style={[
+                          styles.personaOption,
+                          selectedPersonaId === p.id &&
+                            styles.personaOptionActive,
+                        ]}
+                        onPress={() => setSelectedPersonaId(p.id)}
+                      >
+                        <Text
+                          style={[
+                            styles.personaOptionText,
+                            selectedPersonaId === p.id &&
+                              styles.personaOptionTextActive,
+                          ]}
+                        >
+                          {p.nombre}
+                        </Text>
+                      </TouchableOpacity>
+                    ))
+                  )}
+                </View>
+              )}
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Unidad familiar</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="1"
+                  placeholderTextColor="#94a3b8"
+                  value={unidadFamiliar}
+                  onChangeText={setUnidadFamiliar}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Factor</Text>
+                <View style={styles.factorRow}>
+                  {["0.5", "1"].map((f) => (
+                    <TouchableOpacity
+                      key={f}
+                      style={[
+                        styles.factorBtn,
+                        factor === f && styles.factorBtnActive,
+                      ]}
+                      onPress={() => setFactor(f)}
+                    >
+                      <Text
+                        style={[
+                          styles.factorBtnText,
+                          factor === f && styles.factorBtnTextActive,
+                        ]}
+                      >
+                        {f === "1" ? "1.0 — Adulto" : "0.5 — Menor"}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
+
+        {/* Add meal modal */}
+        <Modal
+          visible={showAddMealModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowAddMealModal(false)}
+        >
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowAddMealModal(false)}>
+                <Text style={styles.modalCancel}>Cancelar</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Agregar comida</Text>
+              <TouchableOpacity onPress={handleAddMeal} disabled={savingMeal}>
+                <Text style={styles.modalSave}>
+                  {savingMeal ? "..." : "Agregar"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalContent}>
+              <Text style={styles.fieldLabel}>Tipo de comida</Text>
+              <View style={styles.tipoRow}>
+                {TIPOS_COMIDA.map((tipo) => {
+                  const config = TIPO_CONFIG[tipo];
+                  return (
+                    <TouchableOpacity
+                      key={tipo}
+                      style={[
+                        styles.tipoBtn,
+                        selectedTipo === tipo && {
+                          backgroundColor: config.bgColor,
+                          borderColor: config.color,
+                        },
+                      ]}
+                      onPress={() => setSelectedTipo(tipo)}
+                    >
+                      <Text style={{ fontSize: 20 }}>{config.icon}</Text>
+                      <Text
+                        style={[
+                          styles.tipoBtnText,
+                          selectedTipo === tipo && { color: config.color },
+                        ]}
+                      >
+                        {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <Text style={styles.fieldLabel}>Receta (opcional)</Text>
+              <TouchableOpacity
+                style={[
+                  styles.recetaOption,
+                  !selectedRecetaId && styles.recetaOptionActive,
+                ]}
+                onPress={() => setSelectedRecetaId(null)}
+              >
+                <Text style={styles.recetaOptionText}>
+                  Sin receta específica
+                </Text>
+              </TouchableOpacity>
+              {recetas.map((r) => (
+                <TouchableOpacity
+                  key={r.id}
+                  style={[
+                    styles.recetaOption,
+                    selectedRecetaId === r.id && styles.recetaOptionActive,
+                  ]}
+                  onPress={() => setSelectedRecetaId(r.id)}
+                >
+                  <Text
+                    style={[
+                      styles.recetaOptionText,
+                      selectedRecetaId === r.id &&
+                        styles.recetaOptionTextActive,
+                    ]}
+                  >
+                    {r.nombre}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f1f5f9" },
+
+  mealPorciones: { fontSize: 12, color: "#64748b", marginTop: 3 },
+
   centered: {
     flex: 1,
     alignItems: "center",

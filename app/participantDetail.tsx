@@ -2,15 +2,17 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../src/lib/supabase";
@@ -193,161 +195,169 @@ export default function ParticipantDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← Volver</Text>
-        </TouchableOpacity>
-        {editing ? (
-          <TouchableOpacity onPress={handleSave}>
-            <Text style={styles.editText}>
-              {saving ? "Guardando..." : "Guardar"}
-            </Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={0}
+    >
+      <SafeAreaView style={styles.container}>
+        {/* HEADER */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.backText}>← Volver</Text>
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={() => setEditing(true)}>
-            <Text style={styles.editText}>Editar</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* PROFILE CARD */}
-        <View style={styles.profileCard}>
-          <TouchableOpacity
-            onPress={handlePhotoOptions}
-            style={styles.avatarContainer}
-          >
-            {fotoUrl ? (
-              <Image source={{ uri: fotoUrl }} style={styles.avatarImage} />
-            ) : (
-              <View style={styles.avatarLarge}>
-                <Text style={styles.avatarLargeText}>
-                  {initials(persona?.nombre)}
-                </Text>
-              </View>
-            )}
-            {uploadingPhoto ? (
-              <View style={styles.avatarOverlay}>
-                <ActivityIndicator color="#fff" />
-              </View>
-            ) : (
-              <View style={styles.avatarOverlay}>
-                <Text style={styles.avatarOverlayText}>
-                  {editing ? "📷" : ""}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
           {editing ? (
-            <TextInput
-              style={styles.nameInput}
-              value={nombre}
-              onChangeText={setNombre}
-              placeholder="Nombre"
-              placeholderTextColor="rgba(255,255,255,0.5)"
-            />
+            <TouchableOpacity onPress={handleSave}>
+              <Text style={styles.editText}>
+                {saving ? "Guardando..." : "Guardar"}
+              </Text>
+            </TouchableOpacity>
           ) : (
-            <Text style={styles.profileName}>{persona?.nombre}</Text>
-          )}
-          <Text style={styles.profileEmail}>
-            {persona?.email ?? "Sin email"}
-          </Text>
-          {!editing && (
-            <Text style={styles.photoHint}>Toca la foto para cambiarla</Text>
+            <TouchableOpacity onPress={() => setEditing(true)}>
+              <Text style={styles.editText}>Editar</Text>
+            </TouchableOpacity>
           )}
         </View>
 
-        {/* DETAILS */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📋 Información</Text>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>📱 Teléfono</Text>
-            {editing ? (
-              <TextInput
-                style={styles.detailInput}
-                value={telefono}
-                onChangeText={setTelefono}
-                placeholder="Ej: +57 300 000 0000"
-                placeholderTextColor="#94a3b8"
-                keyboardType="phone-pad"
-              />
-            ) : (
-              <Text style={styles.detailValue}>
-                {persona?.telefono || "No registrado"}
-              </Text>
-            )}
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>
-              🚫 Restricciones alimentarias
-            </Text>
-            {editing ? (
-              <TextInput
-                style={[styles.detailInput, { height: 80 }]}
-                value={restricciones}
-                onChangeText={setRestricciones}
-                placeholder="Ej: vegetariano, sin gluten..."
-                placeholderTextColor="#94a3b8"
-                multiline
-              />
-            ) : (
-              <Text style={styles.detailValue}>
-                {persona?.restricciones_alimentarias || "Ninguna"}
-              </Text>
-            )}
-          </View>
-        </View>
-
-        {/* TRIPS HISTORY */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            🗺️ Paseos ({participaciones.length})
-          </Text>
-          {participaciones.length === 0 ? (
-            <Text style={styles.emptyText}>
-              Aún no ha participado en ningún paseo
-            </Text>
-          ) : (
-            participaciones.map((p) => {
-              const color =
-                UF_COLORS[(p.unidad_familiar - 1) % UF_COLORS.length];
-              return (
-                <View key={p.id} style={styles.tripRow}>
-                  <View style={[styles.tripDot, { backgroundColor: color }]} />
-                  <View style={styles.tripInfo}>
-                    <Text style={styles.tripNombre}>{p.paseos?.nombre}</Text>
-                    <Text style={styles.tripSub}>
-                      📍 {p.paseos?.lugar} · {p.paseos?.fecha_inicio}
-                    </Text>
-                    <Text style={styles.tripSub}>
-                      Familia {p.unidad_familiar} · Factor {p.factor}
-                    </Text>
-                  </View>
+        <ScrollView contentContainerStyle={styles.content}>
+          {/* PROFILE CARD */}
+          <View style={styles.profileCard}>
+            <TouchableOpacity
+              onPress={handlePhotoOptions}
+              style={styles.avatarContainer}
+            >
+              {fotoUrl ? (
+                <Image source={{ uri: fotoUrl }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatarLarge}>
+                  <Text style={styles.avatarLargeText}>
+                    {initials(persona?.nombre)}
+                  </Text>
                 </View>
-              );
-            })
-          )}
-        </View>
+              )}
+              {uploadingPhoto ? (
+                <View style={styles.avatarOverlay}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              ) : (
+                <View style={styles.avatarOverlay}>
+                  <Text style={styles.avatarOverlayText}>
+                    {editing ? "📷" : ""}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
 
-        {/* SAVE BUTTON (visible when editing) */}
-        {editing && (
-          <TouchableOpacity
-            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-            onPress={handleSave}
-            disabled={saving}
-          >
-            <Text style={styles.saveButtonText}>
-              {saving ? "Guardando..." : "✓ Guardar cambios"}
+            {editing ? (
+              <TextInput
+                style={styles.nameInput}
+                value={nombre}
+                onChangeText={setNombre}
+                placeholder="Nombre"
+                placeholderTextColor="rgba(255,255,255,0.5)"
+              />
+            ) : (
+              <Text style={styles.profileName}>{persona?.nombre}</Text>
+            )}
+            <Text style={styles.profileEmail}>
+              {persona?.email ?? "Sin email"}
             </Text>
-          </TouchableOpacity>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+            {!editing && (
+              <Text style={styles.photoHint}>Toca la foto para cambiarla</Text>
+            )}
+          </View>
+
+          {/* DETAILS */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>📋 Información</Text>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>📱 Teléfono</Text>
+              {editing ? (
+                <TextInput
+                  style={styles.detailInput}
+                  value={telefono}
+                  onChangeText={setTelefono}
+                  placeholder="Ej: +57 300 000 0000"
+                  placeholderTextColor="#94a3b8"
+                  keyboardType="phone-pad"
+                />
+              ) : (
+                <Text style={styles.detailValue}>
+                  {persona?.telefono || "No registrado"}
+                </Text>
+              )}
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>
+                🚫 Restricciones alimentarias
+              </Text>
+              {editing ? (
+                <TextInput
+                  style={[styles.detailInput, { height: 80 }]}
+                  value={restricciones}
+                  onChangeText={setRestricciones}
+                  placeholder="Ej: vegetariano, sin gluten..."
+                  placeholderTextColor="#94a3b8"
+                  multiline
+                />
+              ) : (
+                <Text style={styles.detailValue}>
+                  {persona?.restricciones_alimentarias || "Ninguna"}
+                </Text>
+              )}
+            </View>
+          </View>
+
+          {/* TRIPS HISTORY */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              🗺️ Paseos ({participaciones.length})
+            </Text>
+            {participaciones.length === 0 ? (
+              <Text style={styles.emptyText}>
+                Aún no ha participado en ningún paseo
+              </Text>
+            ) : (
+              participaciones.map((p) => {
+                const color =
+                  UF_COLORS[(p.unidad_familiar - 1) % UF_COLORS.length];
+                return (
+                  <View key={p.id} style={styles.tripRow}>
+                    <View
+                      style={[styles.tripDot, { backgroundColor: color }]}
+                    />
+                    <View style={styles.tripInfo}>
+                      <Text style={styles.tripNombre}>{p.paseos?.nombre}</Text>
+                      <Text style={styles.tripSub}>
+                        📍 {p.paseos?.lugar} · {p.paseos?.fecha_inicio}
+                      </Text>
+                      <Text style={styles.tripSub}>
+                        Familia {p.unidad_familiar} · Factor {p.factor}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </View>
+
+          {/* SAVE BUTTON (visible when editing) */}
+          {editing && (
+            <TouchableOpacity
+              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+              onPress={handleSave}
+              disabled={saving}
+            >
+              <Text style={styles.saveButtonText}>
+                {saving ? "Guardando..." : "✓ Guardar cambios"}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 

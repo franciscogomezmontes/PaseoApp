@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import {
   ActivityIndicator,
@@ -8,12 +9,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRecipeStore } from "../src/store/useRecipeStore";
+import { useRecipeStore } from "../../src/store/useRecipeStore";
 
-const TIPO_CONFIG: Record<
-  string,
-  { icon: string; color: string; bgColor: string }
-> = {
+const TIPO_CONFIG = {
   desayuno: { icon: "☀️", color: "#B45309", bgColor: "#FEF3C7" },
   almuerzo: { icon: "🍽️", color: "#1D4ED8", bgColor: "#DBEAFE" },
   cena: { icon: "🌙", color: "#6D28D9", bgColor: "#EDE9FE" },
@@ -24,12 +22,12 @@ const ORDEN_TIPOS = ["desayuno", "almuerzo", "cena", "snack"];
 
 export default function RecipesScreen() {
   const { recetas, loading, error, fetchRecetas } = useRecipeStore();
+  const router = useRouter();
 
   useEffect(() => {
     fetchRecetas();
   }, []);
 
-  // Group recipes by meal type
   const grouped = ORDEN_TIPOS.reduce(
     (acc, tipo) => {
       const filtered = recetas.filter((r) => r.tipo_comida === tipo);
@@ -63,7 +61,6 @@ export default function RecipesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>📖 Recetas</Text>
         <Text style={styles.headerSub}>
@@ -76,7 +73,6 @@ export default function RecipesScreen() {
           const config = TIPO_CONFIG[tipo];
           return (
             <View key={tipo}>
-              {/* Meal type header */}
               <View style={styles.tipoHeader}>
                 <Text style={styles.tipoIcon}>{config.icon}</Text>
                 <Text style={styles.tipoLabel}>
@@ -85,11 +81,16 @@ export default function RecipesScreen() {
                 <View style={styles.tipoDivider} />
               </View>
 
-              {/* Recipe cards */}
               {lista.map((receta) => (
                 <TouchableOpacity
                   key={receta.id}
                   style={[styles.card, { borderLeftColor: config.color }]}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/recipeDetail",
+                      params: { id: receta.id },
+                    })
+                  }
                 >
                   <View style={styles.cardTop}>
                     <Text style={styles.recetaNombre}>{receta.nombre}</Text>
@@ -116,8 +117,10 @@ export default function RecipesScreen() {
           );
         })}
 
-        {/* Add recipe button */}
-        <TouchableOpacity style={styles.addButton}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => router.push("/newRecipe")}
+        >
           <Text style={styles.addButtonText}>+ Agregar nueva receta</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -133,8 +136,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 24,
   },
-
-  // Header
   header: {
     backgroundColor: "#1B4F72",
     paddingHorizontal: 20,
@@ -143,11 +144,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { color: "#fff", fontSize: 20, fontWeight: "800" },
   headerSub: { color: "rgba(255,255,255,0.7)", fontSize: 13, marginTop: 2 },
-
-  // Content
   content: { padding: 16, paddingBottom: 40 },
-
-  // Tipo section
   tipoHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -158,8 +155,6 @@ const styles = StyleSheet.create({
   tipoIcon: { fontSize: 18 },
   tipoLabel: { fontSize: 14, fontWeight: "700", color: "#475569" },
   tipoDivider: { flex: 1, height: 1, backgroundColor: "#e2e8f0" },
-
-  // Recipe card
   card: {
     backgroundColor: "#fff",
     borderRadius: 16,
@@ -193,8 +188,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   verDetalle: { fontSize: 12, color: "#3B82F6", fontWeight: "600" },
-
-  // Add button
   addButton: {
     borderWidth: 2,
     borderColor: "#cbd5e1",
@@ -205,8 +198,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   addButtonText: { color: "#64748b", fontSize: 14, fontWeight: "600" },
-
-  // Loading / error
   loadingText: { color: "#64748b", marginTop: 12, fontSize: 14 },
   errorIcon: { fontSize: 40, marginBottom: 12 },
   errorText: {
