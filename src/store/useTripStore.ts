@@ -33,6 +33,7 @@ export interface Paseo {
   estado: string;
   codigo_invitacion?: string;
   organizer_id?: string;
+  organizador_nombre?: string;
   link_alojamiento?: string | null;
   recomendaciones?: string | null;
   link_mapa?: string | null;
@@ -65,32 +66,38 @@ export const useTripStore = create<TripStore>((set) => ({
   fetchPaseos: async () => {
     set({ loading: true, error: null });
 
-    // Log session state for debugging
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    console.log(
-      "[fetchPaseos] session uid:",
-      session?.user?.id ?? "NO SESSION",
-    );
-
     const { data, error } = await supabase
       .from("paseos")
       .select("*")
       .order("fecha_inicio", { ascending: false });
 
     if (error) {
-      console.error(
-        "[fetchPaseos] error:",
-        error.message,
-        error.code,
-        error.details,
-      );
+      console.error("[fetchPaseos] error:", error.message, error.code);
       set({ error: error.message, loading: false });
       return;
     }
-    console.log("[fetchPaseos] rows returned:", data?.length ?? 0);
-    set({ paseos: data ?? [], loading: false });
+
+    const paseosList = data ?? [];
+
+    // Fetch organizer names separately via personas.auth_user_id
+    const organizerIds = [...new Set(paseosList.map((p: any) => p.organizer_id).filter(Boolean))];
+    let organizerMap: Record<string, string> = {};
+    if (organizerIds.length > 0) {
+      const { data: personasData } = await supabase
+        .from("personas")
+        .select("auth_user_id, nombre")
+        .in("auth_user_id", organizerIds);
+      (personasData ?? []).forEach((p: any) => {
+        organizerMap[p.auth_user_id] = p.nombre;
+      });
+    }
+
+    const paseos = paseosList.map((p: any) => ({
+      ...p,
+      organizador_nombre: organizerMap[p.organizer_id] ?? "",
+    }));
+
+    set({ paseos, loading: false });
   },
 
   fetchPersonas: async () => {
@@ -105,13 +112,6 @@ export const useTripStore = create<TripStore>((set) => ({
   crearPaseo: async (paseo) => {
     set({ loading: true, error: null });
 
-    // Log session state for debugging
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    console.log("[crearPaseo] session uid:", session?.user?.id ?? "NO SESSION");
-    console.log("[crearPaseo] payload:", JSON.stringify(paseo));
-
     const { data, error } = await supabase
       .from("paseos")
       .insert(paseo)
@@ -119,18 +119,11 @@ export const useTripStore = create<TripStore>((set) => ({
       .single();
 
     if (error) {
-      console.error(
-        "[crearPaseo] error:",
-        error.message,
-        error.code,
-        error.details,
-        error.hint,
-      );
+      console.error("[crearPaseo] error:", error.message, error.code, error.details);
       set({ error: error.message, loading: false });
       return null;
     }
 
-    console.log("[crearPaseo] created:", data?.id);
     set((state) => ({ paseos: [data, ...state.paseos], loading: false }));
     return data;
   },

@@ -1,33 +1,51 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { ONBOARDING_KEY } from "../src/constants";
 import { useAuthStore } from "../src/store/useAuthStore";
 
 export default function RootLayout() {
   const { session, loading, initialize } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [onboardingDone, setOnboardingDone] = useState(false);
 
   useEffect(() => {
     initialize();
+    checkOnboarding();
   }, []);
 
+  const checkOnboarding = async () => {
+    // await AsyncStorage.removeItem(ONBOARDING_KEY); // TODO: remove this line after testing
+    const done = await AsyncStorage.getItem(ONBOARDING_KEY);
+    setOnboardingDone(done === "true");
+    setOnboardingChecked(true);
+  };
+
   useEffect(() => {
-    if (loading) return;
+    if (loading || !onboardingChecked) return;
 
     const inAuthScreen = segments[0] === "auth";
     const inTabsScreen = segments[0] === "(tabs)";
+    const inOnboarding = segments[0] === "onboarding";
 
-    if (!session && !inAuthScreen) {
-      // Not logged in — go to login
-      router.replace("/auth");
+    if (!session) {
+      if (!onboardingDone && !inOnboarding) {
+        // First time — show onboarding
+        router.replace("/onboarding");
+      } else if (onboardingDone && !inAuthScreen) {
+        // Already seen onboarding — go to login
+        router.replace("/auth");
+      }
     } else if (session && inAuthScreen) {
-      // Already logged in — go to main app
       router.replace("/(tabs)");
     }
-  }, [session, loading, segments]);
+  }, [session, loading, segments, onboardingChecked, onboardingDone]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="onboarding" />
       <Stack.Screen name="auth" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen
@@ -42,7 +60,6 @@ export default function RootLayout() {
         }}
       />
       <Stack.Screen name="tripDetail" options={{ headerShown: false }} />
-
       <Stack.Screen
         name="joinTrip"
         options={{

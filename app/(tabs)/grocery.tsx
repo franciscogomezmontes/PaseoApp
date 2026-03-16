@@ -12,6 +12,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import TabTooltip from "../../src/components/TabTooltip";
+import { TOOLTIP_KEYS } from "../../src/constants";
 import { supabase } from "../../src/lib/supabase";
 import { useTripStore } from "../../src/store/useTripStore";
 
@@ -302,7 +304,14 @@ export default function GroceryScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🛒 Mercado</Text>
       </View>
-
+      <TabTooltip
+        storageKey={TOOLTIP_KEYS.grocery}
+        emoji="🛒"
+        titulo="Mercado"
+        descripcion="Genera la lista de mercado automáticamente desde el menú del paseo. Toca cada item para marcarlo como comprado."
+        color="#065F46"
+        bgColor="#F0FDF4"
+      />
       {loadingData ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#1B4F72" />

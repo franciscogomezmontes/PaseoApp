@@ -23,6 +23,7 @@ export default function AuthScreen() {
   const [password, setPassword] = useState("");
   const [nombre, setNombre] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // UI states
   const [showConfirmScreen, setShowConfirmScreen] = useState(false);
@@ -87,7 +88,6 @@ export default function AuthScreen() {
             Abre el correo y toca el enlace para activar tu cuenta. Una vez
             confirmado, regresa aquí e inicia sesión.
           </Text>
-
           <TouchableOpacity
             style={styles.submitBtn}
             onPress={() => {
@@ -98,14 +98,12 @@ export default function AuthScreen() {
           >
             <Text style={styles.submitText}>Ir a iniciar sesión →</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.secondaryBtn}
             onPress={() => setShowConfirmScreen(false)}
           >
             <Text style={styles.secondaryBtnText}>Volver</Text>
           </TouchableOpacity>
-
           <Text style={styles.confirmFooter}>
             ¿No llegó el correo? Revisa la carpeta de spam o vuelve a crear la
             cuenta.
@@ -209,14 +207,25 @@ export default function AuthScreen() {
 
             <View style={styles.field}>
               <Text style={styles.label}>Contraseña</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Mínimo 6 caracteres"
-                placeholderTextColor="#94a3b8"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
+              <View style={styles.passwordWrapper}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Mínimo 6 caracteres"
+                  placeholderTextColor="#94a3b8"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  style={styles.eyeBtn}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Text style={styles.eyeIcon}>
+                    {showPassword ? "🙈" : "👁️"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {mode === "signup" && (
@@ -273,7 +282,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f1f5f9" },
   content: { padding: 24, flexGrow: 1, justifyContent: "center" },
 
-  // Logo
   logoArea: { alignItems: "center", marginBottom: 40 },
   logoEmoji: { fontSize: 56, marginBottom: 12 },
   logoTitle: {
@@ -289,7 +297,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  // Toggle
   toggle: {
     flexDirection: "row",
     backgroundColor: "#e2e8f0",
@@ -307,7 +314,6 @@ const styles = StyleSheet.create({
   toggleText: { fontSize: 14, fontWeight: "600", color: "#64748b" },
   toggleTextActive: { color: "#1B4F72" },
 
-  // Form
   form: { gap: 4 },
   field: { marginBottom: 16 },
   label: { fontSize: 13, fontWeight: "600", color: "#475569", marginBottom: 6 },
@@ -321,6 +327,26 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#1e293b",
   },
+
+  // Password field with eye toggle
+  passwordWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#e2e8f0",
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: "#1e293b",
+  },
+  eyeBtn: { paddingHorizontal: 14, paddingVertical: 12 },
+  eyeIcon: { fontSize: 18 },
+
   confirmNotice: {
     backgroundColor: "#EFF6FF",
     borderRadius: 10,
@@ -342,7 +368,6 @@ const styles = StyleSheet.create({
   secondaryBtn: { padding: 14, alignItems: "center" },
   secondaryBtnText: { fontSize: 14, color: "#64748b", fontWeight: "600" },
 
-  // Confirm screen
   confirmContent: {
     padding: 32,
     flexGrow: 1,
@@ -383,7 +408,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Modal
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",

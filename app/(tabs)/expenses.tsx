@@ -13,6 +13,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import TabTooltip from "../../src/components/TabTooltip";
+import { TOOLTIP_KEYS } from "../../src/constants";
 import { supabase } from "../../src/lib/supabase";
 import { useTripStore } from "../../src/store/useTripStore";
 
@@ -472,7 +474,14 @@ export default function GastosScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>💸 Gastos</Text>
       </View>
-
+      <TabTooltip
+        storageKey={TOOLTIP_KEYS.expenses}
+        emoji="💸"
+        titulo="Gastos"
+        descripcion="Registra los gastos de cada paseo y ve quién le debe a quién. Mantén presionado un gasto para editarlo o eliminarlo."
+        color="#B45309"
+        bgColor="#FFFBEB"
+      />
       {loadingData ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#1B4F72" />

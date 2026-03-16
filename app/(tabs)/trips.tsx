@@ -2,19 +2,42 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import {
-    ActivityIndicator,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import TabTooltip from "../../src/components/TabTooltip";
+import { TOOLTIP_KEYS } from "../../src/constants";
+import { useAuthStore } from "../../src/store/useAuthStore";
 import { useTripStore } from "../../src/store/useTripStore";
 
 export default function TripsScreen() {
   const router = useRouter();
   const { paseos, loading, fetchPaseos } = useTripStore();
+  const { persona } = useAuthStore();
+
+  const handleCompartir = async (p: any) => {
+    try {
+      await Share.share({
+        message: `🏕️ Te invito al paseo *${p.nombre}* en PaseoApp!
+
+📍 ${p.lugar}
+📅 ${p.fecha_inicio} → ${p.fecha_fin}
+
+🔑 Código de invitación: *${p.codigo_invitacion}*
+
+Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
+        title: `Invitación — ${p.nombre}`,
+      });
+    } catch {
+      /* user cancelled */
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -49,6 +72,14 @@ export default function TripsScreen() {
         </View>
       </View>
 
+      <TabTooltip
+        storageKey={TOOLTIP_KEYS.trips}
+        emoji="🗺️"
+        titulo="Mis Paseos"
+        descripcion="Aquí están todos tus paseos. Crea uno nuevo con '+ Nuevo' o únete a uno existente con el código de invitación."
+        color="#1B4F72"
+        bgColor="#EFF6FF"
+      />
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#1B4F72" />
@@ -71,6 +102,7 @@ export default function TripsScreen() {
           {paseos.map((p) => {
             const estado =
               estadoConfig[p.estado] ?? estadoConfig["planificacion"];
+            const esOrganizador = p.organizer_id === persona?.id;
             return (
               <TouchableOpacity
                 key={p.id}
@@ -98,6 +130,21 @@ export default function TripsScreen() {
                     🔑 {p.codigo_invitacion}
                   </Text>
                 </View>
+                <TouchableOpacity
+                  style={styles.compartirBtn}
+                  onPress={() => handleCompartir(p)}
+                >
+                  <Text style={styles.compartirBtnText}>
+                    📤 Compartir invitación
+                  </Text>
+                </TouchableOpacity>
+                {p.organizador_nombre ? (
+                  <Text style={styles.organizadorText}>
+                    {esOrganizador
+                      ? "👑 Organizador: Tú"
+                      : `👤 Organizador: ${p.organizador_nombre}`}
+                  </Text>
+                ) : null}
               </TouchableOpacity>
             );
           })}
@@ -126,6 +173,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: { color: "#fff", fontSize: 20, fontWeight: "800" },
+  headerButtons: { flexDirection: "row", gap: 8 },
   newButton: {
     backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 20,
@@ -133,25 +181,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   newButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-
-  content: { padding: 16, paddingBottom: 40 },
-
-  codeChip: {
-    alignSelf: "flex-start",
-    backgroundColor: "#EFF6FF",
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginTop: 8,
-  },
-  codeChipText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#1B4F72",
-    letterSpacing: 1,
-  },
-
-  headerButtons: { flexDirection: "row", gap: 8 },
   joinButton: {
     backgroundColor: "rgba(255,255,255,0.15)",
     borderRadius: 20,
@@ -159,6 +188,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   joinButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+
+  content: { padding: 16, paddingBottom: 40 },
 
   card: {
     backgroundColor: "#fff",
@@ -186,7 +217,35 @@ const styles = StyleSheet.create({
   estadoBadge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   estadoText: { fontSize: 11, fontWeight: "700" },
   cardLugar: { fontSize: 13, color: "#64748b", marginBottom: 4 },
-  cardFechas: { fontSize: 13, color: "#64748b" },
+  cardFechas: { fontSize: 13, color: "#64748b", marginBottom: 10 },
+
+  codeChip: {
+    alignSelf: "flex-start",
+    backgroundColor: "#EFF6FF",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  codeChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1B4F72",
+    letterSpacing: 1,
+  },
+  organizadorText: { fontSize: 12, color: "#94a3b8", marginTop: 6 },
+  compartirBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#1B4F72",
+    alignSelf: "flex-start",
+  },
+  compartirBtnText: { fontSize: 12, fontWeight: "700", color: "#1B4F72" },
 
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyTitle: {
@@ -203,6 +262,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   createButtonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
-
   loadingText: { color: "#64748b", marginTop: 12, fontSize: 14 },
 });

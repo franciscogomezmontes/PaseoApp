@@ -121,6 +121,7 @@ export default function TripDetailScreen() {
   const [fechaActiva, setFechaActiva] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOrganizer, setIsOrganizer] = useState(false);
+  const [organizadorNombre, setOrganizadorNombre] = useState("");
 
   // ── Info edit ──
   const [editing, setEditing] = useState(false);
@@ -295,6 +296,15 @@ export default function TripDetailScreen() {
         data: { user },
       } = await supabase.auth.getUser();
       setIsOrganizer(paseoData.organizer_id === user?.id);
+      // Load organizer name
+      if (paseoData.organizer_id) {
+        const { data: orgData } = await supabase
+          .from("personas")
+          .select("nombre")
+          .eq("auth_user_id", paseoData.organizer_id)
+          .maybeSingle();
+        setOrganizadorNombre(orgData?.nombre ?? "");
+      }
       const dates: string[] = [];
       const start = new Date(paseoData.fecha_inicio + "T12:00:00");
       const end = new Date(paseoData.fecha_fin + "T12:00:00");
@@ -1560,6 +1570,25 @@ export default function TripDetailScreen() {
     else loadTripData();
   };
 
+  const compartirInvitacion = async () => {
+    try {
+      const { Share } = await import("react-native");
+      await Share.share({
+        message: `🏕️ Te invito al paseo *${paseo?.nombre}* en PaseoApp!
+
+📍 ${paseo?.lugar}
+📅 ${paseo?.fecha_inicio} → ${paseo?.fecha_fin}
+
+🔑 Código de invitación: *${paseo?.codigo_invitacion}*
+
+Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
+        title: `Invitación — ${paseo?.nombre}`,
+      });
+    } catch {
+      /* user cancelled */
+    }
+  };
+
   const compartirTexto = async () => {
     const texto = generarTextoResumen();
     const { Share } = await import("react-native");
@@ -1818,6 +1847,12 @@ export default function TripDetailScreen() {
                       </Text>
                     </View>
                   )}
+                  {organizadorNombre ? (
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>👤 Organizador</Text>
+                      <Text style={styles.infoValue}>{organizadorNombre}</Text>
+                    </View>
+                  ) : null}
                 </>
               )}
             </View>
@@ -1827,6 +1862,14 @@ export default function TripDetailScreen() {
               <Text style={styles.inviteHint}>
                 Comparte este código para que otros se unan
               </Text>
+              <TouchableOpacity
+                style={styles.inviteShareBtn}
+                onPress={compartirInvitacion}
+              >
+                <Text style={styles.inviteShareBtnText}>
+                  📤 Compartir invitación
+                </Text>
+              </TouchableOpacity>
             </View>
             {paseo?.link_mapa &&
               (() => {
@@ -3103,7 +3146,10 @@ export default function TripDetailScreen() {
                 </View>
                 <Switch
                   value={enviarInvitacion}
-                  onValueChange={setEnviarInvitacion}
+                  onValueChange={(v) => {
+                    setEnviarInvitacion(v);
+                    if (v) setGuardarEnDirectorio(true);
+                  }}
                   trackColor={{ false: "#e2e8f0", true: "#1B4F72" }}
                   thumbColor="#fff"
                 />
@@ -4463,7 +4509,18 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
     marginBottom: 6,
   },
-  inviteHint: { color: "rgba(255,255,255,0.5)", fontSize: 11 },
+  inviteHint: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    marginBottom: 14,
+  },
+  inviteShareBtn: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+  },
+  inviteShareBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
 
   deleteButton: {
     backgroundColor: "#fee2e2",

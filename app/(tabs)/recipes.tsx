@@ -13,6 +13,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import TabTooltip from "../../src/components/TabTooltip";
+import { TOOLTIP_KEYS } from "../../src/constants";
 import { supabase } from "../../src/lib/supabase";
 import { useRecipeStore } from "../../src/store/useRecipeStore";
 
@@ -231,6 +233,16 @@ export default function RecipesScreen() {
         ))}
       </View>
 
+      {activeTab === "recetas" && (
+        <TabTooltip
+          storageKey={TOOLTIP_KEYS.recipes}
+          emoji="📖"
+          titulo="Recetas"
+          descripcion="Explora el catálogo de recetas. Filtra por palabras clave, categoría o especificaciones dietarias. Toca una receta para ver los detalles."
+          color="#6D28D9"
+          bgColor="#F5F3FF"
+        />
+      )}
       {activeTab === "recetas" ? (
         <FlatList
           data={letras}
