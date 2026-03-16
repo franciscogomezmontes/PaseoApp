@@ -2,11 +2,10 @@
   "expo": {
     "name": "PaseoApp",
     "slug": "PaseoApp",
-    "scheme": "PaseoApp",
+    "scheme": "paseoapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "paseoapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -20,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.frang_x1.PaseoApp"
     },
     "web": {
       "output": "static",

@@ -144,21 +144,21 @@ export default function TripDetailScreen() {
 
   // ── Add participant ──
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addingNew, setAddingNew] = useState(false);
-  const [personaSearch, setPersonaSearch] = useState("");
-  const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(
-    null,
-  );
   const [newPersonaNombre, setNewPersonaNombre] = useState("");
-  // familia selection inside add modal
   const [selectedFamiliaId, setSelectedFamiliaId] = useState<string | null>(
     null,
   );
   const [creatingNewFamilia, setCreatingNewFamilia] = useState(false);
   const [newFamiliaNombre, setNewFamiliaNombre] = useState("");
-  // factor
   const [factorInput, setFactorInput] = useState("1.0");
   const [savingParticipant, setSavingParticipant] = useState(false);
+  const [enviarInvitacion, setEnviarInvitacion] = useState(false);
+  const [emailInvitacion, setEmailInvitacion] = useState("");
+  const [guardarEnDirectorio, setGuardarEnDirectorio] = useState(false);
+  const [directorio, setDirectorio] = useState<any[]>([]);
+  const [directorioSearch, setDirectorioSearch] = useState("");
+  const [loadingDirectorio, setLoadingDirectorio] = useState(false);
+  const [enviandoInvitacion, setEnviandoInvitacion] = useState(false);
 
   // ── Participant options / edit ──
   const [showOptionsModal, setShowOptionsModal] = useState(false);
@@ -444,9 +444,12 @@ export default function TripDetailScreen() {
     const activePorciones = participaciones
       .filter((p) => updatedMap[p.id] !== false)
       .reduce((sum, p) => sum + (p.factor ?? 1), 0);
+    const porcionesRedondeadas = parseFloat(
+      (Math.round(activePorciones * 10) / 10).toFixed(1),
+    );
     await supabase
       .from("momentos_comida")
-      .update({ porciones: Math.round(activePorciones * 10) / 10 })
+      .update({ porciones: porcionesRedondeadas })
       .eq("id", mealDetailTarget.id);
 
     savingToggleRef.current[participacionId] = false;
@@ -528,25 +531,42 @@ export default function TripDetailScreen() {
   // ─────────────────────────────────────────────
   // Participant handlers
   // ─────────────────────────────────────────────
-  const handleAddParticipant = async () => {
-    setSavingParticipant(true);
-    let personaId = selectedPersonaId;
-    if (addingNew && newPersonaNombre.trim()) {
-      const nueva = await crearPersona(newPersonaNombre.trim());
-      if (!nueva) {
-        showError("No se pudo crear la persona.");
-        setSavingParticipant(false);
-        return;
-      }
-      personaId = nueva.id;
+  const loadDirectorio = async () => {
+    setLoadingDirectorio(true);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      setLoadingDirectorio(false);
+      return;
     }
-    if (!personaId) {
-      showError("Selecciona o crea una persona.");
-      setSavingParticipant(false);
+    const { data } = await supabase
+      .from("directorio")
+      .select("*")
+      .eq("owner_id", session.user.id)
+      .order("nombre");
+    setDirectorio(data ?? []);
+    setLoadingDirectorio(false);
+  };
+
+  const handleAddParticipant = async () => {
+    if (!newPersonaNombre.trim()) {
+      showError("Ingresa el nombre de la persona.");
       return;
     }
 
-    // Resolve familia
+    setSavingParticipant(true);
+
+    // Crear persona
+    const nueva = await crearPersona(newPersonaNombre.trim());
+    if (!nueva) {
+      showError("No se pudo crear la persona.");
+      setSavingParticipant(false);
+      return;
+    }
+    const personaId = nueva.id;
+
+    // Resolver familia
     let familiaId = selectedFamiliaId;
     if (creatingNewFamilia && newFamiliaNombre.trim()) {
       const nextNumero =
@@ -576,7 +596,6 @@ export default function TripDetailScreen() {
     }
 
     const parsedFactor = Math.min(1, Math.max(0, parseFloat(factorInput) || 1));
-    // Get unidad_familiar number from familia
     const famObj =
       familiasList.find((f) => f.id === familiaId) ??
       (creatingNewFamilia
@@ -602,15 +621,71 @@ export default function TripDetailScreen() {
       return;
     }
 
+    // Guardar en directorio si se solicitó
+    if (guardarEnDirectorio) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        await supabase.from("directorio").insert({
+          owner_id: session.user.id,
+          nombre: newPersonaNombre.trim(),
+          email: enviarInvitacion ? emailInvitacion.trim() : null,
+          familia_nombre: creatingNewFamilia
+            ? newFamiliaNombre.trim()
+            : (familiasList.find((f) => f.id === familiaId)?.nombre ?? null),
+        });
+      }
+    }
+
+    // Enviar invitación por correo si se solicitó
+    if (enviarInvitacion && emailInvitacion.trim()) {
+      setEnviandoInvitacion(true);
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const organizadorNombre =
+          (
+            await supabase
+              .from("personas")
+              .select("nombre")
+              .eq("auth_user_id", session?.user?.id ?? "")
+              .single()
+          )?.data?.nombre ?? "El organizador";
+        await fetch(
+          `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/invitar-participante`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              email: emailInvitacion.trim(),
+              nombre_invitado: newPersonaNombre.trim(),
+              nombre_paseo: paseo?.nombre ?? "",
+              codigo_invitacion: paseo?.codigo_invitacion ?? "",
+              nombre_organizador: organizadorNombre,
+            }),
+          },
+        );
+      } catch {
+        /* no bloquear el flujo si el email falla */
+      }
+      setEnviandoInvitacion(false);
+    }
+
     // Reset
-    setSelectedPersonaId(null);
-    setPersonaSearch("");
     setNewPersonaNombre("");
     setSelectedFamiliaId(null);
     setCreatingNewFamilia(false);
     setNewFamiliaNombre("");
     setFactorInput("1.0");
-    setAddingNew(false);
+    setEnviarInvitacion(false);
+    setEmailInvitacion("");
+    setGuardarEnDirectorio(false);
+    setDirectorioSearch("");
     setShowAddModal(false);
     setSavingParticipant(false);
     loadTripData();
@@ -687,12 +762,14 @@ export default function TripDetailScreen() {
       (sum, p) => sum + (p.factor ?? 1),
       0,
     );
+    const porciones =
+      parseFloat((Math.round(totalFactor * 10) / 10).toFixed(1)) || 1;
     const { error } = await supabase.from("momentos_comida").insert({
       paseo_id: id,
       fecha: currentFecha,
       tipo_comida: selectedTipo,
       receta_id: selectedRecetaId,
-      porciones: Math.round(totalFactor * 10) / 10 || 1,
+      porciones,
     });
     if (error) showError(error.message);
     else {
@@ -1520,15 +1597,6 @@ export default function TripDetailScreen() {
         TIPOS_COMIDA.indexOf(b.tipo_comida),
     );
 
-  const personasEnPaseo = new Set(participaciones.map((p) => p.persona_id));
-  const personasFiltradas = personas
-    .filter(
-      (p) =>
-        !personasEnPaseo.has(p.id) &&
-        p.nombre.toLowerCase().includes(personaSearch.toLowerCase()),
-    )
-    .slice(0, 8);
-
   const estadoConfig =
     ESTADO_CONFIG[paseo?.estado] ?? ESTADO_CONFIG["planificacion"];
   const balancesPorFamilia = calcularBalancesPorCategoria();
@@ -1833,7 +1901,10 @@ export default function TripDetailScreen() {
               </Text>
               <TouchableOpacity
                 style={styles.addBtn}
-                onPress={() => setShowAddModal(true)}
+                onPress={() => {
+                  setShowAddModal(true);
+                  loadDirectorio();
+                }}
               >
                 <Text style={styles.addBtnText}>+ Agregar</Text>
               </TouchableOpacity>
@@ -2904,7 +2975,7 @@ export default function TripDetailScreen() {
               <Text style={styles.modalTitle}>Agregar participante</Text>
               <TouchableOpacity
                 onPress={handleAddParticipant}
-                disabled={savingParticipant}
+                disabled={savingParticipant || enviandoInvitacion}
               >
                 <Text style={styles.modalSave}>
                   {savingParticipant ? "..." : "Agregar"}
@@ -2915,75 +2986,21 @@ export default function TripDetailScreen() {
               style={styles.modalContent}
               keyboardShouldPersistTaps="handled"
             >
-              {/* ── Persona ── */}
-              <Text style={styles.modalSectionLabel}>👤 Persona</Text>
-              <View style={styles.toggleRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleBtn,
-                    !addingNew && styles.toggleBtnActive,
-                  ]}
-                  onPress={() => setAddingNew(false)}
-                >
-                  <Text
-                    style={[
-                      styles.toggleText,
-                      !addingNew && styles.toggleTextActive,
-                    ]}
-                  >
-                    Buscar existente
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleBtn,
-                    addingNew && styles.toggleBtnActive,
-                  ]}
-                  onPress={() => setAddingNew(true)}
-                >
-                  <Text
-                    style={[
-                      styles.toggleText,
-                      addingNew && styles.toggleTextActive,
-                    ]}
-                  >
-                    Nueva persona
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {addingNew ? (
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Nombre *</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ej: Francisco"
-                    placeholderTextColor="#94a3b8"
-                    value={newPersonaNombre}
-                    onChangeText={setNewPersonaNombre}
-                  />
-                </View>
-              ) : (
-                <View style={styles.field}>
+              {/* ── Directorio ── */}
+              {directorio.length > 0 && (
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={styles.modalSectionLabel}>📋 Mis contactos</Text>
                   <View style={styles.searchBar}>
                     <Text style={styles.searchIcon}>🔍</Text>
                     <TextInput
                       style={styles.searchInput}
-                      placeholder="Buscar persona..."
+                      placeholder="Buscar en directorio..."
                       placeholderTextColor="#94a3b8"
-                      value={personaSearch}
-                      onChangeText={(t) => {
-                        setPersonaSearch(t);
-                        setSelectedPersonaId(null);
-                      }}
+                      value={directorioSearch}
+                      onChangeText={setDirectorioSearch}
                     />
-                    {personaSearch.length > 0 && (
-                      <TouchableOpacity
-                        onPress={() => {
-                          setPersonaSearch("");
-                          setSelectedPersonaId(null);
-                        }}
-                      >
+                    {directorioSearch.length > 0 && (
+                      <TouchableOpacity onPress={() => setDirectorioSearch("")}>
                         <Text
                           style={{
                             color: "#94a3b8",
@@ -2996,64 +3013,136 @@ export default function TripDetailScreen() {
                       </TouchableOpacity>
                     )}
                   </View>
-                  {personaSearch.length >= 1 && (
-                    <View style={styles.searchResults}>
-                      {personasFiltradas.length === 0 ? (
-                        <Text style={styles.noPersonas}>
-                          Sin resultados. Usa "Nueva persona".
-                        </Text>
-                      ) : (
-                        personasFiltradas.map((p) => (
-                          <TouchableOpacity
-                            key={p.id}
-                            style={[
-                              styles.searchResultItem,
-                              selectedPersonaId === p.id &&
-                                styles.searchResultItemActive,
-                            ]}
-                            onPress={() => setSelectedPersonaId(p.id)}
-                          >
-                            <View
-                              style={[
-                                styles.searchResultDot,
-                                {
-                                  backgroundColor:
-                                    selectedPersonaId === p.id
-                                      ? "#1B4F72"
-                                      : "#e2e8f0",
-                                },
-                              ]}
-                            />
-                            <Text
-                              style={[
-                                styles.searchResultText,
-                                selectedPersonaId === p.id &&
-                                  styles.searchResultTextActive,
-                              ]}
-                            >
-                              {p.nombre}
+                  <View style={{ marginTop: 8 }}>
+                    {directorio
+                      .filter((d) =>
+                        d.nombre
+                          .toLowerCase()
+                          .includes(directorioSearch.toLowerCase()),
+                      )
+                      .slice(0, 5)
+                      .map((d) => (
+                        <TouchableOpacity
+                          key={d.id}
+                          style={styles.directorioItem}
+                          onPress={() => {
+                            setNewPersonaNombre(d.nombre);
+                            if (d.email) {
+                              setEnviarInvitacion(true);
+                              setEmailInvitacion(d.email);
+                            }
+                            if (d.familia_nombre) {
+                              const fam = familiasList.find(
+                                (f) => f.nombre === d.familia_nombre,
+                              );
+                              if (fam) setSelectedFamiliaId(fam.id);
+                            }
+                            setDirectorioSearch("");
+                          }}
+                        >
+                          <View style={styles.directorioAvatar}>
+                            <Text style={styles.directorioAvatarText}>
+                              {initials(d.nombre)}
                             </Text>
-                          </TouchableOpacity>
-                        ))
-                      )}
-                    </View>
-                  )}
-                  {selectedPersonaId && (
-                    <View style={styles.selectedPersonaBadge}>
-                      <Text style={styles.selectedPersonaText}>
-                        ✓{" "}
-                        {
-                          personas.find((p) => p.id === selectedPersonaId)
-                            ?.nombre
-                        }
-                      </Text>
-                    </View>
-                  )}
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.directorioNombre}>
+                              {d.nombre}
+                            </Text>
+                            {d.familia_nombre ? (
+                              <Text style={styles.directorioSub}>
+                                {d.familia_nombre}
+                                {d.email ? ` · ${d.email}` : ""}
+                              </Text>
+                            ) : null}
+                            {!d.familia_nombre && d.email ? (
+                              <Text style={styles.directorioSub}>
+                                {d.email}
+                              </Text>
+                            ) : null}
+                          </View>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: "#1B4F72",
+                              fontWeight: "600",
+                            }}
+                          >
+                            Usar
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                  </View>
+                  <View style={styles.directorioSeparador} />
                 </View>
               )}
 
+              {/* ── Nombre ── */}
+              <Text style={styles.modalSectionLabel}>👤 Persona</Text>
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Nombre *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ej: Francisco García"
+                  placeholderTextColor="#94a3b8"
+                  value={newPersonaNombre}
+                  onChangeText={setNewPersonaNombre}
+                  autoCapitalize="words"
+                />
+              </View>
+
+              {/* ── Invitación por correo ── */}
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.switchLabel}>
+                    📬 Enviar invitación por correo
+                  </Text>
+                  <Text style={styles.switchSub}>
+                    Le llegará el código del paseo
+                  </Text>
+                </View>
+                <Switch
+                  value={enviarInvitacion}
+                  onValueChange={setEnviarInvitacion}
+                  trackColor={{ false: "#e2e8f0", true: "#1B4F72" }}
+                  thumbColor="#fff"
+                />
+              </View>
+              {enviarInvitacion && (
+                <View style={[styles.field, { marginTop: 8 }]}>
+                  <Text style={styles.fieldLabel}>Correo electrónico *</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="correo@ejemplo.com"
+                    placeholderTextColor="#94a3b8"
+                    value={emailInvitacion}
+                    onChangeText={setEmailInvitacion}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+              )}
+
+              {/* ── Guardar en directorio ── */}
+              <View style={[styles.switchRow, { marginBottom: 20 }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.switchLabel}>
+                    💾 Guardar en mi directorio
+                  </Text>
+                  <Text style={styles.switchSub}>
+                    Para invitarla rápido en futuros paseos
+                  </Text>
+                </View>
+                <Switch
+                  value={guardarEnDirectorio}
+                  onValueChange={setGuardarEnDirectorio}
+                  trackColor={{ false: "#e2e8f0", true: "#1B4F72" }}
+                  thumbColor="#fff"
+                />
+              </View>
+
               {/* ── Familia ── */}
-              <Text style={[styles.modalSectionLabel, { marginTop: 8 }]}>
+              <Text style={[styles.modalSectionLabel, { marginTop: 4 }]}>
                 🏠 Familia
               </Text>
               <View style={styles.toggleRow}>
@@ -3090,7 +3179,6 @@ export default function TripDetailScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
-
               {creatingNewFamilia ? (
                 <View style={styles.field}>
                   <Text style={styles.fieldLabel}>Nombre de la familia *</Text>
@@ -5142,4 +5230,44 @@ const styles = StyleSheet.create({
   emptySearch: { alignItems: "center", paddingVertical: 24 },
   emptySearchIcon: { fontSize: 32, marginBottom: 8 },
   emptySearchText: { fontSize: 14, color: "#64748b" },
+
+  // Directorio
+  directorioItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
+  },
+  directorioAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#1B4F72",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  directorioAvatarText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  directorioNombre: { fontSize: 14, fontWeight: "600", color: "#1e293b" },
+  directorioSub: { fontSize: 11, color: "#94a3b8", marginTop: 1 },
+  directorioSeparador: {
+    height: 1,
+    backgroundColor: "#e2e8f0",
+    marginTop: 16,
+    marginBottom: 4,
+  },
+
+  // Switch rows
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
+    marginBottom: 4,
+  },
+  switchLabel: { fontSize: 14, fontWeight: "600", color: "#1e293b" },
+  switchSub: { fontSize: 11, color: "#94a3b8", marginTop: 2 },
 });
