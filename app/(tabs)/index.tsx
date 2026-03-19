@@ -128,6 +128,7 @@ export default function HomeScreen() {
   const [notificaciones, setNotificaciones] = useState(true);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [paseosExpanded, setPaseosExpanded] = useState(false);
+  const [configExpanded, setConfigExpanded] = useState(false);
 
   // ── Modals ──
   const [showSignOutModal, setShowSignOutModal] = useState(false);
@@ -463,14 +464,9 @@ export default function HomeScreen() {
                   : `${paseosRecientes.length} paseo${paseosRecientes.length !== 1 ? "s" : ""}`}
               </Text>
             </View>
-            <View style={styles.collapseRight}>
-              <TouchableOpacity onPress={() => router.push("/trips" as any)}>
-                <Text style={styles.sectionLink}>Ver todos →</Text>
-              </TouchableOpacity>
-              <Text style={styles.collapseIcon}>
-                {paseosExpanded ? "▲" : "▼"}
-              </Text>
-            </View>
+            <Text style={styles.collapseIcon}>
+              {paseosExpanded ? "▲" : "▼"}
+            </Text>
           </TouchableOpacity>
 
           {paseosExpanded &&
@@ -586,70 +582,90 @@ export default function HomeScreen() {
 
         {/* ── 6. CONFIGURACIÓN ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Configuración</Text>
-
-          {/* Perfil */}
           <TouchableOpacity
-            style={styles.settingRow}
-            onPress={() => setShowProfileModal(true)}
+            style={styles.collapseHeader}
+            onPress={() => setConfigExpanded(!configExpanded)}
+            activeOpacity={0.7}
           >
-            <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>⚙️</Text>
-              <View>
-                <Text style={styles.settingLabel}>Editar perfil</Text>
-                <Text style={styles.settingSub}>
-                  {nombre || persona?.nombre}
-                </Text>
-              </View>
+            <View>
+              <Text style={styles.sectionTitle}>Configuración</Text>
+              <Text style={styles.collapseHint}>
+                Perfil, notificaciones, idioma
+              </Text>
             </View>
-            <Text style={styles.settingArrow}>›</Text>
+            <Text style={styles.collapseIcon}>
+              {configExpanded ? "▲" : "▼"}
+            </Text>
           </TouchableOpacity>
 
-          {/* Notificaciones */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🔔</Text>
-              <View>
-                <Text style={styles.settingLabel}>Notificaciones</Text>
-                <Text style={styles.settingSub}>Gastos y cambios al menú</Text>
-              </View>
-            </View>
-            <Switch
-              value={notificaciones}
-              onValueChange={setNotificaciones}
-              trackColor={{ false: "#e2e8f0", true: "#1B4F72" }}
-              thumbColor="#fff"
-            />
-          </View>
+          {configExpanded && (
+            <>
+              {/* Perfil */}
+              <TouchableOpacity
+                style={[styles.settingRow, { marginTop: 8 }]}
+                onPress={() => setShowProfileModal(true)}
+              >
+                <View style={styles.settingLeft}>
+                  <Text style={styles.settingIcon}>⚙️</Text>
+                  <View>
+                    <Text style={styles.settingLabel}>Editar perfil</Text>
+                    <Text style={styles.settingSub}>
+                      {nombre || persona?.nombre}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.settingArrow}>›</Text>
+              </TouchableOpacity>
 
-          {/* Idioma */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🌍</Text>
-              <View>
-                <Text style={styles.settingLabel}>Idioma</Text>
-                <Text style={styles.settingSub}>Español</Text>
+              {/* Notificaciones */}
+              <View style={styles.settingRow}>
+                <View style={styles.settingLeft}>
+                  <Text style={styles.settingIcon}>🔔</Text>
+                  <View>
+                    <Text style={styles.settingLabel}>Notificaciones</Text>
+                    <Text style={styles.settingSub}>
+                      Gastos y cambios al menú
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={notificaciones}
+                  onValueChange={setNotificaciones}
+                  trackColor={{ false: "#e2e8f0", true: "#1B4F72" }}
+                  thumbColor="#fff"
+                />
               </View>
-            </View>
-            <Text style={styles.settingArrow}>›</Text>
-          </View>
 
-          {/* Tutorial */}
-          <TouchableOpacity
-            style={[styles.settingRow, { borderBottomWidth: 0 }]}
-            onPress={handleVerOnboarding}
-          >
-            <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🎓</Text>
-              <View>
-                <Text style={styles.settingLabel}>Ver tutorial</Text>
-                <Text style={styles.settingSub}>
-                  Volver a ver las pantallas de introducción
-                </Text>
+              {/* Idioma */}
+              <View style={styles.settingRow}>
+                <View style={styles.settingLeft}>
+                  <Text style={styles.settingIcon}>🌍</Text>
+                  <View>
+                    <Text style={styles.settingLabel}>Idioma</Text>
+                    <Text style={styles.settingSub}>Español</Text>
+                  </View>
+                </View>
+                <Text style={styles.settingArrow}>›</Text>
               </View>
-            </View>
-            <Text style={styles.settingArrow}>›</Text>
-          </TouchableOpacity>
+
+              {/* Tutorial */}
+              <TouchableOpacity
+                style={[styles.settingRow, { borderBottomWidth: 0 }]}
+                onPress={handleVerOnboarding}
+              >
+                <View style={styles.settingLeft}>
+                  <Text style={styles.settingIcon}>🎓</Text>
+                  <View>
+                    <Text style={styles.settingLabel}>Ver tutorial</Text>
+                    <Text style={styles.settingSub}>
+                      Volver a ver las pantallas de introducción
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.settingArrow}>›</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* ── 7. FAQ ── */}

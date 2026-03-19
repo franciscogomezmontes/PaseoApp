@@ -142,6 +142,8 @@ export default function NewRecipeScreen() {
   const [showCreateIngModal, setShowCreateIngModal] = useState(false);
   const [newIngNombre, setNewIngNombre] = useState("");
   const [newIngUnidad, setNewIngUnidad] = useState("g");
+  const [newIngCategoria, setNewIngCategoria] = useState("Otros");
+  const [newIngRecomendaciones, setNewIngRecomendaciones] = useState("");
 
   const showError = (msg: string) => {
     setErrorMsg(msg);
@@ -297,6 +299,8 @@ export default function NewRecipeScreen() {
   const openCreateIng = () => {
     setNewIngNombre(busqueda);
     setNewIngUnidad("g");
+    setNewIngCategoria("Otros");
+    setNewIngRecomendaciones("");
     setShowCreateIngModal(true);
   };
 
@@ -315,7 +319,8 @@ export default function NewRecipeScreen() {
           .insert({
             nombre: newIngNombre.trim(),
             unidad_base: newIngUnidad,
-            categoria: "Otros",
+            categoria: newIngCategoria,
+            recomendaciones: newIngRecomendaciones.trim() || null,
           })
           .select()
           .single();
@@ -988,19 +993,35 @@ export default function NewRecipeScreen() {
                 <Text style={styles.modalSave}>Crear</Text>
               </TouchableOpacity>
             </View>
-            <View style={{ padding: 20 }}>
-              <Text style={styles.fieldLabel}>Nombre</Text>
-              <TextInput
-                style={[styles.input, { marginBottom: 16 }]}
-                value={newIngNombre}
-                onChangeText={setNewIngNombre}
-                placeholder="Nombre del ingrediente"
-                placeholderTextColor="#94a3b8"
-              />
-              <Text style={styles.fieldLabel}>Unidad base</Text>
-              <View style={styles.chipRow}>
-                {["g", "kg", "ml", "l", "unidades", "tazas", "cucharadas"].map(
-                  (u) => (
+            <ScrollView
+              style={{ padding: 20 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Nombre *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={newIngNombre}
+                  onChangeText={setNewIngNombre}
+                  placeholder="Nombre del ingrediente"
+                  placeholderTextColor="#94a3b8"
+                  autoFocus
+                />
+              </View>
+
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Unidad base</Text>
+                <View style={styles.chipRow}>
+                  {[
+                    "g",
+                    "kg",
+                    "ml",
+                    "l",
+                    "unidades",
+                    "tazas",
+                    "cucharadas",
+                    "cubos",
+                  ].map((u) => (
                     <TouchableOpacity
                       key={u}
                       style={[
@@ -1018,10 +1039,62 @@ export default function NewRecipeScreen() {
                         {u}
                       </Text>
                     </TouchableOpacity>
-                  ),
-                )}
+                  ))}
+                </View>
               </View>
-            </View>
+
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Categoría</Text>
+                <View style={styles.chipRow}>
+                  {[
+                    "Abarrotes",
+                    "Carnes y proteínas",
+                    "Frutas y verduras",
+                    "Lácteos y huevos",
+                    "Granos y cereales",
+                    "Condimentos",
+                    "Bebidas",
+                    "Panadería",
+                    "Enlatados",
+                    "Otros",
+                  ].map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.chip,
+                        newIngCategoria === cat && styles.chipActive,
+                      ]}
+                      onPress={() => setNewIngCategoria(cat)}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          newIngCategoria === cat && styles.chipTextActive,
+                        ]}
+                      >
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Recomendaciones de compra</Text>
+                <Text style={[styles.fieldHint, { marginBottom: 6 }]}>
+                  Marca, frescura, tamaño, dónde encontrarlo...
+                </Text>
+                <TextInput
+                  style={[styles.input, { height: 80 }]}
+                  value={newIngRecomendaciones}
+                  onChangeText={setNewIngRecomendaciones}
+                  placeholder="Ej: Preferir de marca X, que sea fresco..."
+                  placeholderTextColor="#94a3b8"
+                  multiline
+                  textAlignVertical="top"
+                />
+              </View>
+            </ScrollView>
           </SafeAreaView>
         </Modal>
       </SafeAreaView>

@@ -27,6 +27,7 @@ const CATEGORIAS_ING = [
   "Frutas y verduras",
   "Lácteos y huevos",
   "Granos y cereales",
+  "Nevera",
   "Condimentos",
   "Bebidas",
   "Panadería",
@@ -42,7 +43,13 @@ const UNIDADES = [
   "unidades",
   "tazas",
   "cucharadas",
+  "cucharadítas",
   "cubos",
+  "tajadas",
+  "dientes",
+  "rama",
+  "atados",
+  "paquetes",
 ];
 
 const TIPO_CONFIG: Record<string, { icon: string; color: string }> = {
@@ -208,12 +215,26 @@ export default function RecipesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>📖 Recetas</Text>
-        <Text style={styles.headerSub}>
-          {activeTab === "recetas"
-            ? `${recetas.length} recetas disponibles`
-            : `${ingredientes.length} ingredientes en catálogo`}
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>📖 Recetas</Text>
+          <Text style={styles.headerSub}>
+            {activeTab === "recetas"
+              ? `${recetas.length} recetas disponibles`
+              : `${ingredientes.length} ingredientes en catálogo`}
+          </Text>
+        </View>
+        {activeTab === "recetas" ? (
+          <TouchableOpacity
+            style={styles.headerAddBtn}
+            onPress={() => router.push("/newRecipe")}
+          >
+            <Text style={styles.headerAddBtnText}>+ Receta</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.headerAddBtn} onPress={openNewIng}>
+            <Text style={styles.headerAddBtnText}>+ Ingrediente</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* SUB-TABS */}
@@ -408,14 +429,7 @@ export default function RecipesScreen() {
               })}
             </View>
           )}
-          ListFooterComponent={
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => router.push("/newRecipe")}
-            >
-              <Text style={styles.addButtonText}>+ Agregar nueva receta</Text>
-            </TouchableOpacity>
-          }
+          ListFooterComponent={<View style={{ height: 20 }} />}
         />
       ) : (
         <>
@@ -469,12 +483,6 @@ export default function RecipesScreen() {
                     </Text>
                   </View>
                 )}
-
-              <TouchableOpacity style={styles.addButton} onPress={openNewIng}>
-                <Text style={styles.addButtonText}>
-                  + Agregar nuevo ingrediente
-                </Text>
-              </TouchableOpacity>
             </ScrollView>
           )}
         </>
@@ -667,8 +675,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 20,
+    flexDirection: "row",
+    alignItems: "center",
   },
   headerTitle: { color: "#fff", fontSize: 20, fontWeight: "800" },
+  headerAddBtn: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  headerAddBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   headerSub: { color: "rgba(255,255,255,0.7)", fontSize: 13, marginTop: 2 },
 
   tabRow: {

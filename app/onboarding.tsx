@@ -16,6 +16,16 @@ const { width } = Dimensions.get("window");
 
 const SLIDES = [
   {
+    id: "0",
+    emoji: "🌴",
+    titulo: "Planea. Come bien.\nCuadra cuentas.",
+    descripcion:
+      "PaseoApp organiza el menú, los gastos y las deudas de tu próximo paseo — sin hojas de cálculo, sin peleas.",
+    color: "#0f172a",
+    bgColor: "#f8fafc",
+    isHero: true,
+  },
+  {
     id: "1",
     emoji: "🏕️",
     titulo: "Bienvenido a PaseoApp",
@@ -112,7 +122,13 @@ export default function OnboardingScreen() {
             >
               <Text style={styles.emoji}>{item.emoji}</Text>
             </View>
-            <Text style={[styles.titulo, { color: item.color }]}>
+            <Text
+              style={[
+                styles.titulo,
+                { color: item.color },
+                (item as any).isHero && styles.tituloHero,
+              ]}
+            >
               {item.titulo}
             </Text>
             <Text style={styles.descripcion}>{item.descripcion}</Text>
@@ -216,6 +232,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   dot: { height: 8, borderRadius: 4 },
+  tituloHero: { fontSize: 34, lineHeight: 42, letterSpacing: -1 },
 
   bottomBar: { paddingHorizontal: 24, paddingBottom: 16 },
   nextBtn: { borderRadius: 16, padding: 18, alignItems: "center" },

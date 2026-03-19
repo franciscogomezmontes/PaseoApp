@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import {
   ActivityIndicator,
+  Image,
   ScrollView,
   Share,
   StyleSheet,
@@ -112,7 +113,21 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 }
               >
                 <View style={styles.cardTop}>
-                  <Text style={styles.cardNombre}>{p.nombre}</Text>
+                  {/* Foto avatar */}
+                  {p.foto_url ? (
+                    <Image
+                      source={{ uri: p.foto_url }}
+                      style={styles.cardAvatar}
+                    />
+                  ) : (
+                    <View style={styles.cardAvatarPlaceholder}>
+                      <Text style={{ fontSize: 18 }}>🏕️</Text>
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.cardNombre}>{p.nombre}</Text>
+                    <Text style={styles.cardLugar}>📍 {p.lugar}</Text>
+                  </View>
                   <View
                     style={[styles.estadoBadge, { backgroundColor: estado.bg }]}
                   >
@@ -121,23 +136,22 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.cardLugar}>📍 {p.lugar}</Text>
                 <Text style={styles.cardFechas}>
                   📅 {p.fecha_inicio} → {p.fecha_fin}
                 </Text>
-                <View style={styles.codeChip}>
-                  <Text style={styles.codeChipText}>
-                    🔑 {p.codigo_invitacion}
-                  </Text>
+                <View style={styles.cardFooter}>
+                  <View style={styles.codeChip}>
+                    <Text style={styles.codeChipText}>
+                      🔑 {p.codigo_invitacion}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.compartirBtn}
+                    onPress={() => handleCompartir(p)}
+                  >
+                    <Text style={styles.compartirBtnText}>📤 Compartir</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  style={styles.compartirBtn}
-                  onPress={() => handleCompartir(p)}
-                >
-                  <Text style={styles.compartirBtnText}>
-                    📤 Compartir invitación
-                  </Text>
-                </TouchableOpacity>
                 {p.organizador_nombre ? (
                   <Text style={styles.organizadorText}>
                     {esOrganizador
@@ -203,21 +217,31 @@ const styles = StyleSheet.create({
   },
   cardTop: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
+    gap: 10,
     marginBottom: 8,
   },
-  cardNombre: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1e293b",
-    flex: 1,
-    marginRight: 8,
+  cardAvatar: { width: 44, height: 44, borderRadius: 22, flexShrink: 0 },
+  cardAvatarPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#f1f5f9",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
   },
+  cardNombre: { fontSize: 15, fontWeight: "700", color: "#1e293b" },
   estadoBadge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   estadoText: { fontSize: 11, fontWeight: "700" },
-  cardLugar: { fontSize: 13, color: "#64748b", marginBottom: 4 },
+  cardLugar: { fontSize: 12, color: "#94a3b8", marginTop: 1 },
   cardFechas: { fontSize: 13, color: "#64748b", marginBottom: 10 },
+  cardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
 
   codeChip: {
     alignSelf: "flex-start",

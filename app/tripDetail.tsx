@@ -160,6 +160,10 @@ export default function TripDetailScreen() {
   const [directorioSearch, setDirectorioSearch] = useState("");
   const [loadingDirectorio, setLoadingDirectorio] = useState(false);
   const [enviandoInvitacion, setEnviandoInvitacion] = useState(false);
+  const [showDirectorioModal, setShowDirectorioModal] = useState(false);
+  const [miPersona, setMiPersona] = useState<any>(null);
+  const [miPersonaId, setMiPersonaId] = useState<string | null>(null);
+  const [miPersonaNombre, setMiPersonaNombre] = useState<string>("");
 
   // ── Participant options / edit ──
   const [showOptionsModal, setShowOptionsModal] = useState(false);
@@ -296,6 +300,18 @@ export default function TripDetailScreen() {
         data: { user },
       } = await supabase.auth.getUser();
       setIsOrganizer(paseoData.organizer_id === user?.id);
+      // Load my own persona for self-add
+      if (user?.id) {
+        const { data: mePers } = await supabase
+          .from("personas")
+          .select("id, nombre")
+          .eq("auth_user_id", user.id)
+          .maybeSingle();
+        if (mePers) {
+          setMiPersonaId(mePers.id);
+          setMiPersonaNombre(mePers.nombre);
+        }
+      }
       // Load organizer name
       if (paseoData.organizer_id) {
         const { data: orgData } = await supabase
@@ -3011,318 +3027,243 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
           onRequestClose={() => setShowAddModal(false)}
         >
           <SafeAreaView style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <Text style={styles.modalCancel}>Cancelar</Text>
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>Agregar participante</Text>
-              <TouchableOpacity
-                onPress={handleAddParticipant}
-                disabled={savingParticipant || enviandoInvitacion}
-              >
-                <Text style={styles.modalSave}>
-                  {savingParticipant ? "..." : "Agregar"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView
-              style={styles.modalContent}
-              keyboardShouldPersistTaps="handled"
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={{ flex: 1 }}
             >
-              {/* ── Directorio ── */}
-              {directorio.length > 0 && (
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={styles.modalSectionLabel}>📋 Mis contactos</Text>
-                  <View style={styles.searchBar}>
-                    <Text style={styles.searchIcon}>🔍</Text>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                  <Text style={styles.modalCancel}>Cancelar</Text>
+                </TouchableOpacity>
+                <Text style={styles.modalTitle}>Agregar participante</Text>
+                <TouchableOpacity
+                  onPress={handleAddParticipant}
+                  disabled={savingParticipant || enviandoInvitacion}
+                >
+                  <Text style={styles.modalSave}>
+                    {savingParticipant ? "..." : "Agregar"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView
+                style={styles.modalContent}
+                contentContainerStyle={{ paddingBottom: 40 }}
+                keyboardShouldPersistTaps="handled"
+              >
+                {/* ── Persona + botón directorio ── */}
+                <Text style={styles.modalSectionLabel}>👤 Persona</Text>
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Nombre *</Text>
+                  <View style={styles.nombreRow}>
                     <TextInput
-                      style={styles.searchInput}
-                      placeholder="Buscar en directorio..."
+                      style={[styles.input, { flex: 1 }]}
+                      placeholder="Ej: Francisco García"
                       placeholderTextColor="#94a3b8"
-                      value={directorioSearch}
-                      onChangeText={setDirectorioSearch}
+                      value={newPersonaNombre}
+                      onChangeText={setNewPersonaNombre}
+                      autoCapitalize="words"
                     />
-                    {directorioSearch.length > 0 && (
-                      <TouchableOpacity onPress={() => setDirectorioSearch("")}>
-                        <Text
-                          style={{
-                            color: "#94a3b8",
-                            fontSize: 16,
-                            paddingHorizontal: 8,
-                          }}
-                        >
-                          ✕
-                        </Text>
-                      </TouchableOpacity>
-                    )}
+                    <TouchableOpacity
+                      style={styles.directorioBtn}
+                      onPress={() => setShowDirectorioModal(true)}
+                    >
+                      <Text style={styles.directorioBtnText}>📋</Text>
+                    </TouchableOpacity>
                   </View>
-                  <View style={{ marginTop: 8 }}>
-                    {directorio
-                      .filter((d) =>
-                        d.nombre
-                          .toLowerCase()
-                          .includes(directorioSearch.toLowerCase()),
-                      )
-                      .slice(0, 5)
-                      .map((d) => (
-                        <TouchableOpacity
-                          key={d.id}
-                          style={styles.directorioItem}
-                          onPress={() => {
-                            setNewPersonaNombre(d.nombre);
-                            if (d.email) {
-                              setEnviarInvitacion(true);
-                              setEmailInvitacion(d.email);
-                            }
-                            if (d.familia_nombre) {
-                              const fam = familiasList.find(
-                                (f) => f.nombre === d.familia_nombre,
-                              );
-                              if (fam) setSelectedFamiliaId(fam.id);
-                            }
-                            setDirectorioSearch("");
-                          }}
-                        >
-                          <View style={styles.directorioAvatar}>
-                            <Text style={styles.directorioAvatarText}>
-                              {initials(d.nombre)}
-                            </Text>
-                          </View>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.directorioNombre}>
-                              {d.nombre}
-                            </Text>
-                            {d.familia_nombre ? (
-                              <Text style={styles.directorioSub}>
-                                {d.familia_nombre}
-                                {d.email ? ` · ${d.email}` : ""}
-                              </Text>
-                            ) : null}
-                            {!d.familia_nombre && d.email ? (
-                              <Text style={styles.directorioSub}>
-                                {d.email}
-                              </Text>
-                            ) : null}
-                          </View>
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              color: "#1B4F72",
-                              fontWeight: "600",
-                            }}
-                          >
-                            Usar
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                  </View>
-                  <View style={styles.directorioSeparador} />
                 </View>
-              )}
 
-              {/* ── Nombre ── */}
-              <Text style={styles.modalSectionLabel}>👤 Persona</Text>
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Nombre *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ej: Francisco García"
-                  placeholderTextColor="#94a3b8"
-                  value={newPersonaNombre}
-                  onChangeText={setNewPersonaNombre}
-                  autoCapitalize="words"
-                />
-              </View>
-
-              {/* ── Invitación por correo ── */}
-              <View style={styles.switchRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.switchLabel}>
-                    📬 Enviar invitación por correo
-                  </Text>
-                  <Text style={styles.switchSub}>
-                    Le llegará el código del paseo
-                  </Text>
-                </View>
-                <Switch
-                  value={enviarInvitacion}
-                  onValueChange={(v) => {
-                    setEnviarInvitacion(v);
-                    if (v) setGuardarEnDirectorio(true);
-                  }}
-                  trackColor={{ false: "#e2e8f0", true: "#1B4F72" }}
-                  thumbColor="#fff"
-                />
-              </View>
-              {enviarInvitacion && (
-                <View style={[styles.field, { marginTop: 8 }]}>
-                  <Text style={styles.fieldLabel}>Correo electrónico *</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="correo@ejemplo.com"
-                    placeholderTextColor="#94a3b8"
-                    value={emailInvitacion}
-                    onChangeText={setEmailInvitacion}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                </View>
-              )}
-
-              {/* ── Guardar en directorio ── */}
-              <View style={[styles.switchRow, { marginBottom: 20 }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.switchLabel}>
-                    💾 Guardar en mi directorio
-                  </Text>
-                  <Text style={styles.switchSub}>
-                    Para invitarla rápido en futuros paseos
-                  </Text>
-                </View>
-                <Switch
-                  value={guardarEnDirectorio}
-                  onValueChange={setGuardarEnDirectorio}
-                  trackColor={{ false: "#e2e8f0", true: "#1B4F72" }}
-                  thumbColor="#fff"
-                />
-              </View>
-
-              {/* ── Familia ── */}
-              <Text style={[styles.modalSectionLabel, { marginTop: 4 }]}>
-                🏠 Familia
-              </Text>
-              <View style={styles.toggleRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleBtn,
-                    !creatingNewFamilia && styles.toggleBtnActive,
-                  ]}
-                  onPress={() => setCreatingNewFamilia(false)}
-                >
-                  <Text
-                    style={[
-                      styles.toggleText,
-                      !creatingNewFamilia && styles.toggleTextActive,
-                    ]}
-                  >
-                    Existente
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleBtn,
-                    creatingNewFamilia && styles.toggleBtnActive,
-                  ]}
-                  onPress={() => setCreatingNewFamilia(true)}
-                >
-                  <Text
-                    style={[
-                      styles.toggleText,
-                      creatingNewFamilia && styles.toggleTextActive,
-                    ]}
-                  >
-                    Nueva familia
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              {creatingNewFamilia ? (
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Nombre de la familia *</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ej: Familia García"
-                    placeholderTextColor="#94a3b8"
-                    value={newFamiliaNombre}
-                    onChangeText={setNewFamiliaNombre}
-                  />
-                </View>
-              ) : (
-                <View style={styles.field}>
-                  {familiasList.length === 0 ? (
-                    <Text style={styles.noPersonas}>
-                      No hay familias. Crea la primera.
+                {/* ── Invitación por correo ── */}
+                <View style={styles.switchRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.switchLabel}>
+                      📬 Enviar invitación por correo
                     </Text>
-                  ) : (
-                    familiasList.map((fam, fidx) => (
-                      <TouchableOpacity
-                        key={fam.id}
-                        style={[
-                          styles.personaOption,
-                          selectedFamiliaId === fam.id &&
-                            styles.personaOptionActive,
-                        ]}
-                        onPress={() => setSelectedFamiliaId(fam.id)}
-                      >
-                        <View
-                          style={[
-                            styles.searchResultDot,
-                            {
-                              backgroundColor:
-                                UF_COLORS[fidx % UF_COLORS.length],
-                            },
-                          ]}
-                        />
-                        <Text
-                          style={[
-                            styles.personaOptionText,
-                            selectedFamiliaId === fam.id &&
-                              styles.personaOptionTextActive,
-                          ]}
-                        >
-                          {fam.nombre}
-                        </Text>
-                      </TouchableOpacity>
-                    ))
-                  )}
+                    <Text style={styles.switchSub}>
+                      Le llegará el código del paseo
+                    </Text>
+                  </View>
+                  <Switch
+                    value={enviarInvitacion}
+                    onValueChange={(v) => {
+                      setEnviarInvitacion(v);
+                      if (v) setGuardarEnDirectorio(true);
+                    }}
+                    trackColor={{ false: "#e2e8f0", true: "#1B4F72" }}
+                    thumbColor="#fff"
+                  />
                 </View>
-              )}
+                {enviarInvitacion && (
+                  <View style={[styles.field, { marginTop: 8 }]}>
+                    <Text style={styles.fieldLabel}>Correo electrónico *</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="correo@ejemplo.com"
+                      placeholderTextColor="#94a3b8"
+                      value={emailInvitacion}
+                      onChangeText={setEmailInvitacion}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                  </View>
+                )}
 
-              {/* ── Factor ── */}
-              <Text style={[styles.modalSectionLabel, { marginTop: 8 }]}>
-                ⚖️ Factor de participación
-              </Text>
-              <Text style={[styles.fieldHint, { marginBottom: 8 }]}>
-                Valor entre 0 y 1 — adulto completo = 1.0, niño pequeño = 0.3,
-                etc.
-              </Text>
-              <View style={styles.factorSliderRow}>
-                {["0.25", "0.5", "0.75", "1.0"].map((f) => (
+                {/* ── Guardar en directorio ── */}
+                <View style={[styles.switchRow, { marginBottom: 20 }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.switchLabel}>
+                      💾 Guardar en mi directorio
+                    </Text>
+                    <Text style={styles.switchSub}>
+                      Para invitarla rápido en futuros paseos
+                    </Text>
+                  </View>
+                  <Switch
+                    value={guardarEnDirectorio}
+                    onValueChange={setGuardarEnDirectorio}
+                    trackColor={{ false: "#e2e8f0", true: "#1B4F72" }}
+                    thumbColor="#fff"
+                  />
+                </View>
+
+                {/* ── Familia ── */}
+                <Text style={[styles.modalSectionLabel, { marginTop: 4 }]}>
+                  🏠 Familia
+                </Text>
+                <View style={styles.toggleRow}>
                   <TouchableOpacity
-                    key={f}
                     style={[
-                      styles.factorPresetBtn,
-                      factorInput === f && styles.factorPresetBtnActive,
+                      styles.toggleBtn,
+                      !creatingNewFamilia && styles.toggleBtnActive,
                     ]}
-                    onPress={() => setFactorInput(f)}
+                    onPress={() => setCreatingNewFamilia(false)}
                   >
                     <Text
                       style={[
-                        styles.factorPresetText,
-                        factorInput === f && styles.factorPresetTextActive,
+                        styles.toggleText,
+                        !creatingNewFamilia && styles.toggleTextActive,
                       ]}
                     >
-                      {f}
+                      Existente
                     </Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    textAlign: "center",
-                    fontSize: 20,
-                    fontWeight: "700",
-                    marginTop: 8,
-                  },
-                ]}
-                value={factorInput}
-                onChangeText={setFactorInput}
-                keyboardType="decimal-pad"
-                placeholder="1.0"
-                placeholderTextColor="#94a3b8"
-              />
-            </ScrollView>
+                  <TouchableOpacity
+                    style={[
+                      styles.toggleBtn,
+                      creatingNewFamilia && styles.toggleBtnActive,
+                    ]}
+                    onPress={() => setCreatingNewFamilia(true)}
+                  >
+                    <Text
+                      style={[
+                        styles.toggleText,
+                        creatingNewFamilia && styles.toggleTextActive,
+                      ]}
+                    >
+                      Nueva familia
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {creatingNewFamilia ? (
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>
+                      Nombre de la familia *
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ej: Familia García"
+                      placeholderTextColor="#94a3b8"
+                      value={newFamiliaNombre}
+                      onChangeText={setNewFamiliaNombre}
+                    />
+                  </View>
+                ) : (
+                  <View style={styles.field}>
+                    {familiasList.length === 0 ? (
+                      <Text style={styles.noPersonas}>
+                        No hay familias. Crea la primera.
+                      </Text>
+                    ) : (
+                      familiasList.map((fam, fidx) => (
+                        <TouchableOpacity
+                          key={fam.id}
+                          style={[
+                            styles.personaOption,
+                            selectedFamiliaId === fam.id &&
+                              styles.personaOptionActive,
+                          ]}
+                          onPress={() => setSelectedFamiliaId(fam.id)}
+                        >
+                          <View
+                            style={[
+                              styles.searchResultDot,
+                              {
+                                backgroundColor:
+                                  UF_COLORS[fidx % UF_COLORS.length],
+                              },
+                            ]}
+                          />
+                          <Text
+                            style={[
+                              styles.personaOptionText,
+                              selectedFamiliaId === fam.id &&
+                                styles.personaOptionTextActive,
+                            ]}
+                          >
+                            {fam.nombre}
+                          </Text>
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </View>
+                )}
+
+                {/* ── Factor ── */}
+                <Text style={[styles.modalSectionLabel, { marginTop: 8 }]}>
+                  ⚖️ Factor de participación
+                </Text>
+                <Text style={[styles.fieldHint, { marginBottom: 8 }]}>
+                  Valor entre 0 y 1 — adulto completo = 1.0, niño pequeño = 0.3,
+                  etc.
+                </Text>
+                <View style={styles.factorSliderRow}>
+                  {["0.25", "0.5", "0.75", "1.0"].map((f) => (
+                    <TouchableOpacity
+                      key={f}
+                      style={[
+                        styles.factorPresetBtn,
+                        factorInput === f && styles.factorPresetBtnActive,
+                      ]}
+                      onPress={() => setFactorInput(f)}
+                    >
+                      <Text
+                        style={[
+                          styles.factorPresetText,
+                          factorInput === f && styles.factorPresetTextActive,
+                        ]}
+                      >
+                        {f}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      textAlign: "center",
+                      fontSize: 20,
+                      fontWeight: "700",
+                      marginTop: 8,
+                    },
+                  ]}
+                  value={factorInput}
+                  onChangeText={setFactorInput}
+                  keyboardType="decimal-pad"
+                  placeholder="1.0"
+                  placeholderTextColor="#94a3b8"
+                />
+              </ScrollView>
+            </KeyboardAvoidingView>
           </SafeAreaView>
         </Modal>
 
@@ -4324,6 +4265,249 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
           </View>
         </Modal>
 
+        {/* Directorio modal */}
+        <Modal
+          visible={showDirectorioModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => {
+            setShowDirectorioModal(false);
+            setDirectorioSearch("");
+          }}
+        >
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowDirectorioModal(false);
+                  setDirectorioSearch("");
+                }}
+              >
+                <Text style={styles.modalCancel}>Cerrar</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>📋 Directorio</Text>
+              <View style={{ width: 70 }} />
+            </View>
+            <View
+              style={{
+                paddingHorizontal: 20,
+                paddingVertical: 12,
+                borderBottomWidth: 1,
+                borderBottomColor: "#f1f5f9",
+              }}
+            >
+              <View style={styles.searchBar}>
+                <Text style={styles.searchIcon}>🔍</Text>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Buscar contacto..."
+                  placeholderTextColor="#94a3b8"
+                  value={directorioSearch}
+                  onChangeText={setDirectorioSearch}
+                />
+                {directorioSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => setDirectorioSearch("")}>
+                    <Text
+                      style={{
+                        color: "#94a3b8",
+                        fontSize: 16,
+                        paddingHorizontal: 8,
+                      }}
+                    >
+                      ✕
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+            <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+              {/* Mi perfil primero */}
+              {miPersonaId &&
+                !participaciones.find(
+                  (p: any) => p.persona_id === miPersonaId,
+                ) && (
+                  <View>
+                    <Text
+                      style={[
+                        styles.modalSectionLabel,
+                        {
+                          paddingHorizontal: 20,
+                          paddingTop: 16,
+                          paddingBottom: 4,
+                        },
+                      ]}
+                    >
+                      👤 Yo
+                    </Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.directorioItem,
+                        { paddingHorizontal: 20, backgroundColor: "#EFF6FF" },
+                      ]}
+                      onPress={() => {
+                        setNewPersonaNombre(miPersonaNombre);
+                        setShowDirectorioModal(false);
+                        setDirectorioSearch("");
+                      }}
+                    >
+                      <View
+                        style={[
+                          styles.directorioAvatar,
+                          { backgroundColor: "#1B4F72" },
+                        ]}
+                      >
+                        <Text style={styles.directorioAvatarText}>
+                          {initials(miPersonaNombre)}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.directorioNombre}>
+                          {miPersonaNombre}
+                        </Text>
+                        <Text style={styles.directorioSub}>Mi cuenta</Text>
+                      </View>
+                      <View
+                        style={{
+                          backgroundColor: "#1B4F72",
+                          borderRadius: 12,
+                          paddingHorizontal: 10,
+                          paddingVertical: 4,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#fff",
+                            fontSize: 11,
+                            fontWeight: "700",
+                          }}
+                        >
+                          Agregar
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                    <View
+                      style={[
+                        styles.directorioSeparador,
+                        { marginHorizontal: 20 },
+                      ]}
+                    />
+                  </View>
+                )}
+              {/* Contactos del directorio */}
+              {loadingDirectorio ? (
+                <ActivityIndicator color="#1B4F72" style={{ marginTop: 24 }} />
+              ) : (
+                (() => {
+                  const filtered = directorio.filter((d: any) =>
+                    d.nombre
+                      .toLowerCase()
+                      .includes(directorioSearch.toLowerCase()),
+                  );
+                  if (
+                    filtered.length === 0 &&
+                    directorio.length === 0 &&
+                    !miPersonaId
+                  )
+                    return (
+                      <View style={[styles.emptyState, { paddingTop: 40 }]}>
+                        <Text style={styles.emptyIcon}>📋</Text>
+                        <Text style={styles.emptyText}>Directorio vacío</Text>
+                        <Text style={styles.emptySub}>
+                          Los contactos que guardes aparecerán aquí
+                        </Text>
+                      </View>
+                    );
+                  const grouped: Record<string, any[]> = {};
+                  filtered.forEach((d: any) => {
+                    const letter = d.nombre[0].toUpperCase();
+                    if (!grouped[letter]) grouped[letter] = [];
+                    grouped[letter].push(d);
+                  });
+                  return (
+                    <>
+                      {filtered.length > 0 && (
+                        <Text
+                          style={[
+                            styles.modalSectionLabel,
+                            {
+                              paddingHorizontal: 20,
+                              paddingTop: 16,
+                              paddingBottom: 4,
+                            },
+                          ]}
+                        >
+                          Mis contactos
+                        </Text>
+                      )}
+                      {Object.keys(grouped)
+                        .sort()
+                        .map((letter) => (
+                          <View key={letter}>
+                            <Text style={styles.directorioLetra}>{letter}</Text>
+                            {grouped[letter].map((d: any) => (
+                              <TouchableOpacity
+                                key={d.id}
+                                style={[
+                                  styles.directorioItem,
+                                  { paddingHorizontal: 20 },
+                                ]}
+                                onPress={() => {
+                                  setNewPersonaNombre(d.nombre);
+                                  if (d.email) {
+                                    setEnviarInvitacion(true);
+                                    setEmailInvitacion(d.email);
+                                  }
+                                  if (d.familia_nombre) {
+                                    const fam = familiasList.find(
+                                      (f: any) => f.nombre === d.familia_nombre,
+                                    );
+                                    if (fam) setSelectedFamiliaId(fam.id);
+                                  }
+                                  setShowDirectorioModal(false);
+                                  setDirectorioSearch("");
+                                }}
+                              >
+                                <View style={styles.directorioAvatar}>
+                                  <Text style={styles.directorioAvatarText}>
+                                    {initials(d.nombre)}
+                                  </Text>
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                  <Text style={styles.directorioNombre}>
+                                    {d.nombre}
+                                  </Text>
+                                  {d.familia_nombre ? (
+                                    <Text style={styles.directorioSub}>
+                                      {d.familia_nombre}
+                                      {d.email ? ` · ${d.email}` : ""}
+                                    </Text>
+                                  ) : d.email ? (
+                                    <Text style={styles.directorioSub}>
+                                      {d.email}
+                                    </Text>
+                                  ) : null}
+                                </View>
+                                <Text
+                                  style={{
+                                    fontSize: 12,
+                                    color: "#1B4F72",
+                                    fontWeight: "600",
+                                  }}
+                                >
+                                  Usar
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        ))}
+                    </>
+                  );
+                })()
+              )}
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
+
         {/* Delete gasto */}
         <Modal
           visible={showDeleteGastoModal}
@@ -5308,6 +5492,56 @@ const styles = StyleSheet.create({
   directorioAvatarText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   directorioNombre: { fontSize: 14, fontWeight: "600", color: "#1e293b" },
   directorioSub: { fontSize: 11, color: "#94a3b8", marginTop: 1 },
+  // Directorio modal
+  nombreRow: { flexDirection: "row", gap: 8, alignItems: "center" },
+  directorioBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1.5,
+    borderColor: "#1B4F72",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  directorioBtnText: { fontSize: 20 },
+
+  // Directorio modal
+  directorioLetra: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#94a3b8",
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  directorioGroupLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#94a3b8",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: "#f8fafc",
+    letterSpacing: 1,
+  },
+  directorioModalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
+  },
+  yoBadge: {
+    backgroundColor: "#1B4F72",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  yoBadgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
   directorioSeparador: {
     height: 1,
     backgroundColor: "#e2e8f0",
