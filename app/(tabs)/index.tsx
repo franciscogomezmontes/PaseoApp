@@ -130,6 +130,13 @@ export default function HomeScreen() {
   const [paseosExpanded, setPaseosExpanded] = useState(false);
   const [configExpanded, setConfigExpanded] = useState(false);
 
+  // ── Invite modal ──
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteNombre, setInviteNombre] = useState("");
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [inviteSent, setInviteSent] = useState(false);
+
   // ── Modals ──
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
@@ -259,7 +266,39 @@ export default function HomeScreen() {
     setUploadingPhoto(false);
   };
 
-  const handleInvitarAmigos = async () => {
+  const handleInvitarPorEmail = async () => {
+    if (!inviteEmail.trim()) {
+      showError("Ingresa un correo electrónico.");
+      return;
+    }
+    setSendingInvite(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/invitar-app`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            email: inviteEmail.trim(),
+            nombre_invitado: inviteNombre.trim() || undefined,
+            nombre_remitente: nombre || persona?.nombre,
+          }),
+        },
+      );
+      setInviteSent(true);
+    } catch {
+      showError("No se pudo enviar la invitación. Intenta de nuevo.");
+    }
+    setSendingInvite(false);
+  };
+
+  const handleCompartirNativo = async () => {
     try {
       await Share.share({
         message: `🏕️ Te invito a usar *PaseoApp* — la app para organizar paseos en grupo sin dramas.\n\n✅ Menú del paseo\n✅ División de gastos automática\n✅ Liquidaciones mínimas\n\nDescárgala y organiza tu próximo paseo sin hojas de cálculo ni peleas.`,
@@ -275,7 +314,6 @@ export default function HomeScreen() {
     router.push("/onboarding" as any);
   };
 
-  // ── Derived ──
   const paseosActivos = paseos.filter((p) => p.estado === "activo");
   const paseosPlanificacion = paseos.filter(
     (p) => p.estado === "planificacion",
@@ -285,107 +323,21 @@ export default function HomeScreen() {
     5,
   );
 
-  // ─────────────────────────────────────────────
-  // UNAUTHENTICATED
-  // ─────────────────────────────────────────────
+  // ── UNAUTHENTICATED ──
   if (!persona) {
+    router.replace("/onboarding" as any);
     return (
       <SafeAreaView style={styles.container}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         >
-          <View style={styles.heroSection}>
-            <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>
-                🏕️ Para grupos que viajan juntos
-              </Text>
-            </View>
-            <Text style={styles.heroTitle}>
-              Planea.{"\n"}Come bien.{"\n"}Cuadra cuentas.
-            </Text>
-            <Text style={styles.heroSub}>
-              PaseoApp organiza el menú, los gastos y las deudas de tu próximo
-              paseo — sin hojas de cálculo, sin peleas.
-            </Text>
-            <TouchableOpacity
-              style={styles.heroCTA}
-              onPress={() => router.push("/auth")}
-            >
-              <Text style={styles.heroCTAText}>Comenzar gratis →</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push("/auth")}>
-              <Text style={styles.heroSecondary}>
-                ¿Ya tienes cuenta? Inicia sesión
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.statsStrip}>
-            {[
-              ["🏕️", "Paseos"],
-              ["🍽️", "Recetas"],
-              ["👥", "Familias"],
-              ["💸", "Sin drama"],
-            ].map(([icon, label], i) => (
-              <View key={i} style={styles.stripItem}>
-                <Text style={styles.stripIcon}>{icon}</Text>
-                <Text style={styles.stripLabel}>{label}</Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.howSection}>
-            <Text style={styles.sectionHeading}>Cómo funciona</Text>
-            {HOW_IT_WORKS.map((item, i) => (
-              <View key={i} style={styles.howRow}>
-                <View style={styles.howStepBadge}>
-                  <Text style={styles.howStepText}>{item.step}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.howTitle}>{item.title}</Text>
-                  <Text style={styles.howDesc}>{item.desc}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.testimoniosSection}>
-            <Text style={styles.sectionHeading}>Lo que dicen</Text>
-            {TESTIMONIOS.map((t, i) => (
-              <View key={i} style={styles.testimonioCard}>
-                <Text style={styles.testimonioEmoji}>{t.emoji}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.testimonioTexto}>"{t.texto}"</Text>
-                  <Text style={styles.testimonioNombre}>— {t.nombre}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.ctaFinalSection}>
-            <Text style={styles.ctaFinalTitle}>
-              ¿Listo para tu próximo paseo?
-            </Text>
-            <TouchableOpacity
-              style={styles.heroCTA}
-              onPress={() => router.push("/auth")}
-            >
-              <Text style={styles.heroCTAText}>Crear cuenta gratis →</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.footerText}>
-            PaseoApp v{VERSION} · Hecho con ❤️ en Colombia
-          </Text>
-        </ScrollView>
+          <ActivityIndicator size="large" color="#1B4F72" />
+        </View>
       </SafeAreaView>
     );
   }
 
-  // ─────────────────────────────────────────────
-  // AUTHENTICATED
-  // ─────────────────────────────────────────────
+  // ── AUTHENTICATED ──
   return (
     <SafeAreaView style={styles.container}>
       <Animated.ScrollView
@@ -393,7 +345,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── 1. BIENVENIDA ── */}
+        {/* 1. BIENVENIDA */}
         <View style={styles.welcomeSection}>
           <View>
             <Text style={styles.welcomeSaludo}>{getSaludo()} 👋</Text>
@@ -417,7 +369,7 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* ── 2. ACCESOS RÁPIDOS ── */}
+        {/* 2. ACCESOS RÁPIDOS */}
         <View style={styles.quickRow}>
           <TouchableOpacity
             style={styles.quickCard}
@@ -449,7 +401,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── 3. PASEOS ACTIVOS (colapsable) ── */}
+        {/* 3. PASEOS ACTIVOS */}
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.collapseHeader}
@@ -468,7 +420,6 @@ export default function HomeScreen() {
               {paseosExpanded ? "▲" : "▼"}
             </Text>
           </TouchableOpacity>
-
           {paseosExpanded &&
             (paseosRecientes.length === 0 ? (
               <View style={styles.emptyState}>
@@ -532,7 +483,7 @@ export default function HomeScreen() {
             ))}
         </View>
 
-        {/* ── 4. RESUMEN ── */}
+        {/* 4. RESUMEN */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Resumen</Text>
           <View style={styles.statsRow}>
@@ -563,10 +514,15 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ── 5. INVITAR AMIGOS ── */}
+        {/* 5. INVITAR AMIGOS */}
         <TouchableOpacity
           style={styles.inviteCard}
-          onPress={handleInvitarAmigos}
+          onPress={() => {
+            setInviteEmail("");
+            setInviteNombre("");
+            setInviteSent(false);
+            setShowInviteModal(true);
+          }}
         >
           <View style={styles.inviteLeft}>
             <Text style={styles.inviteEmoji}>🤝</Text>
@@ -580,7 +536,7 @@ export default function HomeScreen() {
           <Text style={styles.inviteArrow}>📤</Text>
         </TouchableOpacity>
 
-        {/* ── 6. CONFIGURACIÓN ── */}
+        {/* 6. CONFIGURACIÓN */}
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.collapseHeader}
@@ -597,10 +553,8 @@ export default function HomeScreen() {
               {configExpanded ? "▲" : "▼"}
             </Text>
           </TouchableOpacity>
-
           {configExpanded && (
             <>
-              {/* Perfil */}
               <TouchableOpacity
                 style={[styles.settingRow, { marginTop: 8 }]}
                 onPress={() => setShowProfileModal(true)}
@@ -616,8 +570,6 @@ export default function HomeScreen() {
                 </View>
                 <Text style={styles.settingArrow}>›</Text>
               </TouchableOpacity>
-
-              {/* Notificaciones */}
               <View style={styles.settingRow}>
                 <View style={styles.settingLeft}>
                   <Text style={styles.settingIcon}>🔔</Text>
@@ -635,8 +587,6 @@ export default function HomeScreen() {
                   thumbColor="#fff"
                 />
               </View>
-
-              {/* Idioma */}
               <View style={styles.settingRow}>
                 <View style={styles.settingLeft}>
                   <Text style={styles.settingIcon}>🌍</Text>
@@ -647,8 +597,6 @@ export default function HomeScreen() {
                 </View>
                 <Text style={styles.settingArrow}>›</Text>
               </View>
-
-              {/* Tutorial */}
               <TouchableOpacity
                 style={[styles.settingRow, { borderBottomWidth: 0 }]}
                 onPress={handleVerOnboarding}
@@ -668,7 +616,7 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* ── 7. FAQ ── */}
+        {/* 7. FAQ */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Preguntas frecuentes</Text>
           {FAQ.map((item, i) => (
@@ -692,20 +640,140 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* ── 8. CERRAR SESIÓN ── */}
+        {/* 8. CERRAR SESIÓN */}
         <TouchableOpacity
           style={styles.logoutBtn}
           onPress={() => setShowSignOutModal(true)}
         >
           <Text style={styles.logoutText}>Cerrar sesión</Text>
         </TouchableOpacity>
-
         <Text style={styles.footerText}>
           PaseoApp v{VERSION} · Hecho con ❤️ en Colombia
         </Text>
       </Animated.ScrollView>
 
       {/* ══ MODALS ══ */}
+
+      {/* Invitar amigos */}
+      <Modal
+        visible={showInviteModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowInviteModal(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowInviteModal(false)}>
+              <Text style={styles.modalCancel}>Cerrar</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Invitar amigos</Text>
+            <View style={{ width: 70 }} />
+          </View>
+          <ScrollView
+            style={styles.modalContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {inviteSent ? (
+              <View style={styles.inviteSentBox}>
+                <Text style={{ fontSize: 48, marginBottom: 16 }}>🎉</Text>
+                <Text style={styles.inviteSentTitle}>¡Invitación enviada!</Text>
+                <Text style={styles.inviteSentSub}>
+                  Le llegará un correo a {inviteEmail} con toda la información
+                  de PaseoApp.
+                </Text>
+                <TouchableOpacity
+                  style={styles.inviteSentBtn}
+                  onPress={() => {
+                    setInviteEmail("");
+                    setInviteNombre("");
+                    setInviteSent(false);
+                  }}
+                >
+                  <Text style={styles.inviteSentBtnText}>
+                    Invitar a otra persona
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                {/* Correo electrónico */}
+                <View style={styles.inviteSection}>
+                  <Text style={styles.inviteSectionTitle}>
+                    📧 Enviar por correo
+                  </Text>
+                  <Text style={styles.inviteSectionSub}>
+                    Le llegará un correo con el pitch completo de PaseoApp.
+                  </Text>
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Nombre (opcional)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={inviteNombre}
+                      onChangeText={setInviteNombre}
+                      placeholder="Nombre de tu amigo"
+                      placeholderTextColor="#94a3b8"
+                      autoCapitalize="words"
+                    />
+                  </View>
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Correo electrónico *</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={inviteEmail}
+                      onChangeText={setInviteEmail}
+                      placeholder="amigo@ejemplo.com"
+                      placeholderTextColor="#94a3b8"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.inviteEmailBtn,
+                      sendingInvite && { backgroundColor: "#94a3b8" },
+                    ]}
+                    onPress={handleInvitarPorEmail}
+                    disabled={sendingInvite}
+                  >
+                    {sendingInvite ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.inviteEmailBtnText}>
+                        📧 Enviar invitación por correo
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {/* Divider */}
+                <View style={styles.inviteDivider}>
+                  <View style={styles.inviteDividerLine} />
+                  <Text style={styles.inviteDividerText}>o</Text>
+                  <View style={styles.inviteDividerLine} />
+                </View>
+
+                {/* WhatsApp / SMS */}
+                <View style={styles.inviteSection}>
+                  <Text style={styles.inviteSectionTitle}>
+                    💬 Compartir por WhatsApp o SMS
+                  </Text>
+                  <Text style={styles.inviteSectionSub}>
+                    Abre el menú de compartir de tu teléfono.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.inviteShareBtn}
+                    onPress={handleCompartirNativo}
+                  >
+                    <Text style={styles.inviteShareBtnText}>
+                      📤 Compartir enlace
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
 
       {/* Perfil */}
       <Modal
@@ -728,7 +796,6 @@ export default function HomeScreen() {
             style={styles.modalContent}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Foto */}
             <TouchableOpacity
               style={styles.profilePhotoBtn}
               onPress={() => setShowPhotoModal(true)}
@@ -752,7 +819,6 @@ export default function HomeScreen() {
                 <Text style={{ fontSize: 12 }}>📷</Text>
               </View>
             </TouchableOpacity>
-
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Nombre</Text>
               <TextInput
@@ -781,7 +847,7 @@ export default function HomeScreen() {
                 style={[styles.input, { height: 80 }]}
                 value={restricciones}
                 onChangeText={setRestricciones}
-                placeholder="Ej: vegetariano, sin gluten, alérgico a nueces..."
+                placeholder="Ej: vegetariano, sin gluten..."
                 placeholderTextColor="#94a3b8"
                 multiline
               />
@@ -889,124 +955,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8fafc" },
   content: { padding: 20, paddingBottom: 48 },
 
-  // ── Unauthenticated ──
-  heroSection: { paddingVertical: 32, alignItems: "flex-start" },
-  heroBadge: {
-    backgroundColor: "#EFF6FF",
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    marginBottom: 20,
-  },
-  heroBadgeText: { fontSize: 12, fontWeight: "600", color: "#1D4ED8" },
-  heroTitle: {
-    fontSize: 40,
-    fontWeight: "800",
-    color: "#0f172a",
-    lineHeight: 46,
-    marginBottom: 16,
-    letterSpacing: -1,
-  },
-  heroSub: { fontSize: 16, color: "#475569", lineHeight: 24, marginBottom: 28 },
-  heroCTA: {
-    backgroundColor: "#0f172a",
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 28,
-    alignSelf: "stretch",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  heroCTAText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  heroSecondary: {
-    fontSize: 14,
-    color: "#64748b",
-    textAlign: "center",
-    alignSelf: "center",
-  },
-  statsStrip: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 32,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  stripItem: { flex: 1, alignItems: "center", gap: 4 },
-  stripIcon: { fontSize: 22 },
-  stripLabel: { fontSize: 11, color: "#64748b", fontWeight: "600" },
-  howSection: { marginBottom: 32 },
-  sectionHeading: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#0f172a",
-    marginBottom: 20,
-    letterSpacing: -0.5,
-  },
-  howRow: {
-    flexDirection: "row",
-    gap: 16,
-    marginBottom: 20,
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  howStepBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#0f172a",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  howStepText: { color: "#fff", fontSize: 11, fontWeight: "800" },
-  howTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#1e293b",
-    marginBottom: 4,
-  },
-  howDesc: { fontSize: 13, color: "#64748b", lineHeight: 18 },
-  testimoniosSection: { marginBottom: 32 },
-  testimonioCard: {
-    flexDirection: "row",
-    gap: 14,
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  testimonioEmoji: { fontSize: 28, flexShrink: 0, marginTop: 2 },
-  testimonioTexto: {
-    fontSize: 14,
-    color: "#334155",
-    lineHeight: 20,
-    marginBottom: 6,
-    fontStyle: "italic",
-  },
-  testimonioNombre: { fontSize: 12, fontWeight: "700", color: "#94a3b8" },
-  ctaFinalSection: { alignItems: "stretch", marginBottom: 32 },
-  ctaFinalTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#0f172a",
-    marginBottom: 16,
-    textAlign: "center",
-  },
-
-  // ── Authenticated ──
   welcomeSection: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1077,7 +1025,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 14, fontWeight: "700", color: "#1e293b" },
   sectionLink: { fontSize: 12, color: "#1B4F72", fontWeight: "600" },
 
-  // Collapsible paseos
   collapseHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1199,7 +1146,6 @@ const styles = StyleSheet.create({
   logoutText: { fontSize: 14, fontWeight: "600", color: "#64748b" },
   footerText: { textAlign: "center", fontSize: 11, color: "#cbd5e1" },
 
-  // Modals
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",
@@ -1260,7 +1206,6 @@ const styles = StyleSheet.create({
   sheetCancel: { alignItems: "center", marginTop: 4 },
   sheetCancelText: { color: "#64748b", fontSize: 14 },
 
-  // Profile modal
   modalContainer: { flex: 1, backgroundColor: "#fff" },
   modalHeader: {
     flexDirection: "row",
@@ -1280,6 +1225,66 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   modalContent: { padding: 20 },
+
+  // Invite modal
+  inviteSection: { marginBottom: 8 },
+  inviteSectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1e293b",
+    marginBottom: 4,
+  },
+  inviteSectionSub: {
+    fontSize: 13,
+    color: "#64748b",
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  inviteEmailBtn: {
+    backgroundColor: "#1B4F72",
+    borderRadius: 14,
+    padding: 16,
+    alignItems: "center",
+  },
+  inviteEmailBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  inviteShareBtn: {
+    backgroundColor: "#f1f5f9",
+    borderRadius: 14,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#e2e8f0",
+  },
+  inviteShareBtnText: { color: "#1e293b", fontSize: 15, fontWeight: "700" },
+  inviteDivider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 24,
+    gap: 12,
+  },
+  inviteDividerLine: { flex: 1, height: 1, backgroundColor: "#e2e8f0" },
+  inviteDividerText: { fontSize: 13, color: "#94a3b8", fontWeight: "600" },
+  inviteSentBox: { alignItems: "center", paddingVertical: 40 },
+  inviteSentTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#1e293b",
+    marginBottom: 12,
+  },
+  inviteSentSub: {
+    fontSize: 14,
+    color: "#64748b",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 28,
+  },
+  inviteSentBtn: {
+    backgroundColor: "#EFF6FF",
+    borderRadius: 14,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+  },
+  inviteSentBtnText: { color: "#1B4F72", fontWeight: "700", fontSize: 15 },
 
   profilePhotoBtn: {
     alignSelf: "center",
@@ -1330,7 +1335,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#1e293b",
   },
-
   emailReadOnly: {
     marginBottom: 16,
     backgroundColor: "#f8fafc",

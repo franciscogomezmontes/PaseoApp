@@ -164,6 +164,14 @@ export default function TripDetailScreen() {
   const [miPersona, setMiPersona] = useState<any>(null);
   const [miPersonaId, setMiPersonaId] = useState<string | null>(null);
   const [miPersonaNombre, setMiPersonaNombre] = useState<string>("");
+  const [addingSelf, setAddingSelf] = useState(false);
+  const [showDirOptionsModal, setShowDirOptionsModal] = useState(false);
+  const [dirOptionsTarget, setDirOptionsTarget] = useState<any>(null);
+  const [showDirDeleteModal, setShowDirDeleteModal] = useState(false);
+  const [showDirEditModal, setShowDirEditModal] = useState(false);
+  const [dirEditNombre, setDirEditNombre] = useState("");
+  const [dirEditEmail, setDirEditEmail] = useState("");
+  const [dirEditFamilia, setDirEditFamilia] = useState("");
 
   // ── Participant options / edit ──
   const [showOptionsModal, setShowOptionsModal] = useState(false);
@@ -583,14 +591,19 @@ export default function TripDetailScreen() {
 
     setSavingParticipant(true);
 
-    // Crear persona
-    const nueva = await crearPersona(newPersonaNombre.trim());
-    if (!nueva) {
-      showError("No se pudo crear la persona.");
-      setSavingParticipant(false);
-      return;
+    // If adding self, use existing persona instead of creating a new one
+    let personaId: string;
+    if (addingSelf && miPersonaId) {
+      personaId = miPersonaId;
+    } else {
+      const nueva = await crearPersona(newPersonaNombre.trim());
+      if (!nueva) {
+        showError("No se pudo crear la persona.");
+        setSavingParticipant(false);
+        return;
+      }
+      personaId = nueva.id;
     }
-    const personaId = nueva.id;
 
     // Resolver familia
     let familiaId = selectedFamiliaId;
@@ -703,6 +716,7 @@ export default function TripDetailScreen() {
     }
 
     // Reset
+    setAddingSelf(false);
     setNewPersonaNombre("");
     setSelectedFamiliaId(null);
     setCreatingNewFamilia(false);
@@ -4346,6 +4360,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                       ]}
                       onPress={() => {
                         setNewPersonaNombre(miPersonaNombre);
+                        setAddingSelf(true);
                         setShowDirectorioModal(false);
                         setDirectorioSearch("");
                       }}
@@ -4466,6 +4481,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                                   setShowDirectorioModal(false);
                                   setDirectorioSearch("");
                                 }}
+                                onLongPress={() => {
+                                  setDirOptionsTarget(d);
+                                  setShowDirOptionsModal(true);
+                                }}
                               >
                                 <View style={styles.directorioAvatar}>
                                   <Text style={styles.directorioAvatarText}>
@@ -4504,6 +4523,171 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   );
                 })()
               )}
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
+
+        {/* Directorio: options modal */}
+        <Modal
+          visible={showDirOptionsModal}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setShowDirOptionsModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.estadoModalBox}>
+              <Text style={styles.estadoModalTitle}>
+                {dirOptionsTarget?.nombre}
+              </Text>
+              {dirOptionsTarget?.email && (
+                <Text
+                  style={[
+                    styles.familiaModalSub,
+                    { textAlign: "center", marginBottom: 12 },
+                  ]}
+                >
+                  {dirOptionsTarget.email}
+                </Text>
+              )}
+              <TouchableOpacity
+                style={[styles.estadoOption, { backgroundColor: "#EFF6FF" }]}
+                onPress={() => {
+                  setShowDirOptionsModal(false);
+                  setDirEditNombre(dirOptionsTarget?.nombre ?? "");
+                  setDirEditEmail(dirOptionsTarget?.email ?? "");
+                  setDirEditFamilia(dirOptionsTarget?.familia_nombre ?? "");
+                  setShowDirEditModal(true);
+                }}
+              >
+                <Text style={[styles.estadoOptionText, { color: "#1B4F72" }]}>
+                  ✏️ Editar contacto
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.estadoOption, { backgroundColor: "#FEE2E2" }]}
+                onPress={() => {
+                  setShowDirOptionsModal(false);
+                  setShowDirDeleteModal(true);
+                }}
+              >
+                <Text style={[styles.estadoOptionText, { color: "#DC2626" }]}>
+                  🗑️ Eliminar del directorio
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.estadoCancel}
+                onPress={() => setShowDirOptionsModal(false)}
+              >
+                <Text style={styles.estadoCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Directorio: delete confirm */}
+        <Modal
+          visible={showDirDeleteModal}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setShowDirDeleteModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.confirmBox}>
+              <Text style={styles.confirmTitle}>Eliminar contacto</Text>
+              <Text style={styles.confirmMessage}>
+                ¿Eliminar "{dirOptionsTarget?.nombre}" del directorio?
+              </Text>
+              <TouchableOpacity
+                style={[styles.confirmBtn, { backgroundColor: "#DC2626" }]}
+                onPress={async () => {
+                  setShowDirDeleteModal(false);
+                  await supabase
+                    .from("directorio")
+                    .delete()
+                    .eq("id", dirOptionsTarget?.id);
+                  await loadDirectorio();
+                }}
+              >
+                <Text style={styles.confirmBtnText}>Eliminar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.estadoCancel}
+                onPress={() => setShowDirDeleteModal(false)}
+              >
+                <Text style={styles.estadoCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Directorio: edit modal */}
+        <Modal
+          visible={showDirEditModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowDirEditModal(false)}
+        >
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowDirEditModal(false)}>
+                <Text style={styles.modalCancel}>Cancelar</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Editar contacto</Text>
+              <TouchableOpacity
+                onPress={async () => {
+                  await supabase
+                    .from("directorio")
+                    .update({
+                      nombre: dirEditNombre.trim(),
+                      email: dirEditEmail.trim() || null,
+                      familia_nombre: dirEditFamilia.trim() || null,
+                    })
+                    .eq("id", dirOptionsTarget?.id);
+                  setShowDirEditModal(false);
+                  await loadDirectorio();
+                }}
+              >
+                <Text style={styles.modalSave}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              style={styles.modalContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Nombre *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={dirEditNombre}
+                  onChangeText={setDirEditNombre}
+                  placeholder="Nombre completo"
+                  placeholderTextColor="#94a3b8"
+                  autoCapitalize="words"
+                />
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Correo electrónico</Text>
+                <TextInput
+                  style={styles.input}
+                  value={dirEditEmail}
+                  onChangeText={setDirEditEmail}
+                  placeholder="correo@ejemplo.com"
+                  placeholderTextColor="#94a3b8"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Familia habitual</Text>
+                <TextInput
+                  style={styles.input}
+                  value={dirEditFamilia}
+                  onChangeText={setDirEditFamilia}
+                  placeholder="Ej: Familia García"
+                  placeholderTextColor="#94a3b8"
+                  autoCapitalize="words"
+                />
+              </View>
             </ScrollView>
           </SafeAreaView>
         </Modal>

@@ -16,8 +16,13 @@ export default function RootLayout() {
     checkOnboarding();
   }, []);
 
+  // Re-check AsyncStorage every time segments change —
+  // catches the moment onboarding writes "true" and the layout needs to redirect
+  useEffect(() => {
+    checkOnboarding();
+  }, [segments]);
+
   const checkOnboarding = async () => {
-    // await AsyncStorage.removeItem(ONBOARDING_KEY); // TODO: remove this line after testing
     const done = await AsyncStorage.getItem(ONBOARDING_KEY);
     setOnboardingDone(done === "true");
     setOnboardingChecked(true);
@@ -27,15 +32,12 @@ export default function RootLayout() {
     if (loading || !onboardingChecked) return;
 
     const inAuthScreen = segments[0] === "auth";
-    const inTabsScreen = segments[0] === "(tabs)";
     const inOnboarding = segments[0] === "onboarding";
 
     if (!session) {
       if (!onboardingDone && !inOnboarding) {
-        // First time — show onboarding
         router.replace("/onboarding");
-      } else if (onboardingDone && !inAuthScreen) {
-        // Already seen onboarding — go to login
+      } else if (onboardingDone && !inAuthScreen && !inOnboarding) {
         router.replace("/auth");
       }
     } else if (session && inAuthScreen) {
