@@ -3064,26 +3064,208 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 contentContainerStyle={{ paddingBottom: 40 }}
                 keyboardShouldPersistTaps="handled"
               >
-                {/* ── Persona + botón directorio ── */}
+                {/* ── Persona — búsqueda en directorio inline ── */}
                 <Text style={styles.modalSectionLabel}>👤 Persona</Text>
                 <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Nombre *</Text>
-                  <View style={styles.nombreRow}>
+                  <Text style={styles.fieldLabel}>
+                    Buscar en directorio o escribir nombre *
+                  </Text>
+                  <View style={styles.searchBar}>
+                    <Text style={styles.searchIcon}>🔍</Text>
                     <TextInput
-                      style={[styles.input, { flex: 1 }]}
-                      placeholder="Ej: Francisco García"
+                      style={styles.searchInput}
+                      placeholder="Buscar contacto o escribir nombre..."
                       placeholderTextColor="#94a3b8"
                       value={newPersonaNombre}
-                      onChangeText={setNewPersonaNombre}
+                      onChangeText={(text) => {
+                        setNewPersonaNombre(text);
+                        setAddingSelf(false);
+                        if (text.length >= 1 && directorio.length === 0)
+                          loadDirectorio();
+                      }}
                       autoCapitalize="words"
                     />
-                    <TouchableOpacity
-                      style={styles.directorioBtn}
-                      onPress={() => setShowDirectorioModal(true)}
-                    >
-                      <Text style={styles.directorioBtnText}>📋</Text>
-                    </TouchableOpacity>
+                    {newPersonaNombre.length > 0 && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setNewPersonaNombre("");
+                          setAddingSelf(false);
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#94a3b8",
+                            fontSize: 16,
+                            paddingHorizontal: 8,
+                          }}
+                        >
+                          ✕
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
+
+                  {/* Resultados inline */}
+                  {newPersonaNombre.length >= 1 &&
+                    !addingSelf &&
+                    (() => {
+                      const q = newPersonaNombre.toLowerCase();
+                      const meMatch =
+                        miPersonaId &&
+                        !participaciones.find(
+                          (p: any) => p.persona_id === miPersonaId,
+                        ) &&
+                        miPersonaNombre.toLowerCase().includes(q);
+                      const dirResults = directorio.filter((d: any) =>
+                        d.nombre.toLowerCase().includes(q),
+                      );
+                      if (!meMatch && dirResults.length === 0) return null;
+                      return (
+                        <View style={styles.searchResults}>
+                          {meMatch && (
+                            <TouchableOpacity
+                              style={[
+                                styles.searchResultItem,
+                                { backgroundColor: "#EFF6FF" },
+                              ]}
+                              onPress={() => {
+                                setNewPersonaNombre(miPersonaNombre);
+                                setAddingSelf(true);
+                              }}
+                            >
+                              <View
+                                style={[
+                                  styles.directorioAvatar,
+                                  { width: 30, height: 30, borderRadius: 15 },
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.directorioAvatarText,
+                                    { fontSize: 11 },
+                                  ]}
+                                >
+                                  {initials(miPersonaNombre)}
+                                </Text>
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <Text
+                                  style={[
+                                    styles.searchResultText,
+                                    { color: "#1B4F72" },
+                                  ]}
+                                >
+                                  {miPersonaNombre}
+                                </Text>
+                                <Text
+                                  style={{
+                                    fontSize: 10,
+                                    color: "#1B4F72",
+                                    fontWeight: "700",
+                                  }}
+                                >
+                                  ✓ Mi cuenta
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          )}
+                          {dirResults.map((d: any) => (
+                            <TouchableOpacity
+                              key={d.id}
+                              style={styles.searchResultItem}
+                              onPress={() => {
+                                setNewPersonaNombre(d.nombre);
+                                setAddingSelf(false);
+                                if (d.email) {
+                                  setEnviarInvitacion(true);
+                                  setEmailInvitacion(d.email);
+                                }
+                                if (d.familia_nombre) {
+                                  const fam = familiasList.find(
+                                    (f: any) => f.nombre === d.familia_nombre,
+                                  );
+                                  if (fam) setSelectedFamiliaId(fam.id);
+                                }
+                              }}
+                            >
+                              <View
+                                style={[
+                                  styles.directorioAvatar,
+                                  {
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: 15,
+                                    backgroundColor: "#64748b",
+                                  },
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.directorioAvatarText,
+                                    { fontSize: 11 },
+                                  ]}
+                                >
+                                  {initials(d.nombre)}
+                                </Text>
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <Text style={styles.searchResultText}>
+                                  {d.nombre}
+                                </Text>
+                                {d.email && (
+                                  <Text
+                                    style={{ fontSize: 11, color: "#94a3b8" }}
+                                  >
+                                    {d.email}
+                                  </Text>
+                                )}
+                              </View>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      );
+                    })()}
+
+                  {/* Nuevo contacto hint */}
+                  {newPersonaNombre.trim().length >= 2 &&
+                    !addingSelf &&
+                    (() => {
+                      const q = newPersonaNombre.trim().toLowerCase();
+                      const exists =
+                        miPersonaNombre.toLowerCase() === q ||
+                        directorio.some(
+                          (d: any) => d.nombre.toLowerCase() === q,
+                        );
+                      if (exists) return null;
+                      return (
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 8,
+                            marginTop: 8,
+                            padding: 10,
+                            backgroundColor: "#F0FDF4",
+                            borderRadius: 8,
+                            borderWidth: 1,
+                            borderColor: "#BBF7D0",
+                          }}
+                        >
+                          <Text style={{ fontSize: 14 }}>✨</Text>
+                          <Text
+                            style={{
+                              flex: 1,
+                              fontSize: 12,
+                              color: "#065F46",
+                              fontWeight: "600",
+                            }}
+                          >
+                            Se agregará "{newPersonaNombre.trim()}" como nuevo
+                            participante
+                          </Text>
+                        </View>
+                      );
+                    })()}
                 </View>
 
                 {/* ── Invitación por correo ── */}
@@ -4300,7 +4482,28 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 <Text style={styles.modalCancel}>Cerrar</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>📋 Directorio</Text>
-              <View style={{ width: 70 }} />
+              <TouchableOpacity
+                onPress={() => {
+                  setShowDirectorioModal(false);
+                  setDirEditNombre("");
+                  setDirEditEmail("");
+                  setDirEditFamilia("");
+                  setDirOptionsTarget(null);
+                  setShowDirEditModal(true);
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 15,
+                    color: "#1B4F72",
+                    fontWeight: "700",
+                    width: 70,
+                    textAlign: "right",
+                  }}
+                >
+                  + Nuevo
+                </Text>
+              </TouchableOpacity>
             </View>
             <View
               style={{
@@ -4632,17 +4835,33 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               <TouchableOpacity onPress={() => setShowDirEditModal(false)}>
                 <Text style={styles.modalCancel}>Cancelar</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>Editar contacto</Text>
+              <Text style={styles.modalTitle}>
+                {dirOptionsTarget?.id ? "Editar contacto" : "Nuevo contacto"}
+              </Text>
               <TouchableOpacity
                 onPress={async () => {
-                  await supabase
-                    .from("directorio")
-                    .update({
+                  if (!dirEditNombre.trim()) return;
+                  const {
+                    data: { session },
+                  } = await supabase.auth.getSession();
+                  if (!session) return;
+                  if (dirOptionsTarget?.id) {
+                    await supabase
+                      .from("directorio")
+                      .update({
+                        nombre: dirEditNombre.trim(),
+                        email: dirEditEmail.trim() || null,
+                        familia_nombre: dirEditFamilia.trim() || null,
+                      })
+                      .eq("id", dirOptionsTarget.id);
+                  } else {
+                    await supabase.from("directorio").insert({
+                      owner_id: session.user.id,
                       nombre: dirEditNombre.trim(),
                       email: dirEditEmail.trim() || null,
                       familia_nombre: dirEditFamilia.trim() || null,
-                    })
-                    .eq("id", dirOptionsTarget?.id);
+                    });
+                  }
                   setShowDirEditModal(false);
                   await loadDirectorio();
                 }}
