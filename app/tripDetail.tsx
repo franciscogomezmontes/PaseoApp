@@ -3070,39 +3070,50 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   <Text style={styles.fieldLabel}>
                     Buscar en directorio o escribir nombre *
                   </Text>
-                  <View style={styles.searchBar}>
-                    <Text style={styles.searchIcon}>🔍</Text>
-                    <TextInput
-                      style={styles.searchInput}
-                      placeholder="Buscar contacto o escribir nombre..."
-                      placeholderTextColor="#94a3b8"
-                      value={newPersonaNombre}
-                      onChangeText={(text) => {
-                        setNewPersonaNombre(text);
-                        setAddingSelf(false);
-                        if (text.length >= 1 && directorio.length === 0)
-                          loadDirectorio();
-                      }}
-                      autoCapitalize="words"
-                    />
-                    {newPersonaNombre.length > 0 && (
-                      <TouchableOpacity
-                        onPress={() => {
-                          setNewPersonaNombre("");
+                  <View style={styles.nombreRow}>
+                    <View style={[styles.searchBar, { flex: 1 }]}>
+                      <Text style={styles.searchIcon}>🔍</Text>
+                      <TextInput
+                        style={styles.searchInput}
+                        placeholder="Buscar contacto o escribir nombre..."
+                        placeholderTextColor="#94a3b8"
+                        value={newPersonaNombre}
+                        onChangeText={(text) => {
+                          setNewPersonaNombre(text);
                           setAddingSelf(false);
+                          if (text.length >= 1 && directorio.length === 0)
+                            loadDirectorio();
                         }}
-                      >
-                        <Text
-                          style={{
-                            color: "#94a3b8",
-                            fontSize: 16,
-                            paddingHorizontal: 8,
+                        autoCapitalize="words"
+                      />
+                      {newPersonaNombre.length > 0 && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setNewPersonaNombre("");
+                            setAddingSelf(false);
                           }}
                         >
-                          ✕
-                        </Text>
-                      </TouchableOpacity>
-                    )}
+                          <Text
+                            style={{
+                              color: "#94a3b8",
+                              fontSize: 16,
+                              paddingHorizontal: 8,
+                            }}
+                          >
+                            ✕
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <TouchableOpacity
+                      style={styles.directorioBtn}
+                      onPress={() => {
+                        loadDirectorio();
+                        setShowDirectorioModal(true);
+                      }}
+                    >
+                      <Text style={styles.directorioBtnText}>📋</Text>
+                    </TouchableOpacity>
                   </View>
 
                   {/* Resultados inline */}

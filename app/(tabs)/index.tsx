@@ -127,7 +127,6 @@ export default function HomeScreen() {
   // ── UI ──
   const [notificaciones, setNotificaciones] = useState(true);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [faqExpanded, setFaqExpanded] = useState(false);
   const [paseosExpanded, setPaseosExpanded] = useState(false);
   const [configExpanded, setConfigExpanded] = useState(false);
 
@@ -324,9 +323,12 @@ export default function HomeScreen() {
     5,
   );
 
-  // ── UNAUTHENTICATED ──
+  // ── UNAUTHENTICATED — redirect via useEffect, never during render ──
+  useEffect(() => {
+    if (!persona) router.replace("/onboarding" as any);
+  }, [persona]);
+
   if (!persona) {
-    router.replace("/onboarding" as any);
     return (
       <SafeAreaView style={styles.container}>
         <View
@@ -619,42 +621,26 @@ export default function HomeScreen() {
 
         {/* 7. FAQ */}
         <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.collapseHeader}
-            onPress={() => {
-              setFaqExpanded(!faqExpanded);
-              if (faqExpanded) setOpenFaq(null);
-            }}
-            activeOpacity={0.7}
-          >
-            <View>
-              <Text style={styles.sectionTitle}>Preguntas frecuentes</Text>
-              <Text style={styles.collapseHint}>{FAQ.length} preguntas</Text>
-            </View>
-            <Text style={styles.collapseIcon}>
-              {faqExpanded ? "▲" : "▼"}
-            </Text>
-          </TouchableOpacity>
-          {faqExpanded &&
-            FAQ.map((item, i) => (
-              <TouchableOpacity
-                key={i}
-                style={[
-                  styles.faqItem,
-                  i === FAQ.length - 1 && { borderBottomWidth: 0 },
-                ]}
-                onPress={() => setOpenFaq(openFaq === i ? null : i)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.faqHeader}>
-                  <Text style={styles.faqQ}>{item.q}</Text>
-                  <Text style={styles.faqChevron}>
-                    {openFaq === i ? "↑" : "↓"}
-                  </Text>
-                </View>
-                {openFaq === i && <Text style={styles.faqA}>{item.a}</Text>}
-              </TouchableOpacity>
-            ))}
+          <Text style={styles.sectionTitle}>Preguntas frecuentes</Text>
+          {FAQ.map((item, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[
+                styles.faqItem,
+                i === FAQ.length - 1 && { borderBottomWidth: 0 },
+              ]}
+              onPress={() => setOpenFaq(openFaq === i ? null : i)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.faqHeader}>
+                <Text style={styles.faqQ}>{item.q}</Text>
+                <Text style={styles.faqChevron}>
+                  {openFaq === i ? "↑" : "↓"}
+                </Text>
+              </View>
+              {openFaq === i && <Text style={styles.faqA}>{item.a}</Text>}
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* 8. CERRAR SESIÓN */}
