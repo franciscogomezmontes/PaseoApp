@@ -183,6 +183,9 @@ export default function TripDetailScreen() {
   const [movingParticipante, setMovingParticipante] = useState<any>(null);
   const [showDeletePartModal, setShowDeletePartModal] = useState(false);
   const [deletePartTarget, setDeletePartTarget] = useState<any>(null);
+  const [nuevaFechaTodoPaseo, setNuevaFechaTodoPaseo] = useState(true);
+  const [nuevoFechaDesde, setNuevoFechaDesde] = useState("");
+  const [nuevoFechaHasta, setNuevoFechaHasta] = useState("");
   const [showFechasModal, setShowFechasModal] = useState(false);
   const [fechasParticipante, setFechasParticipante] = useState<any>(null);
   const [fechaDesdeInput, setFechaDesdeInput] = useState("");
@@ -664,6 +667,8 @@ export default function TripDetailScreen() {
       unidad_familiar: famObj.numero,
       factor: parsedFactor,
       puso: 0,
+      fecha_desde: nuevaFechaTodoPaseo ? null : (nuevoFechaDesde.trim() || null),
+      fecha_hasta: nuevaFechaTodoPaseo ? null : (nuevoFechaHasta.trim() || null),
     });
     if (error) {
       showError(error.message);
@@ -736,6 +741,9 @@ export default function TripDetailScreen() {
     setEnviarInvitacion(false);
     setEmailInvitacion("");
     setGuardarEnDirectorio(false);
+    setNuevaFechaTodoPaseo(true);
+    setNuevoFechaDesde("");
+    setNuevoFechaHasta("");
     setDirectorioSearch("");
     setShowAddModal(false);
     setSavingParticipant(false);
@@ -3135,7 +3143,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               </Text>
               <Text style={styles.fieldLabel}>Fecha llegada</Text>
               <TextInput
-                style={styles.familiaInput}
+                style={[
+                  styles.familiaInput,
+                  { fontSize: 15, fontWeight: "600", width: "100%" },
+                ]}
                 value={fechaDesdeInput}
                 onChangeText={setFechaDesdeInput}
                 placeholder="YYYY-MM-DD"
@@ -3145,7 +3156,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 Fecha salida
               </Text>
               <TextInput
-                style={styles.familiaInput}
+                style={[
+                  styles.familiaInput,
+                  { fontSize: 15, fontWeight: "600", width: "100%" },
+                ]}
                 value={fechaHastaInput}
                 onChangeText={setFechaHastaInput}
                 placeholder="YYYY-MM-DD"
@@ -3683,6 +3697,58 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   placeholder="1.0"
                   placeholderTextColor="#94a3b8"
                 />
+
+                {/* ── Fechas de asistencia ── */}
+                <Text style={[styles.modalSectionLabel, { marginTop: 16 }]}>
+                  📅 Fechas de asistencia
+                </Text>
+                <View style={styles.switchRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.switchLabel}>
+                      Asistirá a todo el paseo
+                    </Text>
+                    <Text style={styles.switchSub}>
+                      {paseo?.fecha_inicio} → {paseo?.fecha_fin}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={nuevaFechaTodoPaseo}
+                    onValueChange={(v) => {
+                      setNuevaFechaTodoPaseo(v);
+                      if (v) {
+                        setNuevoFechaDesde("");
+                        setNuevoFechaHasta("");
+                      } else {
+                        setNuevoFechaDesde(paseo?.fecha_inicio ?? "");
+                        setNuevoFechaHasta(paseo?.fecha_fin ?? "");
+                      }
+                    }}
+                    trackColor={{ false: "#e2e8f0", true: "#1B4F72" }}
+                    thumbColor="#fff"
+                  />
+                </View>
+                {!nuevaFechaTodoPaseo && (
+                  <View style={{ marginTop: 8, marginBottom: 12 }}>
+                    <Text style={styles.fieldLabel}>Fecha llegada</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={nuevoFechaDesde}
+                      onChangeText={setNuevoFechaDesde}
+                      placeholder="YYYY-MM-DD"
+                      keyboardType="numbers-and-punctuation"
+                    />
+                    <Text style={[styles.fieldLabel, { marginTop: 10 }]}>
+                      Fecha salida
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      value={nuevoFechaHasta}
+                      onChangeText={setNuevoFechaHasta}
+                      placeholder="YYYY-MM-DD"
+                      keyboardType="numbers-and-punctuation"
+                    />
+                  </View>
+                )}
               </ScrollView>
             </KeyboardAvoidingView>
           </SafeAreaView>
