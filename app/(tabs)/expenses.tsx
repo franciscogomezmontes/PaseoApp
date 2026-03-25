@@ -63,6 +63,13 @@ export default function GastosScreen() {
   const [familiasPorPaseo, setFamiliasPorPaseo] = useState<
     Record<string, any[]>
   >({});
+  const [momentosPorPaseo, setMomentosPorPaseo] = useState<
+    Record<string, any[]>
+  >({});
+  // paseoId → momentoId → { participacionId → activo }
+  const [comidaMapPorPaseo, setComidaMapPorPaseo] = useState<
+    Record<string, Record<string, Record<string, boolean>>>
+  >({});
   const [loadingData, setLoadingData] = useState(false);
   const [collapsedPaseos, setCollapsedPaseos] = useState<
     Record<string, boolean>
@@ -175,10 +182,44 @@ export default function GastosScreen() {
       gpm[r.gasto_id][r.participacion_id] = r.activo;
     });
 
+    // Load momentos_comida
+    const { data: momentosData } = await supabase
+      .from("momentos_comida")
+      .select("id, paseo_id, fecha")
+      .in("paseo_id", paseoIds)
+      .order("fecha")
+      .order("tipo_comida");
+
+    const mxp: Record<string, any[]> = {};
+    paseoIds.forEach((pid) => { mxp[pid] = []; });
+    (momentosData ?? []).forEach((m: any) => { mxp[m.paseo_id]?.push(m); });
+
+    // Load participantes_comida for those momentos
+    const momentoIds = (momentosData ?? []).map((m: any) => m.id);
+    const cmxp: Record<string, Record<string, Record<string, boolean>>> = {};
+    paseoIds.forEach((pid) => { cmxp[pid] = {}; });
+    if (momentoIds.length > 0) {
+      const { data: pcData } = await supabase
+        .from("participantes_comida")
+        .select("momento_id, participacion_id, activo")
+        .in("momento_id", momentoIds);
+      (pcData ?? []).forEach((r: any) => {
+        const momento = (momentosData ?? []).find(
+          (m: any) => m.id === r.momento_id,
+        );
+        if (!momento) return;
+        if (!cmxp[momento.paseo_id][r.momento_id])
+          cmxp[momento.paseo_id][r.momento_id] = {};
+        cmxp[momento.paseo_id][r.momento_id][r.participacion_id] = r.activo;
+      });
+    }
+
     setGastosPorPaseo(gxp);
     setParticipacionesPorPaseo(pxp);
     setPersonasPorPaseo(persxp);
     setGastosPartMap(gpm);
+    setMomentosPorPaseo(mxp);
+    setComidaMapPorPaseo(cmxp);
     setInitialized((prev) => {
       if (!prev) {
         // Collapse all paseos by default on first load
@@ -357,9 +398,21 @@ export default function GastosScreen() {
     const gastos = gastosPorPaseo[paseoId] ?? [];
     const parts = participacionesPorPaseo[paseoId] ?? [];
     const familias = familiasPorPaseo[paseoId] ?? [];
+    const momentos = momentosPorPaseo[paseoId] ?? [];
+    const comidaMap = comidaMapPorPaseo[paseoId] ?? {};
     if (parts.length === 0) return { balancePorFamilia: [], liquidaciones: [] };
 
-    // Build familia groups (include __sin_familia__ fallback)
+    const paseoInfo = paseos.find((p) => p.id === paseoId);
+    const daysInRange = (start: string, end: string) => {
+      const s = new Date(start + "T12:00:00");
+      const e = new Date(end + "T12:00:00");
+      return Math.max(0, Math.round((e.getTime() - s.getTime()) / 86400000) + 1);
+    };
+    const totalTripDays = paseoInfo
+      ? daysInRange(paseoInfo.fecha_inicio, paseoInfo.fecha_fin)
+      : 1;
+
+    // Build familia groups
     const famMap: Record<string, { id: string; nombre: string; parts: any[] }> =
       {};
     familias.forEach((f) => {
@@ -377,11 +430,9 @@ export default function GastosScreen() {
       famMap[fid].parts.push(p);
     });
 
-    // puso per familia (gastos pagados by a member of that familia)
+    // puso per familia
     const puso: Record<string, number> = {};
-    Object.keys(famMap).forEach((fid) => {
-      puso[fid] = 0;
-    });
+    Object.keys(famMap).forEach((fid) => { puso[fid] = 0; });
     gastos.forEach((g) => {
       const pagador = parts.find((p) => p.persona_id === g.pagado_por);
       if (!pagador) return;
@@ -389,34 +440,81 @@ export default function GastosScreen() {
       puso[fid] = (puso[fid] ?? 0) + g.monto;
     });
 
-    // leCorresponde per familia — factor-weighted, per gasto
+    // leCorresponde per familia
     const leCorresponde: Record<string, number> = {};
-    Object.keys(famMap).forEach((fid) => {
-      leCorresponde[fid] = 0;
-    });
-    gastos.forEach((g) => {
-      const registros = gastosPartMap[g.id] ?? {};
-      const noRegistros = Object.keys(registros).length === 0;
-      const activosParts = parts.filter((p) =>
-        noRegistros
-          ? true
-          : registros[p.id] !== undefined
-            ? registros[p.id]
-            : true,
-      );
-      const factorTotal = activosParts.reduce((s, p) => s + (p.factor ?? 1), 0);
-      if (factorTotal === 0) return;
-      // Group active parts by familia
-      const factorPorFamilia: Record<string, number> = {};
-      activosParts.forEach((p) => {
-        const fid = p.familia_id ?? "__sin_familia__";
-        factorPorFamilia[fid] = (factorPorFamilia[fid] ?? 0) + (p.factor ?? 1);
+    Object.keys(famMap).forEach((fid) => { leCorresponde[fid] = 0; });
+
+    // COMIDA: per-meal split weighted by active factor per moment
+    const comidaGastos = gastos.filter((g) => g.categoria === "comida");
+    if (comidaGastos.length > 0) {
+      const totalComida = comidaGastos.reduce((s, g) => s + g.monto, 0);
+      if (momentos.length > 0) {
+        const costoPorMomento = totalComida / momentos.length;
+        momentos.forEach((m) => {
+          const registros = comidaMap[m.id] ?? {};
+          const factorTotal = parts.reduce((sum, p) => {
+            const activo =
+              registros[p.id] !== undefined ? registros[p.id] : true;
+            return sum + (activo ? (p.factor ?? 1) : 0);
+          }, 0);
+          if (factorTotal === 0) return;
+          parts.forEach((p) => {
+            const activo =
+              registros[p.id] !== undefined ? registros[p.id] : true;
+            if (!activo) return;
+            const fid = p.familia_id ?? "__sin_familia__";
+            leCorresponde[fid] =
+              (leCorresponde[fid] ?? 0) +
+              costoPorMomento * ((p.factor ?? 1) / factorTotal);
+          });
+        });
+      } else {
+        // No momentos yet: fallback factor split
+        const factorTotal = parts.reduce((s, p) => s + (p.factor ?? 1), 0);
+        if (factorTotal > 0) {
+          parts.forEach((p) => {
+            const fid = p.familia_id ?? "__sin_familia__";
+            leCorresponde[fid] =
+              (leCorresponde[fid] ?? 0) +
+              totalComida * ((p.factor ?? 1) / factorTotal);
+          });
+        }
+      }
+    }
+
+    // NON-COMIDA: per-gasto split, prorated by days present
+    gastos
+      .filter((g) => g.categoria !== "comida")
+      .forEach((g) => {
+        const registros = gastosPartMap[g.id] ?? {};
+        const noRegistros = Object.keys(registros).length === 0;
+
+        const weightOf = (p: any) => {
+          const activo = noRegistros
+            ? true
+            : registros[p.id] !== undefined
+              ? registros[p.id]
+              : true;
+          if (!activo) return 0;
+          const daysP = paseoInfo
+            ? daysInRange(
+                p.fecha_desde ?? paseoInfo.fecha_inicio,
+                p.fecha_hasta ?? paseoInfo.fecha_fin,
+              )
+            : totalTripDays;
+          return (p.factor ?? 1) * (daysP / totalTripDays);
+        };
+
+        const weightedTotal = parts.reduce((sum, p) => sum + weightOf(p), 0);
+        if (weightedTotal === 0) return;
+        parts.forEach((p) => {
+          const w = weightOf(p);
+          if (w === 0) return;
+          const fid = p.familia_id ?? "__sin_familia__";
+          leCorresponde[fid] =
+            (leCorresponde[fid] ?? 0) + g.monto * (w / weightedTotal);
+        });
       });
-      Object.entries(factorPorFamilia).forEach(([fid, factorFam]) => {
-        leCorresponde[fid] =
-          (leCorresponde[fid] ?? 0) + g.monto * (factorFam / factorTotal);
-      });
-    });
 
     const balancePorFamilia = Object.values(famMap)
       .filter((f) => f.parts.length > 0)

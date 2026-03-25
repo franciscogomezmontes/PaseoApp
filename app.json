@@ -18,7 +18,12 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.frang_x1.PaseoApp"
+      "package": "com.frang_x1.PaseoApp",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDgQF140x1bNsj1g3y9FKeKYTZtBx32ky4"
+        }
+      }
     },
     "web": {
       "output": "static",

@@ -323,11 +323,6 @@ export default function HomeScreen() {
     5,
   );
 
-  // ── UNAUTHENTICATED — redirect via useEffect, never during render ──
-  useEffect(() => {
-    if (!persona) router.replace("/onboarding" as any);
-  }, [persona]);
-
   if (!persona) {
     return (
       <SafeAreaView style={styles.container}>

@@ -183,6 +183,11 @@ export default function TripDetailScreen() {
   const [movingParticipante, setMovingParticipante] = useState<any>(null);
   const [showDeletePartModal, setShowDeletePartModal] = useState(false);
   const [deletePartTarget, setDeletePartTarget] = useState<any>(null);
+  const [showFechasModal, setShowFechasModal] = useState(false);
+  const [fechasParticipante, setFechasParticipante] = useState<any>(null);
+  const [fechaDesdeInput, setFechaDesdeInput] = useState("");
+  const [fechaHastaInput, setFechaHastaInput] = useState("");
+  const [savingFechas, setSavingFechas] = useState(false);
 
   // ── Meal ──
   const [showAddMealModal, setShowAddMealModal] = useState(false);
@@ -269,6 +274,12 @@ export default function TripDetailScreen() {
   const colorForFamilia = (familiaId: string | null) => {
     const idx = familiasList.findIndex((f) => f.id === familiaId);
     return UF_COLORS[idx >= 0 ? idx % UF_COLORS.length : 0];
+  };
+
+  const daysInRange = (start: string, end: string): number => {
+    const s = new Date(start + "T12:00:00");
+    const e = new Date(end + "T12:00:00");
+    return Math.max(0, Math.round((e.getTime() - s.getTime()) / 86400000) + 1);
   };
 
   // ─────────────────────────────────────────────
@@ -775,15 +786,133 @@ export default function TripDetailScreen() {
     setDeletePartTarget(m);
     setShowDeletePartModal(true);
   };
+
+  const handleEditFechas = (part: any) => {
+    setFechasParticipante(part);
+    setFechaDesdeInput(part.fecha_desde ?? paseo?.fecha_inicio ?? "");
+    setFechaHastaInput(part.fecha_hasta ?? paseo?.fecha_fin ?? "");
+    setShowFechasModal(true);
+  };
+
+  const saveFechas = async () => {
+    if (!fechasParticipante || !paseo) return;
+    const desde = fechaDesdeInput.trim();
+    const hasta = fechaHastaInput.trim();
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(desde) || !dateRegex.test(hasta)) {
+      showError("Usa formato YYYY-MM-DD para las fechas.");
+      return;
+    }
+    if (desde < paseo.fecha_inicio || hasta > paseo.fecha_fin) {
+      showError(
+        `Las fechas deben estar dentro del paseo: ${paseo.fecha_inicio} → ${paseo.fecha_fin}.`,
+      );
+      return;
+    }
+    if (desde > hasta) {
+      showError("La fecha de llegada no puede ser después de la salida.");
+      return;
+    }
+    setSavingFechas(true);
+    const { error } = await supabase
+      .from("participaciones")
+      .update({ fecha_desde: desde, fecha_hasta: hasta })
+      .eq("id", fechasParticipante.id);
+    if (error) {
+      showError(error.message);
+      setSavingFechas(false);
+      return;
+    }
+    // Mark participant as inactive on meals outside their date range
+    for (const momento of momentos) {
+      if (momento.fecha < desde || momento.fecha > hasta) {
+        const { data: existing } = await supabase
+          .from("participantes_comida")
+          .select("id")
+          .eq("momento_id", momento.id)
+          .eq("participacion_id", fechasParticipante.id)
+          .maybeSingle();
+        if (existing) {
+          await supabase
+            .from("participantes_comida")
+            .update({ activo: false })
+            .eq("id", existing.id);
+        } else {
+          await supabase.from("participantes_comida").insert({
+            momento_id: momento.id,
+            participacion_id: fechasParticipante.id,
+            activo: false,
+          });
+        }
+      }
+    }
+    // Reload comida records and recalculate porciones
+    const { data: pcFresh } = await supabase
+      .from("participantes_comida")
+      .select("momento_id, participacion_id, activo")
+      .in(
+        "momento_id",
+        momentos.map((m) => m.id),
+      );
+    const updatedComidaMap: Record<string, Record<string, boolean>> = {};
+    (pcFresh ?? []).forEach((r: any) => {
+      if (!updatedComidaMap[r.momento_id]) updatedComidaMap[r.momento_id] = {};
+      updatedComidaMap[r.momento_id][r.participacion_id] = r.activo;
+    });
+    for (const momento of momentos) {
+      const registros = updatedComidaMap[momento.id] ?? {};
+      const activePorciones = participaciones
+        .filter((p) => registros[p.id] !== false)
+        .reduce((sum, p) => sum + (p.factor ?? 1), 0);
+      const porciones =
+        parseFloat((Math.round(activePorciones * 10) / 10).toFixed(1)) || 1;
+      await supabase
+        .from("momentos_comida")
+        .update({ porciones })
+        .eq("id", momento.id);
+    }
+    setSavingFechas(false);
+    setShowFechasModal(false);
+    loadTripData();
+  };
   const confirmDeleteParticipante = async () => {
     if (!deletePartTarget) return;
     setShowDeletePartModal(false);
+    // Clean up meal attendance records for this participant
+    await supabase
+      .from("participantes_comida")
+      .delete()
+      .eq("participacion_id", deletePartTarget.id);
+    // Delete the participation
     const { error } = await supabase
       .from("participaciones")
       .delete()
       .eq("id", deletePartTarget.id);
-    if (error) showError(error.message);
-    else loadTripData();
+    if (error) { showError(error.message); return; }
+    // Recalculate porciones for all momentos using remaining participants
+    const remainingParts = participaciones.filter(
+      (p) => p.id !== deletePartTarget.id,
+    );
+    for (const momento of momentos) {
+      const { data: pc } = await supabase
+        .from("participantes_comida")
+        .select("participacion_id, activo")
+        .eq("momento_id", momento.id);
+      const existingMap: Record<string, boolean> = {};
+      (pc ?? []).forEach((r: any) => {
+        existingMap[r.participacion_id] = r.activo;
+      });
+      const activePorciones = remainingParts
+        .filter((p) => existingMap[p.id] !== false)
+        .reduce((sum, p) => sum + (p.factor ?? 1), 0);
+      const porciones =
+        parseFloat((Math.round(activePorciones * 10) / 10).toFixed(1)) || 1;
+      await supabase
+        .from("momentos_comida")
+        .update({ porciones })
+        .eq("id", momento.id);
+    }
+    loadTripData();
   };
 
   // ─────────────────────────────────────────────
@@ -1147,31 +1276,38 @@ export default function TripDetailScreen() {
       return total;
     }
 
-    // NON-COMIDA: each gasto has its own participant list
+    // NON-COMIDA: each gasto has its own participant list, prorated by days present
+    const totalTripDays = paseo
+      ? daysInRange(paseo.fecha_inicio, paseo.fecha_fin)
+      : 1;
     let total = 0;
     gastosCat.forEach((g) => {
       const registros = gastosPartMap[g.id] ?? {};
-      // If no records saved yet, everyone participates (shouldn't happen but safe fallback)
       const allActive = Object.keys(registros).length === 0;
 
-      const factorActivoFamilia = miembros.reduce((sum, p) => {
+      const weightOf = (p: any) => {
         const activo = allActive
           ? true
           : registros[p.id] !== undefined
             ? registros[p.id]
             : true;
-        return sum + (activo ? (p.factor ?? 1) : 0);
-      }, 0);
-      const factorActivoTotal = participaciones.reduce((sum, p) => {
-        const activo = allActive
-          ? true
-          : registros[p.id] !== undefined
-            ? registros[p.id]
-            : true;
-        return sum + (activo ? (p.factor ?? 1) : 0);
-      }, 0);
-      if (factorActivoTotal > 0)
-        total += g.monto * (factorActivoFamilia / factorActivoTotal);
+        if (!activo) return 0;
+        const daysP = paseo
+          ? daysInRange(
+              p.fecha_desde ?? paseo.fecha_inicio,
+              p.fecha_hasta ?? paseo.fecha_fin,
+            )
+          : totalTripDays;
+        return (p.factor ?? 1) * (daysP / totalTripDays);
+      };
+
+      const weightedFamilia = miembros.reduce((sum, p) => sum + weightOf(p), 0);
+      const weightedTotal = participaciones.reduce(
+        (sum, p) => sum + weightOf(p),
+        0,
+      );
+      if (weightedTotal > 0)
+        total += g.monto * (weightedFamilia / weightedTotal);
     });
     return total;
   };
@@ -2893,6 +3029,18 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                style={[styles.estadoOption, { backgroundColor: "#EFF6FF" }]}
+                onPress={() => {
+                  setShowOptionsModal(false);
+                  if (optionsParticipante)
+                    handleEditFechas(optionsParticipante);
+                }}
+              >
+                <Text style={[styles.estadoOptionText, { color: "#1B4F72" }]}>
+                  Fechas de asistencia
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[styles.estadoOption, { backgroundColor: "#FEE2E2" }]}
                 onPress={() => {
                   setShowOptionsModal(false);
@@ -2956,6 +3104,72 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   onPress={applyFactor}
                 >
                   <Text style={styles.familiaModalSaveText}>Guardar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Fechas de asistencia modal */}
+        <Modal
+          visible={showFechasModal}
+          animationType="fade"
+          transparent
+          onRequestClose={() => !savingFechas && setShowFechasModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.familiaModalBox}>
+              <Text style={styles.familiaModalTitle}>
+                Fechas de asistencia
+              </Text>
+              <Text style={styles.familiaModalSub}>
+                {fechasParticipante?.personas?.nombre}
+              </Text>
+              <Text
+                style={[
+                  styles.fieldHint,
+                  { textAlign: "center", marginBottom: 16 },
+                ]}
+              >
+                Rango del paseo: {paseo?.fecha_inicio} → {paseo?.fecha_fin}
+              </Text>
+              <Text style={styles.fieldLabel}>Fecha llegada</Text>
+              <TextInput
+                style={styles.familiaInput}
+                value={fechaDesdeInput}
+                onChangeText={setFechaDesdeInput}
+                placeholder="YYYY-MM-DD"
+                keyboardType="numbers-and-punctuation"
+              />
+              <Text style={[styles.fieldLabel, { marginTop: 12 }]}>
+                Fecha salida
+              </Text>
+              <TextInput
+                style={styles.familiaInput}
+                value={fechaHastaInput}
+                onChangeText={setFechaHastaInput}
+                placeholder="YYYY-MM-DD"
+                keyboardType="numbers-and-punctuation"
+              />
+              <View style={styles.familiaModalButtons}>
+                <TouchableOpacity
+                  style={styles.familiaModalCancel}
+                  onPress={() => setShowFechasModal(false)}
+                  disabled={savingFechas}
+                >
+                  <Text style={styles.familiaModalCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.familiaModalSave,
+                    savingFechas && { opacity: 0.6 },
+                  ]}
+                  onPress={saveFechas}
+                  disabled={savingFechas}
+                >
+                  <Text style={styles.familiaModalSaveText}>
+                    {savingFechas ? "Guardando..." : "Guardar"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
