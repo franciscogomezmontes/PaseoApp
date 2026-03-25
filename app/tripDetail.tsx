@@ -660,20 +660,38 @@ export default function TripDetailScreen() {
           }
         : { numero: 1 });
 
-    const { error } = await supabase.from("participaciones").insert({
-      paseo_id: id,
-      persona_id: personaId,
-      familia_id: familiaId,
-      unidad_familiar: famObj.numero,
-      factor: parsedFactor,
-      puso: 0,
-      fecha_desde: nuevaFechaTodoPaseo ? null : (nuevoFechaDesde.trim() || null),
-      fecha_hasta: nuevaFechaTodoPaseo ? null : (nuevoFechaHasta.trim() || null),
-    });
+    const { data: newPart, error } = await supabase
+      .from("participaciones")
+      .insert({
+        paseo_id: id,
+        persona_id: personaId,
+        familia_id: familiaId,
+        unidad_familiar: famObj.numero,
+        factor: parsedFactor,
+        puso: 0,
+        fecha_desde: nuevaFechaTodoPaseo ? null : (nuevoFechaDesde.trim() || null),
+        fecha_hasta: nuevaFechaTodoPaseo ? null : (nuevoFechaHasta.trim() || null),
+      })
+      .select()
+      .single();
     if (error) {
       showError(error.message);
       setSavingParticipant(false);
       return;
+    }
+    // If custom dates, mark as inactive on meals outside the date range
+    if (!nuevaFechaTodoPaseo && newPart && momentos.length > 0) {
+      const desde = nuevoFechaDesde.trim();
+      const hasta = nuevoFechaHasta.trim();
+      const absentRows = momentos
+        .filter((m) => m.fecha < desde || m.fecha > hasta)
+        .map((m) => ({
+          momento_id: m.id,
+          participacion_id: newPart.id,
+          activo: false,
+        }));
+      if (absentRows.length > 0)
+        await supabase.from("participantes_comida").insert(absentRows);
     }
 
     // Guardar en directorio si se solicitó
@@ -931,30 +949,48 @@ export default function TripDetailScreen() {
     setShowMealOptionsModal(true);
   };
 
+  const isPartPresentOnDate = (p: any, fecha: string): boolean => {
+    const desde = p.fecha_desde ?? paseo?.fecha_inicio ?? "";
+    const hasta = p.fecha_hasta ?? paseo?.fecha_fin ?? "";
+    return desde <= fecha && fecha <= hasta;
+  };
+
   const handleAddMeal = async () => {
     if (!fechaActiva) return;
     setSavingMeal(true);
     const currentFecha = fechaActiva;
-    const totalFactor = participaciones.reduce(
-      (sum, p) => sum + (p.factor ?? 1),
-      0,
-    );
+    // Only count participants present on this specific date
+    const totalFactor = participaciones
+      .filter((p) => isPartPresentOnDate(p, currentFecha))
+      .reduce((sum, p) => sum + (p.factor ?? 1), 0);
     const porciones =
       parseFloat((Math.round(totalFactor * 10) / 10).toFixed(1)) || 1;
-    const { error } = await supabase.from("momentos_comida").insert({
-      paseo_id: id,
-      fecha: currentFecha,
-      tipo_comida: selectedTipo,
-      receta_id: selectedRecetaId,
-      porciones,
-    });
-    if (error) showError(error.message);
-    else {
-      setShowAddMealModal(false);
-      setSelectedRecetaId(null);
-      await loadTripData();
-      setFechaActiva(currentFecha);
-    }
+    const { data: newMeal, error } = await supabase
+      .from("momentos_comida")
+      .insert({
+        paseo_id: id,
+        fecha: currentFecha,
+        tipo_comida: selectedTipo,
+        receta_id: selectedRecetaId,
+        porciones,
+      })
+      .select()
+      .single();
+    if (error) { showError(error.message); setSavingMeal(false); return; }
+    // Mark participants absent on this date as inactive
+    const absentRows = participaciones
+      .filter((p) => !isPartPresentOnDate(p, currentFecha))
+      .map((p) => ({
+        momento_id: newMeal.id,
+        participacion_id: p.id,
+        activo: false,
+      }));
+    if (absentRows.length > 0)
+      await supabase.from("participantes_comida").insert(absentRows);
+    setShowAddMealModal(false);
+    setSelectedRecetaId(null);
+    await loadTripData();
+    setFechaActiva(currentFecha);
     setSavingMeal(false);
   };
 
