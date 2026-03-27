@@ -1020,7 +1020,14 @@ export default function NewRecipeScreen() {
                     "unidades",
                     "tazas",
                     "cucharadas",
+                    "cucharadítas",
                     "cubos",
+                    "partes",
+                    "tajadas",
+                    "dientes",
+                    "rama",
+                    "atados",
+                    "paquetes",
                   ].map((u) => (
                     <TouchableOpacity
                       key={u}
@@ -1052,6 +1059,7 @@ export default function NewRecipeScreen() {
                     "Frutas y verduras",
                     "Lácteos y huevos",
                     "Granos y cereales",
+                    "Nevera",
                     "Condimentos",
                     "Bebidas",
                     "Panadería",
