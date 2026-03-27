@@ -12,13 +12,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { supabase } from "../src/lib/supabase";
 import { useAuthStore } from "../src/store/useAuthStore";
 
 export default function AuthScreen() {
   const router = useRouter();
   const { signIn, signUp, error, clearError } = useAuthStore();
 
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "reset">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nombre, setNombre] = useState("");
@@ -27,12 +28,28 @@ export default function AuthScreen() {
 
   // UI states
   const [showConfirmScreen, setShowConfirmScreen] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   const showError = (msg: string) => {
     setErrorMsg(msg);
     setShowErrorModal(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!email.trim()) {
+      showError("Ingresa tu correo electrónico.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+    setLoading(false);
+    if (error) {
+      showError(error.message);
+    } else {
+      setShowResetConfirm(true);
+    }
   };
 
   const handleSubmit = async () => {
@@ -113,6 +130,39 @@ export default function AuthScreen() {
     );
   }
 
+  // ── Pantalla de confirmación de reset ───────────────────────────
+  if (showResetConfirm) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.confirmContent}>
+          <Text style={styles.confirmEmoji}>🔑</Text>
+          <Text style={styles.confirmTitle}>Revisa tu correo</Text>
+          <Text style={styles.confirmSub}>
+            Te enviamos un enlace a{"\n"}
+            <Text style={styles.confirmEmail}>{email}</Text>
+          </Text>
+          <Text style={styles.confirmHint}>
+            Abre el enlace en tu correo para crear una nueva contraseña. Una vez
+            cambiada, regresa aquí e inicia sesión.
+          </Text>
+          <TouchableOpacity
+            style={styles.submitBtn}
+            onPress={() => {
+              setShowResetConfirm(false);
+              setMode("login");
+              setPassword("");
+            }}
+          >
+            <Text style={styles.submitText}>Ir a iniciar sesión →</Text>
+          </TouchableOpacity>
+          <Text style={styles.confirmFooter}>
+            ¿No llegó el correo? Revisa la carpeta de spam.
+          </Text>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   // ── Pantalla principal de auth ──────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
@@ -133,49 +183,94 @@ export default function AuthScreen() {
             </Text>
           </View>
 
-          {/* Toggle login / signup */}
-          <View style={styles.toggle}>
-            <TouchableOpacity
-              style={[
-                styles.toggleBtn,
-                mode === "login" && styles.toggleBtnActive,
-              ]}
-              onPress={() => {
-                setMode("login");
-                clearError();
-              }}
-            >
-              <Text
+          {/* Toggle login / signup — oculto en modo reset */}
+          {mode !== "reset" && (
+            <View style={styles.toggle}>
+              <TouchableOpacity
                 style={[
-                  styles.toggleText,
-                  mode === "login" && styles.toggleTextActive,
+                  styles.toggleBtn,
+                  mode === "login" && styles.toggleBtnActive,
                 ]}
+                onPress={() => {
+                  setMode("login");
+                  clearError();
+                }}
               >
-                Iniciar sesión
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.toggleBtn,
-                mode === "signup" && styles.toggleBtnActive,
-              ]}
-              onPress={() => {
-                setMode("signup");
-                clearError();
-              }}
-            >
-              <Text
+                <Text
+                  style={[
+                    styles.toggleText,
+                    mode === "login" && styles.toggleTextActive,
+                  ]}
+                >
+                  Iniciar sesión
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[
-                  styles.toggleText,
-                  mode === "signup" && styles.toggleTextActive,
+                  styles.toggleBtn,
+                  mode === "signup" && styles.toggleBtnActive,
                 ]}
+                onPress={() => {
+                  setMode("signup");
+                  clearError();
+                }}
               >
-                Crear cuenta
-              </Text>
-            </TouchableOpacity>
-          </View>
+                <Text
+                  style={[
+                    styles.toggleText,
+                    mode === "signup" && styles.toggleTextActive,
+                  ]}
+                >
+                  Crear cuenta
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-          {/* Form */}
+          {/* Formulario reset */}
+          {mode === "reset" && (
+            <View style={styles.form}>
+              <Text style={styles.resetTitle}>¿Olvidaste tu contraseña?</Text>
+              <Text style={styles.resetSub}>
+                Ingresa tu correo y te enviamos un enlace para crear una nueva
+                contraseña.
+              </Text>
+              <View style={styles.field}>
+                <Text style={styles.label}>Correo electrónico</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="correo@ejemplo.com"
+                  placeholderTextColor="#94a3b8"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoFocus
+                />
+              </View>
+              <TouchableOpacity
+                style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
+                onPress={handleResetPassword}
+                disabled={loading}
+              >
+                <Text style={styles.submitText}>
+                  {loading ? "Enviando..." : "Enviar enlace"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={() => setMode("login")}
+              >
+                <Text style={styles.secondaryBtnText}>
+                  ← Volver a iniciar sesión
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Form login / signup */}
+          {mode !== "reset" && (
           <View style={styles.form}>
             {mode === "signup" && (
               <View style={styles.field}>
@@ -237,6 +332,19 @@ export default function AuthScreen() {
               </View>
             )}
 
+            {/* Link "¿Olvidaste tu contraseña?" — solo en login, cerca del campo */}
+            {mode === "login" && (
+              <TouchableOpacity
+                style={styles.forgotBtn}
+                onPress={() => {
+                  setMode("reset");
+                  clearError();
+                }}
+              >
+                <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
               onPress={handleSubmit}
@@ -251,6 +359,7 @@ export default function AuthScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -367,6 +476,12 @@ const styles = StyleSheet.create({
 
   secondaryBtn: { padding: 14, alignItems: "center" },
   secondaryBtnText: { fontSize: 14, color: "#64748b", fontWeight: "600" },
+
+  forgotBtn: { alignSelf: "flex-end", paddingVertical: 6, paddingLeft: 8, marginBottom: 4 },
+  forgotText: { fontSize: 13, color: "#1B4F72", fontWeight: "600" },
+
+  resetTitle: { fontSize: 22, fontWeight: "800", color: "#1e293b", marginBottom: 8 },
+  resetSub: { fontSize: 14, color: "#64748b", lineHeight: 20, marginBottom: 24 },
 
   confirmContent: {
     padding: 32,

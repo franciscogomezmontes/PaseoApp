@@ -141,12 +141,40 @@ export default function HomeScreen() {
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   const showError = (msg: string) => {
     setErrorMsg(msg);
     setShowErrorModal(true);
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) {
+      showError("La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showError("Las contraseñas no coinciden.");
+      return;
+    }
+    setSavingPassword(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setSavingPassword(false);
+    if (error) {
+      showError(error.message);
+    } else {
+      setPasswordSuccess(true);
+      setNewPassword("");
+      setConfirmPassword("");
+    }
   };
 
   useEffect(() => {
@@ -568,6 +596,24 @@ export default function HomeScreen() {
                 </View>
                 <Text style={styles.settingArrow}>›</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.settingRow}
+                onPress={() => {
+                  setPasswordSuccess(false);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                  setShowPasswordModal(true);
+                }}
+              >
+                <View style={styles.settingLeft}>
+                  <Text style={styles.settingIcon}>🔒</Text>
+                  <View>
+                    <Text style={styles.settingLabel}>Cambiar contraseña</Text>
+                    <Text style={styles.settingSub}>Actualiza tu contraseña de acceso</Text>
+                  </View>
+                </View>
+                <Text style={styles.settingArrow}>›</Text>
+              </TouchableOpacity>
               <View style={styles.settingRow}>
                 <View style={styles.settingLeft}>
                   <Text style={styles.settingIcon}>🔔</Text>
@@ -891,6 +937,108 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
+      {/* Cambiar contraseña */}
+      <Modal
+        visible={showPasswordModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowPasswordModal(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowPasswordModal(false)}>
+              <Text style={styles.modalCancel}>Cancelar</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Cambiar contraseña</Text>
+            <View style={{ width: 60 }} />
+          </View>
+          <ScrollView
+            style={styles.modalContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {passwordSuccess ? (
+              <View style={{ alignItems: "center", paddingVertical: 48 }}>
+                <Text style={{ fontSize: 56, marginBottom: 16 }}>✅</Text>
+                <Text style={styles.modalTitle}>¡Contraseña actualizada!</Text>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: "#64748b",
+                    textAlign: "center",
+                    marginTop: 8,
+                    lineHeight: 20,
+                  }}
+                >
+                  Tu contraseña fue cambiada exitosamente.
+                </Text>
+                <TouchableOpacity
+                  style={[styles.saveBtn, { marginTop: 32, width: "100%" }]}
+                  onPress={() => setShowPasswordModal(false)}
+                >
+                  <Text style={styles.saveBtnText}>Listo</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Nueva contraseña</Text>
+                  <View style={styles.pwWrapper}>
+                    <TextInput
+                      style={styles.pwInput}
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      placeholder="Mínimo 6 caracteres"
+                      placeholderTextColor="#94a3b8"
+                      secureTextEntry={!showNewPw}
+                      autoCapitalize="none"
+                    />
+                    <TouchableOpacity
+                      style={styles.pwEyeBtn}
+                      onPress={() => setShowNewPw((v) => !v)}
+                    >
+                      <Text>{showNewPw ? "🙈" : "👁️"}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Confirmar contraseña</Text>
+                  <View style={styles.pwWrapper}>
+                    <TextInput
+                      style={styles.pwInput}
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      placeholder="Repite la nueva contraseña"
+                      placeholderTextColor="#94a3b8"
+                      secureTextEntry={!showConfirmPw}
+                      autoCapitalize="none"
+                    />
+                    <TouchableOpacity
+                      style={styles.pwEyeBtn}
+                      onPress={() => setShowConfirmPw((v) => !v)}
+                    >
+                      <Text>{showConfirmPw ? "🙈" : "👁️"}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.saveBtn,
+                    { marginTop: 8 },
+                    savingPassword && { opacity: 0.6 },
+                  ]}
+                  onPress={handleChangePassword}
+                  disabled={savingPassword}
+                >
+                  <Text style={styles.saveBtnText}>
+                    {savingPassword ? "Guardando..." : "Guardar contraseña"}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
 
       {/* Cerrar sesión */}
@@ -1341,4 +1489,29 @@ const styles = StyleSheet.create({
   },
   emailValue: { fontSize: 15, color: "#64748b", marginBottom: 4 },
   emailHint: { fontSize: 11, color: "#94a3b8" },
+
+  saveBtn: {
+    backgroundColor: "#1B4F72",
+    borderRadius: 14,
+    padding: 16,
+    alignItems: "center",
+  },
+  saveBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+
+  pwWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#e2e8f0",
+  },
+  pwInput: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: "#1e293b",
+  },
+  pwEyeBtn: { paddingHorizontal: 14, paddingVertical: 12 },
 });
