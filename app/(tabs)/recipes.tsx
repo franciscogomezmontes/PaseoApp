@@ -15,42 +15,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import TabTooltip from "../../src/components/TabTooltip";
 import { TOOLTIP_KEYS } from "../../src/constants";
+import { CATEGORIAS_ING, UNIDADES } from "../../src/ingredientConstants";
 import { supabase } from "../../src/lib/supabase";
 import { useRecipeStore } from "../../src/store/useRecipeStore";
-
-// ─────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────
-const CATEGORIAS_ING = [
-  "Abarrotes",
-  "Carnes y proteínas",
-  "Frutas y verduras",
-  "Lácteos y huevos",
-  "Granos y cereales",
-  "Nevera",
-  "Condimentos",
-  "Bebidas",
-  "Panadería",
-  "Enlatados",
-  "Otros",
-];
-
-const UNIDADES = [
-  "g",
-  "kg",
-  "ml",
-  "l",
-  "unidades",
-  "tazas",
-  "cucharadas",
-  "cucharadítas",
-  "cubos",
-  "tajadas",
-  "dientes",
-  "rama",
-  "atados",
-  "paquetes",
-];
 
 const TIPO_CONFIG: Record<string, { icon: string; color: string }> = {
   desayuno: { icon: "☀️", color: "#B45309" },

@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { CATEGORIAS_ING, UNIDADES } from "../src/ingredientConstants";
 import { supabase } from "../src/lib/supabase";
 
 // ─────────────────────────────────────────────
@@ -1012,23 +1013,7 @@ export default function NewRecipeScreen() {
               <View style={styles.field}>
                 <Text style={styles.fieldLabel}>Unidad base</Text>
                 <View style={styles.chipRow}>
-                  {[
-                    "g",
-                    "kg",
-                    "ml",
-                    "l",
-                    "unidades",
-                    "tazas",
-                    "cucharadas",
-                    "cucharadítas",
-                    "cubos",
-                    "partes",
-                    "tajadas",
-                    "dientes",
-                    "rama",
-                    "atados",
-                    "paquetes",
-                  ].map((u) => (
+                  {UNIDADES.map((u) => (
                     <TouchableOpacity
                       key={u}
                       style={[
@@ -1053,19 +1038,7 @@ export default function NewRecipeScreen() {
               <View style={styles.field}>
                 <Text style={styles.fieldLabel}>Categoría</Text>
                 <View style={styles.chipRow}>
-                  {[
-                    "Abarrotes",
-                    "Carnes y proteínas",
-                    "Frutas y verduras",
-                    "Lácteos y huevos",
-                    "Granos y cereales",
-                    "Nevera",
-                    "Condimentos",
-                    "Bebidas",
-                    "Panadería",
-                    "Enlatados",
-                    "Otros",
-                  ].map((cat) => (
+                  {CATEGORIAS_ING.map((cat) => (
                     <TouchableOpacity
                       key={cat}
                       style={[
