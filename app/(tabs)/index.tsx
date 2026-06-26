@@ -18,7 +18,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ONBOARDING_KEY } from "../../src/constants";
+import { ESTADO_CONFIG, ONBOARDING_KEY } from "../../src/constants";
 import { supabase } from "../../src/lib/supabase";
 import { useAuthStore } from "../../src/store/useAuthStore";
 import { useTripStore } from "../../src/store/useTripStore";
@@ -45,14 +45,6 @@ const FAQ = [
   },
 ];
 
-const ESTADO_CONFIG: Record<
-  string,
-  { color: string; bg: string; label: string }
-> = {
-  planificacion: { color: "#92400E", bg: "#FEF3C7", label: "Planificación" },
-  activo: { color: "#065F46", bg: "#D1FAE5", label: "Activo" },
-  liquidado: { color: "#1D4ED8", bg: "#DBEAFE", label: "Liquidado" },
-};
 
 const initials = (name: string) =>
   name

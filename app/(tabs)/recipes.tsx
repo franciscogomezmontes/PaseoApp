@@ -14,19 +14,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import TabTooltip from "../../src/components/TabTooltip";
-import { TOOLTIP_KEYS } from "../../src/constants";
+import { TIPO_CONFIG, TOOLTIP_KEYS } from "../../src/constants";
 import { CATEGORIAS_ING, UNIDADES } from "../../src/ingredientConstants";
 import { supabase } from "../../src/lib/supabase";
 import { useRecipeStore } from "../../src/store/useRecipeStore";
-
-const TIPO_CONFIG: Record<string, { icon: string; color: string }> = {
-  desayuno: { icon: "☀️", color: "#B45309" },
-  almuerzo: { icon: "🍽️", color: "#1D4ED8" },
-  cena: { icon: "🌙", color: "#6D28D9" },
-  snack: { icon: "🥐", color: "#065F46" },
-  "medias nueves": { icon: "🥪", color: "#B45309" },
-  onces: { icon: "🍵", color: "#065F46" },
-};
 
 // ─────────────────────────────────────────────
 // Component

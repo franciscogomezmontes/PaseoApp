@@ -11,17 +11,8 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { TIPO_CONFIG } from "../src/constants";
 import { supabase } from "../src/lib/supabase";
-
-const TIPO_CONFIG: Record<
-  string,
-  { icon: string; color: string; bgColor: string }
-> = {
-  desayuno: { icon: "☀️", color: "#B45309", bgColor: "#FEF3C7" },
-  almuerzo: { icon: "🍽️", color: "#1D4ED8", bgColor: "#DBEAFE" },
-  cena: { icon: "🌙", color: "#6D28D9", bgColor: "#EDE9FE" },
-  snack: { icon: "🥐", color: "#065F46", bgColor: "#D1FAE5" },
-};
 
 const ORDEN = ["desayuno", "almuerzo", "cena", "snack"];
 
