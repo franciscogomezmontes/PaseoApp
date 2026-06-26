@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -14,29 +14,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import TabTooltip from "../../src/components/TabTooltip";
-import { TOOLTIP_KEYS } from "../../src/constants";
+import { ESTADO_CONFIG, GASTO_CATEGORIAS, TOOLTIP_KEYS } from "../../src/constants";
 import { supabase } from "../../src/lib/supabase";
 import { useTripStore } from "../../src/store/useTripStore";
-
-// ─────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────
-const CATEGORIAS = [
-  { key: "comida", label: "🍽️ Comida", usaMomentos: true },
-  { key: "alojamiento", label: "🏠 Alojamiento", usaMomentos: false },
-  { key: "transporte", label: "🚗 Transporte", usaMomentos: false },
-  { key: "alcohol", label: "🍺 Alcohol y Entret.", usaMomentos: false },
-  { key: "otros", label: "📦 Otros", usaMomentos: false },
-];
-
-const ESTADO_CONFIG: Record<
-  string,
-  { color: string; bg: string; label: string }
-> = {
-  planificacion: { color: "#92400E", bg: "#FEF3C7", label: "📋 Planificación" },
-  activo: { color: "#065F46", bg: "#D1FAE5", label: "✅ Activo" },
-  liquidado: { color: "#1D4ED8", bg: "#DBEAFE", label: "💸 Liquidado" },
-};
 
 const formatCOP = (n: number) => "$" + Math.round(n).toLocaleString("es-CO");
 
@@ -239,10 +219,6 @@ export default function GastosScreen() {
       fetchPaseos().then(() => loadAllData());
     }, []),
   );
-
-  useEffect(() => {
-    loadAllData();
-  }, [paseos]);
 
   // ─────────────────────────────────────────────
   // Modal helpers
@@ -726,7 +702,7 @@ export default function GastosScreen() {
                     ) : (
                       gastos.map((g) => {
                         const catLabel =
-                          CATEGORIAS.find(
+                          GASTO_CATEGORIAS.find(
                             (c) => c.key === (g.categoria ?? "otros"),
                           )?.label ?? "📦 Otros";
                         return (
@@ -801,7 +777,7 @@ export default function GastosScreen() {
           <View style={styles.optionsBox}>
             <Text style={styles.optionsTitle}>{optionsTarget?.nombre}</Text>
             <Text style={styles.optionsSub}>
-              {CATEGORIAS.find(
+              {GASTO_CATEGORIAS.find(
                 (c) => c.key === (optionsTarget?.categoria ?? "otros"),
               )?.label ?? "📦 Otros"}{" "}
               · {formatCOP(optionsTarget?.monto ?? 0)}
@@ -922,7 +898,7 @@ export default function GastosScreen() {
             {/* Categoría */}
             <Text style={styles.fieldLabel}>Categoría</Text>
             <View style={styles.categoriasGrid}>
-              {CATEGORIAS.map((cat) => (
+              {GASTO_CATEGORIAS.map((cat) => (
                 <TouchableOpacity
                   key={cat.key}
                   style={[

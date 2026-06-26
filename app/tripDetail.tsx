@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ESTADO_CONFIG, GASTO_CATEGORIAS, TIPO_CONFIG } from "../src/constants";
 import { supabase } from "../src/lib/supabase";
 import { useRecipeStore } from "../src/store/useRecipeStore";
 import { useTripStore } from "../src/store/useTripStore";
@@ -45,27 +46,7 @@ const TIPOS_COMIDA = [
   "cena",
   "snack",
 ];
-const TIPO_CONFIG: Record<
-  string,
-  { icon: string; color: string; bgColor: string }
-> = {
-  desayuno: { icon: "☀️", color: "#B45309", bgColor: "#FEF3C7" },
-  "medias nueves": { icon: "🥪", color: "#92400E", bgColor: "#FEF3C7" },
-  almuerzo: { icon: "🍽️", color: "#1D4ED8", bgColor: "#DBEAFE" },
-  onces: { icon: "🍵", color: "#065F46", bgColor: "#D1FAE5" },
-  cena: { icon: "🌙", color: "#6D28D9", bgColor: "#EDE9FE" },
-  snack: { icon: "🥐", color: "#047857", bgColor: "#ECFDF5" },
-};
-
 const ESTADOS = ["planificacion", "activo", "liquidado"];
-const ESTADO_CONFIG: Record<
-  string,
-  { color: string; bg: string; label: string }
-> = {
-  planificacion: { color: "#92400E", bg: "#FEF3C7", label: "📋 Planificación" },
-  activo: { color: "#065F46", bg: "#D1FAE5", label: "✅ Activo" },
-  liquidado: { color: "#1D4ED8", bg: "#DBEAFE", label: "💸 Liquidado" },
-};
 
 const initials = (name: string) =>
   name
@@ -501,12 +482,6 @@ export default function TripDetailScreen() {
       .eq("id", mealDetailTarget.id);
 
     savingToggleRef.current[participacionId] = false;
-  };
-
-  // Active count for a meal
-  const activosEnComida = (mealId: string) => {
-    // If no records exist yet, all are active
-    return participaciones.length;
   };
 
   // ─────────────────────────────────────────────
@@ -1274,13 +1249,6 @@ export default function TripDetailScreen() {
   // Gastos calculations — by category
   // ─────────────────────────────────────────────
 
-  const CATEGORIAS = [
-    { key: "comida", label: "🍽️ Comida", usaMomentos: true },
-    { key: "alojamiento", label: "🏠 Alojamiento", usaMomentos: false },
-    { key: "transporte", label: "🚗 Transporte", usaMomentos: false },
-    { key: "alcohol", label: "🍺 Alcohol y Entret.", usaMomentos: false },
-    { key: "otros", label: "📦 Otros", usaMomentos: false },
-  ];
 
   // For a given familia and category, calculate how much they owe
   const leCorrespondePorCategoria = (
@@ -1395,7 +1363,7 @@ export default function TripDetailScreen() {
     // leCorresponde total (sum across categories)
     const leCorrespondeMap: Record<string, number> = {};
     famIds.forEach((f) => {
-      leCorrespondeMap[f.id] = CATEGORIAS.reduce((sum, cat) => {
+      leCorrespondeMap[f.id] = GASTO_CATEGORIAS.reduce((sum, cat) => {
         const hasCat = gastos.some((g) => g.categoria === cat.key);
         return (
           sum +
@@ -1413,7 +1381,7 @@ export default function TripDetailScreen() {
       puso: pusoMap[f.id] ?? 0,
       leCorresponde: leCorrespondeMap[f.id] ?? 0,
       balance: (pusoMap[f.id] ?? 0) - (leCorrespondeMap[f.id] ?? 0),
-      porCategoria: CATEGORIAS.map((cat) => ({
+      porCategoria: GASTO_CATEGORIAS.map((cat) => ({
         key: cat.key,
         label: cat.label,
         leCorresponde: leCorrespondePorCategoria(
@@ -1477,7 +1445,7 @@ export default function TripDetailScreen() {
       // Calculate each person's share directly per gasto — respecting their individual participation
       const acumuladoPorCat: Record<string, number> = {};
 
-      CATEGORIAS.forEach((cat) => {
+      GASTO_CATEGORIAS.forEach((cat) => {
         const gastosCat = gastos.filter((g) => g.categoria === cat.key);
         if (gastosCat.length === 0) return;
 
@@ -1533,7 +1501,7 @@ export default function TripDetailScreen() {
         }
       });
 
-      const leCorrespondePorCat = CATEGORIAS.map((cat) => ({
+      const leCorrespondePorCat = GASTO_CATEGORIAS.map((cat) => ({
         key: cat.key,
         label: cat.label,
         leCorresponde: acumuladoPorCat[cat.key] ?? 0,
@@ -2438,7 +2406,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                           Pagó: {g.personas?.nombre ?? "—"}
                         </Text>
                         <Text style={styles.gastoCategoriaLabel}>
-                          {CATEGORIAS.find(
+                          {GASTO_CATEGORIAS.find(
                             (c) => c.key === (g.categoria ?? "otros"),
                           )?.label ?? "📦 Otros"}
                         </Text>
@@ -4606,7 +4574,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               <View style={styles.field}>
                 <Text style={styles.fieldLabel}>Categoría *</Text>
                 <View style={styles.categoriasGrid}>
-                  {CATEGORIAS.map((cat) => (
+                  {GASTO_CATEGORIAS.map((cat) => (
                     <TouchableOpacity
                       key={cat.key}
                       style={[
@@ -4750,7 +4718,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   { textAlign: "center", marginBottom: 12, fontSize: 13 },
                 ]}
               >
-                {CATEGORIAS.find(
+                {GASTO_CATEGORIAS.find(
                   (c) => c.key === (gastoOptionsTarget?.categoria ?? "otros"),
                 )?.label ?? "📦 Otros"}{" "}
                 · {formatCOP(gastoOptionsTarget?.monto ?? 0)}

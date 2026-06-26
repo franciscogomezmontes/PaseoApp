@@ -1,7 +1,11 @@
 import { Session, User } from "@supabase/supabase-js";
-import { AppState } from "react-native";
+import { AppState, NativeEventSubscription } from "react-native";
 import { create } from "zustand";
 import { supabase } from "../lib/supabase";
+
+// Module-level refs so re-calls to initialize() don't stack up listeners
+let authSubscription: { unsubscribe: () => void } | null = null;
+let appStateSubscription: NativeEventSubscription | null = null;
 
 interface AuthStore {
   session: Session | null;
@@ -40,7 +44,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       await loadPersona(session.user.id, set);
     }
 
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    authSubscription?.unsubscribe();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       set({ session, user: session?.user ?? null });
 
       if (event === "SIGNED_IN" && session?.user) {
@@ -84,8 +89,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         set({ persona: null, pendingSignup: null, loading: false });
       }
     });
+    authSubscription = subscription;
 
-    AppState.addEventListener("change", async (nextState) => {
+    appStateSubscription?.remove();
+    appStateSubscription = AppState.addEventListener("change", async (nextState) => {
       if (nextState === "active") {
         const {
           data: { session },

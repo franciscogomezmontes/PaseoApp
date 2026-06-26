@@ -13,8 +13,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../src/lib/supabase";
 
-const ADMIN_USER_ID = "cd18f625-ad7c-4498-b0bc-c136fef70dc2";
-
 // ─── CSV parser ──────────────────────────────────────────────
 function parseCSV(text: string): Record<string, string>[] {
   const lines = text.trim().split(/\r?\n/);
@@ -107,10 +105,14 @@ export default function AdminUploadScreen() {
   }, []);
 
   const checkAdmin = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    setIsAdmin(user?.id === ADMIN_USER_ID);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setIsAdmin(false); return; }
+    const { data } = await supabase
+      .from("personas")
+      .select("is_admin")
+      .eq("auth_user_id", user.id)
+      .single();
+    setIsAdmin(data?.is_admin === true);
   };
 
   const pickFile = async () => {
