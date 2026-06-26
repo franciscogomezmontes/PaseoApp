@@ -262,11 +262,8 @@ export default function RecipesScreen() {
         {activeTab === "recetas" ? (
           selectionMode ? (
             <View style={styles.headerBtnRow}>
-              <TouchableOpacity
-                style={styles.headerSecBtn}
-                onPress={cancelSelection}
-              >
-                <Text style={styles.headerSecBtnText}>Cancelar</Text>
+              <TouchableOpacity onPress={cancelSelection}>
+                <Text style={styles.headerCancelText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.headerAddBtn}
@@ -278,20 +275,12 @@ export default function RecipesScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.headerBtnRow}>
-              <TouchableOpacity
-                style={styles.headerSecBtn}
-                onPress={() => setSelectionMode(true)}
-              >
-                <Text style={styles.headerSecBtnText}>📄 Exportar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.headerAddBtn}
-                onPress={() => router.push("/newRecipe")}
-              >
-                <Text style={styles.headerAddBtnText}>+ Receta</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.headerAddBtn}
+              onPress={() => router.push("/newRecipe")}
+            >
+              <Text style={styles.headerAddBtnText}>+ Receta</Text>
+            </TouchableOpacity>
           )
         ) : (
           <TouchableOpacity style={styles.headerAddBtn} onPress={openNewIng}>
@@ -327,10 +316,21 @@ export default function RecipesScreen() {
           bgColor="#F5F3FF"
         />
       )}
+      {activeTab === "recetas" && !selectionMode && (
+        <TouchableOpacity
+          style={styles.exportActionRow}
+          onPress={() => setSelectionMode(true)}
+        >
+          <Text style={styles.exportActionText}>📄 Exportar recetario</Text>
+          <Text style={styles.exportActionChevron}>›</Text>
+        </TouchableOpacity>
+      )}
+
       {activeTab === "recetas" ? (
         <FlatList
           data={letras}
           keyExtractor={(letra) => letra}
+          extraData={{ selectionMode, selectedIdsSize: selectedIds.size }}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           ListHeaderComponent={
@@ -1147,16 +1147,27 @@ const styles = StyleSheet.create({
   },
   deleteIngText: { color: "#ef4444", fontWeight: "700", fontSize: 14 },
 
-  // Header buttons row
-  headerBtnRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  headerSecBtn: {
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.5)",
+  // Header buttons (selection mode)
+  headerBtnRow: { flexDirection: "row", gap: 12, alignItems: "center" },
+  headerCancelText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 14,
+    fontWeight: "600",
   },
-  headerSecBtnText: { color: "rgba(255,255,255,0.9)", fontWeight: "600", fontSize: 13 },
+
+  // Export action row (between tooltip and list)
+  exportActionRow: {
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f0",
+  },
+  exportActionText: { fontSize: 13, fontWeight: "600", color: "#1B4F72" },
+  exportActionChevron: { fontSize: 20, color: "#94a3b8", lineHeight: 22 },
 
   // Selection mode — recipe card
   cardSelected: {
