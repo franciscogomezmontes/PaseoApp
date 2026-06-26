@@ -1,6 +1,8 @@
 import { useFocusEffect } from "@react-navigation/native";
+import * as Print from "expo-print";
 import { useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import * as Sharing from "expo-sharing";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -58,6 +60,18 @@ export default function RecipesScreen() {
   // Delete confirm
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
+
+  // Selection & export
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [exportando, setExportando] = useState(false);
+
+  useEffect(() => {
+    if (activeTab !== "recetas") {
+      setSelectionMode(false);
+      setSelectedIds(new Set());
+    }
+  }, [activeTab]);
 
   useFocusEffect(
     useCallback(() => {
@@ -131,6 +145,56 @@ export default function RecipesScreen() {
   };
 
   // ─────────────────────────────────────────────
+  // Selection & export helpers
+  // ─────────────────────────────────────────────
+  const cancelSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleExport = async () => {
+    if (selectedIds.size === 0) return;
+    setExportando(true);
+
+    const { data, error } = await supabase
+      .from("recetas")
+      .select(
+        "*, receta_ingredientes(cantidad_por_porcion, ingredientes(nombre, unidad_base))",
+      )
+      .in("id", [...selectedIds])
+      .order("nombre");
+
+    if (error || !data) {
+      showError("No se pudo generar el PDF. Intenta de nuevo.");
+      setExportando(false);
+      return;
+    }
+
+    try {
+      const html = buildRecetarioHtml(data);
+      const { uri } = await Print.printToFileAsync({ html });
+      await Sharing.shareAsync(uri, {
+        mimeType: "application/pdf",
+        dialogTitle: "Exportar recetario",
+        UTI: "com.adobe.pdf",
+      });
+    } catch {
+      showError("No se pudo exportar el PDF.");
+    }
+
+    setExportando(false);
+  };
+
+  // ─────────────────────────────────────────────
   // Recetas filtering & grouping
   // ─────────────────────────────────────────────
   const allKeywords: string[] = Array.from(
@@ -150,6 +214,18 @@ export default function RecipesScreen() {
   });
 
   // Alphabetical grouping
+  const allVisibleSelected =
+    filteredRecetas.length > 0 &&
+    filteredRecetas.every((r) => selectedIds.has(r.id));
+
+  const toggleSelectAll = () => {
+    if (allVisibleSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredRecetas.map((r) => r.id)));
+    }
+  };
+
   const alphabetical = [...filteredRecetas].sort((a, b) =>
     a.nombre.localeCompare(b.nombre, "es"),
   );
@@ -176,18 +252,47 @@ export default function RecipesScreen() {
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>📖 Recetas</Text>
           <Text style={styles.headerSub}>
-            {activeTab === "recetas"
-              ? `${recetas.length} recetas disponibles`
-              : `${ingredientes.length} ingredientes en catálogo`}
+            {activeTab !== "recetas"
+              ? `${ingredientes.length} ingredientes en catálogo`
+              : selectionMode
+                ? `${selectedIds.size} seleccionada${selectedIds.size !== 1 ? "s" : ""}`
+                : `${recetas.length} recetas disponibles`}
           </Text>
         </View>
         {activeTab === "recetas" ? (
-          <TouchableOpacity
-            style={styles.headerAddBtn}
-            onPress={() => router.push("/newRecipe")}
-          >
-            <Text style={styles.headerAddBtnText}>+ Receta</Text>
-          </TouchableOpacity>
+          selectionMode ? (
+            <View style={styles.headerBtnRow}>
+              <TouchableOpacity
+                style={styles.headerSecBtn}
+                onPress={cancelSelection}
+              >
+                <Text style={styles.headerSecBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerAddBtn}
+                onPress={toggleSelectAll}
+              >
+                <Text style={styles.headerAddBtnText}>
+                  {allVisibleSelected ? "✗ Todo" : "✓ Todo"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.headerBtnRow}>
+              <TouchableOpacity
+                style={styles.headerSecBtn}
+                onPress={() => setSelectionMode(true)}
+              >
+                <Text style={styles.headerSecBtnText}>📄 Exportar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerAddBtn}
+                onPress={() => router.push("/newRecipe")}
+              >
+                <Text style={styles.headerAddBtnText}>+ Receta</Text>
+              </TouchableOpacity>
+            </View>
+          )
         ) : (
           <TouchableOpacity style={styles.headerAddBtn} onPress={openNewIng}>
             <Text style={styles.headerAddBtnText}>+ Ingrediente</Text>
@@ -321,17 +426,39 @@ export default function RecipesScreen() {
                 return (
                   <TouchableOpacity
                     key={receta.id}
-                    style={[styles.card, { borderLeftColor: tipoConf.color }]}
+                    style={[
+                      styles.card,
+                      { borderLeftColor: tipoConf.color },
+                      selectionMode &&
+                        selectedIds.has(receta.id) &&
+                        styles.cardSelected,
+                    ]}
                     onPress={() =>
-                      router.push({
-                        pathname: "/recipeDetail",
-                        params: { id: receta.id },
-                      })
+                      selectionMode
+                        ? toggleSelection(receta.id)
+                        : router.push({
+                            pathname: "/recipeDetail",
+                            params: { id: receta.id },
+                          })
                     }
                   >
                     <View style={styles.cardTop}>
                       <Text style={styles.recetaNombre}>{receta.nombre}</Text>
-                      <Text style={styles.tipoIcon}>{tipoConf.icon}</Text>
+                      {selectionMode ? (
+                        <View
+                          style={[
+                            styles.selCheckbox,
+                            selectedIds.has(receta.id) &&
+                              styles.selCheckboxActive,
+                          ]}
+                        >
+                          {selectedIds.has(receta.id) && (
+                            <Text style={styles.selCheckmark}>✓</Text>
+                          )}
+                        </View>
+                      ) : (
+                        <Text style={styles.tipoIcon}>{tipoConf.icon}</Text>
+                      )}
                     </View>
                     {receta.descripcion ? (
                       <Text style={styles.descripcion} numberOfLines={2}>
@@ -387,7 +514,13 @@ export default function RecipesScreen() {
               })}
             </View>
           )}
-          ListFooterComponent={<View style={{ height: 20 }} />}
+          ListFooterComponent={
+            <View
+              style={{
+                height: selectionMode && selectedIds.size > 0 ? 100 : 20,
+              }}
+            />
+          }
         />
       ) : (
         <>
@@ -444,6 +577,25 @@ export default function RecipesScreen() {
             </ScrollView>
           )}
         </>
+      )}
+
+      {/* ══ EXPORT BAR ══ */}
+      {selectionMode && selectedIds.size > 0 && (
+        <View style={styles.exportBar}>
+          <Text style={styles.exportBarCount}>
+            {selectedIds.size} receta{selectedIds.size !== 1 ? "s" : ""}{" "}
+            seleccionada{selectedIds.size !== 1 ? "s" : ""}
+          </Text>
+          <TouchableOpacity
+            style={[styles.exportBarBtn, exportando && { opacity: 0.6 }]}
+            onPress={handleExport}
+            disabled={exportando}
+          >
+            <Text style={styles.exportBarBtnText}>
+              {exportando ? "Generando..." : "📄 Exportar PDF"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {/* ══ MODALS ══ */}
@@ -613,6 +765,109 @@ export default function RecipesScreen() {
       </Modal>
     </SafeAreaView>
   );
+}
+
+// ─────────────────────────────────────────────
+// PDF HTML builder
+// ─────────────────────────────────────────────
+function buildRecetarioHtml(recetas: any[]): string {
+  const recipesHtml = recetas
+    .map((r) => {
+      const tiempoTotal =
+        (r.tiempo_preparacion ?? 0) + (r.tiempo_coccion ?? 0);
+
+      const badges = [
+        r.es_vegano
+          ? '<span class="badge badge-verde">🌱 Vegano</span>'
+          : null,
+        r.es_vegetariano && !r.es_vegano
+          ? '<span class="badge badge-verde">🥗 Vegetariano</span>'
+          : null,
+        r.sin_gluten
+          ? '<span class="badge badge-amarillo">🌾 Sin gluten</span>'
+          : null,
+        r.sin_lactosa
+          ? '<span class="badge badge-morado">🥛 Sin lactosa</span>'
+          : null,
+      ]
+        .filter(Boolean)
+        .join("");
+
+      const metaParts = [
+        tiempoTotal > 0 ? `⏱ ${tiempoTotal} min` : null,
+        r.porciones_base ? `👤 ${r.porciones_base} porción base` : null,
+      ]
+        .filter(Boolean)
+        .join(" &nbsp;·&nbsp; ");
+
+      const ingsHtml = (r.receta_ingredientes ?? [])
+        .map(
+          (ri: any) =>
+            `<tr>
+              <td>${ri.ingredientes?.nombre ?? ""}</td>
+              <td style="text-align:right">${ri.cantidad_por_porcion}</td>
+              <td>${ri.ingredientes?.unidad_base ?? ""} <span style="color:#94a3b8">/ porción</span></td>
+            </tr>`,
+        )
+        .join("");
+
+      return `
+        <div class="recipe">
+          <h1>${r.nombre}</h1>
+          ${metaParts ? `<div class="meta">${metaParts}</div>` : ""}
+          ${badges ? `<div class="badges">${badges}</div>` : ""}
+          ${r.descripcion ? `<p class="desc">${r.descripcion}</p>` : ""}
+          ${
+            ingsHtml
+              ? `<h2>Ingredientes</h2>
+                 <table>
+                   <thead><tr><th>Ingrediente</th><th style="text-align:right">Cant.</th><th>Unidad</th></tr></thead>
+                   <tbody>${ingsHtml}</tbody>
+                 </table>`
+              : ""
+          }
+          ${
+            r.instrucciones
+              ? `<h2>Preparación</h2>
+                 <div class="instructions">${r.instrucciones.replace(/\n/g, "<br>")}</div>`
+              : ""
+          }
+          ${r.utensilios?.length ? `<p class="utensilios"><strong>Utensilios:</strong> ${(r.utensilios as string[]).join(", ")}</p>` : ""}
+          ${r.creditos ? `<p class="creditos">Créditos: ${r.creditos}</p>` : ""}
+        </div>`;
+    })
+    .join("");
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Recetario</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, serif; color: #1e293b; padding: 32px; font-size: 14px; }
+  .recipe { padding-bottom: 40px; margin-bottom: 40px; border-bottom: 2px solid #e2e8f0; page-break-after: always; }
+  .recipe:last-child { border-bottom: none; page-break-after: avoid; }
+  h1 { color: #1B4F72; font-size: 26px; margin-bottom: 6px; }
+  h2 { color: #1B4F72; font-size: 16px; margin: 20px 0 10px; border-bottom: 1.5px solid #1B4F72; padding-bottom: 4px; }
+  .meta { color: #64748b; font-size: 12px; margin-bottom: 10px; font-family: sans-serif; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .badge { border-radius: 20px; padding: 3px 10px; font-size: 11px; font-family: sans-serif; }
+  .badge-verde { background: #DCFCE7; color: #15803D; }
+  .badge-amarillo { background: #FEF3C7; color: #92400E; }
+  .badge-morado { background: #EDE9FE; color: #6D28D9; }
+  .desc { color: #475569; line-height: 1.7; margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-family: sans-serif; }
+  thead th { background: #1B4F72; color: white; padding: 8px 12px; font-size: 12px; text-align: left; }
+  tbody td { padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+  tbody tr:nth-child(even) td { background: #f8fafc; }
+  .instructions { line-height: 1.9; color: #374151; white-space: pre-wrap; }
+  .utensilios { font-size: 12px; color: #64748b; margin-top: 12px; font-family: sans-serif; }
+  .creditos { font-size: 11px; color: #94a3b8; margin-top: 8px; font-style: italic; font-family: sans-serif; }
+</style>
+</head>
+<body>${recipesHtml}</body>
+</html>`;
 }
 
 // ─────────────────────────────────────────────
@@ -891,4 +1146,62 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   deleteIngText: { color: "#ef4444", fontWeight: "700", fontSize: 14 },
+
+  // Header buttons row
+  headerBtnRow: { flexDirection: "row", gap: 8, alignItems: "center" },
+  headerSecBtn: {
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.5)",
+  },
+  headerSecBtnText: { color: "rgba(255,255,255,0.9)", fontWeight: "600", fontSize: 13 },
+
+  // Selection mode — recipe card
+  cardSelected: {
+    borderWidth: 2,
+    borderColor: "#1B4F72",
+    borderLeftWidth: 4,
+  },
+  selCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#cbd5e1",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+    flexShrink: 0,
+  },
+  selCheckboxActive: { backgroundColor: "#1B4F72", borderColor: "#1B4F72" },
+  selCheckmark: { color: "#fff", fontSize: 13, fontWeight: "800" },
+
+  // Export bar
+  exportBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#1B4F72",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    paddingBottom: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  exportBarCount: { color: "rgba(255,255,255,0.8)", fontSize: 13, fontWeight: "600" },
+  exportBarBtn: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+  },
+  exportBarBtnText: { color: "#1B4F72", fontWeight: "800", fontSize: 14 },
 });
