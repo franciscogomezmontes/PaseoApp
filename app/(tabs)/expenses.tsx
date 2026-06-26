@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -239,10 +239,6 @@ export default function GastosScreen() {
       fetchPaseos().then(() => loadAllData());
     }, []),
   );
-
-  useEffect(() => {
-    loadAllData();
-  }, [paseos]);
 
   // ─────────────────────────────────────────────
   // Modal helpers

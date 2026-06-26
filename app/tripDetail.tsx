@@ -503,12 +503,6 @@ export default function TripDetailScreen() {
     savingToggleRef.current[participacionId] = false;
   };
 
-  // Active count for a meal
-  const activosEnComida = (mealId: string) => {
-    // If no records exist yet, all are active
-    return participaciones.length;
-  };
-
   // ─────────────────────────────────────────────
   // Familia handlers
   // ─────────────────────────────────────────────
