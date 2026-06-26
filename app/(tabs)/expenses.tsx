@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import TabTooltip from "../../src/components/TabTooltip";
 import { ESTADO_CONFIG, GASTO_CATEGORIAS, TOOLTIP_KEYS } from "../../src/constants";
+import { calcularTransferenciasMinimas } from "../../src/lib/liquidacion";
 import { supabase } from "../../src/lib/supabase";
 import { useTripStore } from "../../src/store/useTripStore";
 
@@ -502,33 +503,7 @@ export default function GastosScreen() {
         balance: (puso[f.id] ?? 0) - (leCorresponde[f.id] ?? 0),
       }));
 
-    // Liquidaciones mínimas entre familias
-    const deudores = balancePorFamilia
-      .filter((f) => f.balance < -0.5)
-      .map((f) => ({ ...f, monto: -f.balance }))
-      .sort((a, b) => b.monto - a.monto);
-    const acreedores = balancePorFamilia
-      .filter((f) => f.balance > 0.5)
-      .map((f) => ({ ...f, monto: f.balance }))
-      .sort((a, b) => b.monto - a.monto);
-
-    const liquidaciones: { de: string; para: string; monto: number }[] = [];
-    let i = 0;
-    let j = 0;
-    while (i < deudores.length && j < acreedores.length) {
-      const pago = Math.min(deudores[i].monto, acreedores[j].monto);
-      if (pago > 0.5)
-        liquidaciones.push({
-          de: deudores[i].nombre,
-          para: acreedores[j].nombre,
-          monto: pago,
-        });
-      deudores[i].monto -= pago;
-      acreedores[j].monto -= pago;
-      if (deudores[i].monto < 0.5) i++;
-      if (acreedores[j].monto < 0.5) j++;
-    }
-
+    const liquidaciones = calcularTransferenciasMinimas(balancePorFamilia, 0.5);
     return { balancePorFamilia, liquidaciones };
   };
 

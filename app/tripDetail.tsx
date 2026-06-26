@@ -21,6 +21,7 @@ import {
 import MapView, { Marker } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ESTADO_CONFIG, GASTO_CATEGORIAS, TIPO_CONFIG } from "../src/constants";
+import { calcularTransferenciasMinimas } from "../src/lib/liquidacion";
 import { supabase } from "../src/lib/supabase";
 import { useRecipeStore } from "../src/store/useRecipeStore";
 import { useTripStore } from "../src/store/useTripStore";
@@ -1396,44 +1397,8 @@ export default function TripDetailScreen() {
     }));
   };
 
-  const calcularLiquidaciones = () => {
-    const balances = calcularBalancesPorCategoria();
-    const deudores = balances
-      .filter((b) => b.balance < -1)
-      .map((b) => ({ id: b.id, nombre: b.nombre, debe: -b.balance }))
-      .sort((a, b) => b.debe - a.debe);
-    const acreedores = balances
-      .filter((b) => b.balance > 1)
-      .map((b) => ({ id: b.id, nombre: b.nombre, leDeben: b.balance }))
-      .sort((a, b) => b.leDeben - a.leDeben);
-    const transferencias: {
-      de: string;
-      para: string;
-      deFamId: string;
-      paraFamId: string;
-      monto: number;
-    }[] = [];
-    const dCopy = deudores.map((d) => ({ ...d }));
-    const aCopy = acreedores.map((a) => ({ ...a }));
-    let i = 0,
-      j = 0;
-    while (i < dCopy.length && j < aCopy.length) {
-      const monto = Math.min(dCopy[i].debe, aCopy[j].leDeben);
-      if (monto > 1)
-        transferencias.push({
-          de: dCopy[i].nombre,
-          para: aCopy[j].nombre,
-          deFamId: dCopy[i].id,
-          paraFamId: aCopy[j].id,
-          monto,
-        });
-      dCopy[i].debe -= monto;
-      aCopy[j].leDeben -= monto;
-      if (dCopy[i].debe < 1) i++;
-      if (aCopy[j].leDeben < 1) j++;
-    }
-    return transferencias;
-  };
+  const calcularLiquidaciones = () =>
+    calcularTransferenciasMinimas(calcularBalancesPorCategoria());
 
   // ─────────────────────────────────────────────
   // Balance por persona
