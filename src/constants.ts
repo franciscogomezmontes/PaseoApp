@@ -5,5 +5,4 @@ export const TOOLTIP_KEYS = {
   recipes:  "tooltip_recipes_seen",
   grocery:  "tooltip_grocery_seen",
   expenses: "tooltip_expenses_seen",
-  menu:     "tooltip_menu_seen",
 };

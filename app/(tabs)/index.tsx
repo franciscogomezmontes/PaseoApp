@@ -25,46 +25,6 @@ import { useTripStore } from "../../src/store/useTripStore";
 
 const VERSION = "0.1.0";
 
-const HOW_IT_WORKS = [
-  {
-    step: "01",
-    title: "Crea un paseo",
-    desc: "Define fechas, lugar y comparte el código de invitación con tu grupo.",
-  },
-  {
-    step: "02",
-    title: "Arma el menú",
-    desc: "Elige recetas del catálogo compartido para cada día del paseo.",
-  },
-  {
-    step: "03",
-    title: "Registra los gastos",
-    desc: "Anota quién pagó qué. La app divide todo automáticamente.",
-  },
-  {
-    step: "04",
-    title: "Liquida con un toque",
-    desc: "Calcula transferencias mínimas para cuadrar cuentas al final.",
-  },
-];
-
-const TESTIMONIOS = [
-  {
-    nombre: "Camila R.",
-    texto: "Pasamos de planillas de Excel a PaseoApp. La diferencia es brutal.",
-    emoji: "🏕️",
-  },
-  {
-    nombre: "Andrés M.",
-    texto: "Por fin algo que entiende que hay niños con factor distinto.",
-    emoji: "👨‍👩‍👧‍👦",
-  },
-  {
-    nombre: "Laura P.",
-    texto: "El módulo de recetas me salvó. Nunca más improvisamos en el campo.",
-    emoji: "🍳",
-  },
-];
 
 const FAQ = [
   {
@@ -1178,7 +1138,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   collapseHint: { fontSize: 12, color: "#94a3b8", marginTop: 2 },
-  collapseRight: { flexDirection: "row", alignItems: "center", gap: 10 },
   collapseIcon: { fontSize: 11, color: "#94a3b8", fontWeight: "600" },
 
   emptyState: { alignItems: "center", paddingVertical: 20, gap: 4 },

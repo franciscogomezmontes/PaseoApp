@@ -53,12 +53,6 @@ export default function TabLayout() {
         }}
       />
 
-      <Tabs.Screen
-        name="menu"
-        options={{
-          href: null,
-        }}
-      />
     </Tabs>
   );
 }
