@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import TabTooltip from "../../src/components/TabTooltip";
 import { ESTADO_CONFIG, GASTO_CATEGORIAS, TOOLTIP_KEYS } from "../../src/constants";
+import { calcularTransferenciasMinimas } from "../../src/lib/liquidacion";
 import { supabase } from "../../src/lib/supabase";
 import { useTripStore } from "../../src/store/useTripStore";
 
@@ -96,57 +97,70 @@ export default function GastosScreen() {
 
     const paseoIds = paseos.map((p) => p.id);
 
-    // Load gastos
-    const { data: gastosData } = await supabase
-      .from("gastos")
-      .select("*, personas(id, nombre)")
-      .in("paseo_id", paseoIds)
-      .order("created_at", { ascending: false });
-
-    // Load participaciones
-    const { data: partData } = await supabase
-      .from("participaciones")
-      .select("*, personas(id, nombre, foto_url)")
-      .in("paseo_id", paseoIds);
-
-    // Load familias
-    const { data: familiasData } = await supabase
-      .from("familias")
-      .select("*")
-      .in("paseo_id", paseoIds);
-
-    const fxp: Record<string, any[]> = {};
-    paseoIds.forEach((pid) => {
-      fxp[pid] = [];
-    });
-    (familiasData ?? []).forEach((f: any) => {
-      fxp[f.paseo_id]?.push(f);
-    });
-    setFamiliasPorPaseo(fxp);
-
-    // Load participantes_gasto
-    const gastoIds = (gastosData ?? []).map((g: any) => g.id);
-    let partGastoRows: any[] = [];
-    if (gastoIds.length > 0) {
-      const { data } = await supabase
-        .from("participantes_gasto")
+    // Tier 1: independent queries run in parallel
+    const [
+      { data: gastosData },
+      { data: partData },
+      { data: familiasData },
+      { data: momentosData },
+    ] = await Promise.all([
+      supabase
+        .from("gastos")
+        .select("*, personas(id, nombre)")
+        .in("paseo_id", paseoIds)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("participaciones")
+        .select("*, personas(id, nombre, foto_url)")
+        .in("paseo_id", paseoIds),
+      supabase
+        .from("familias")
         .select("*")
-        .in("gasto_id", gastoIds);
-      partGastoRows = data ?? [];
-    }
+        .in("paseo_id", paseoIds),
+      supabase
+        .from("momentos_comida")
+        .select("id, paseo_id, fecha")
+        .in("paseo_id", paseoIds)
+        .order("fecha")
+        .order("tipo_comida"),
+    ]);
+
+    // Tier 2: queries that depend on tier-1 results, also run in parallel
+    const gastoIds = (gastosData ?? []).map((g: any) => g.id);
+    const momentoIds = (momentosData ?? []).map((m: any) => m.id);
+
+    const [partGastoRows, participantesComidaRows] = await Promise.all([
+      gastoIds.length > 0
+        ? supabase
+            .from("participantes_gasto")
+            .select("*")
+            .in("gasto_id", gastoIds)
+            .then(({ data }) => data ?? [])
+        : Promise.resolve([] as any[]),
+      momentoIds.length > 0
+        ? supabase
+            .from("participantes_comida")
+            .select("momento_id, participacion_id, activo")
+            .in("momento_id", momentoIds)
+            .then(({ data }) => data ?? [])
+        : Promise.resolve([] as any[]),
+    ]);
 
     // Group by paseo
     const gxp: Record<string, any[]> = {};
     const pxp: Record<string, any[]> = {};
     const persxp: Record<string, any[]> = {};
+    const fxp: Record<string, any[]> = {};
+    const mxp: Record<string, any[]> = {};
     paseoIds.forEach((pid) => {
       gxp[pid] = [];
       pxp[pid] = [];
       persxp[pid] = [];
+      fxp[pid] = [];
+      mxp[pid] = [];
     });
-    (gastosData ?? []).forEach((g: any) => {
-      gxp[g.paseo_id]?.push(g);
-    });
+
+    (gastosData ?? []).forEach((g: any) => { gxp[g.paseo_id]?.push(g); });
     (partData ?? []).forEach((p: any) => {
       pxp[p.paseo_id]?.push(p);
       if (!persxp[p.paseo_id]) persxp[p.paseo_id] = [];
@@ -154,59 +168,36 @@ export default function GastosScreen() {
         persxp[p.paseo_id].push(p.personas);
       }
     });
+    (familiasData ?? []).forEach((f: any) => { fxp[f.paseo_id]?.push(f); });
+    (momentosData ?? []).forEach((m: any) => { mxp[m.paseo_id]?.push(m); });
 
-    // Build gastosPartMap
     const gpm: Record<string, Record<string, boolean>> = {};
     partGastoRows.forEach((r: any) => {
       if (!gpm[r.gasto_id]) gpm[r.gasto_id] = {};
       gpm[r.gasto_id][r.participacion_id] = r.activo;
     });
 
-    // Load momentos_comida
-    const { data: momentosData } = await supabase
-      .from("momentos_comida")
-      .select("id, paseo_id, fecha")
-      .in("paseo_id", paseoIds)
-      .order("fecha")
-      .order("tipo_comida");
-
-    const mxp: Record<string, any[]> = {};
-    paseoIds.forEach((pid) => { mxp[pid] = []; });
-    (momentosData ?? []).forEach((m: any) => { mxp[m.paseo_id]?.push(m); });
-
-    // Load participantes_comida for those momentos
-    const momentoIds = (momentosData ?? []).map((m: any) => m.id);
     const cmxp: Record<string, Record<string, Record<string, boolean>>> = {};
     paseoIds.forEach((pid) => { cmxp[pid] = {}; });
-    if (momentoIds.length > 0) {
-      const { data: pcData } = await supabase
-        .from("participantes_comida")
-        .select("momento_id, participacion_id, activo")
-        .in("momento_id", momentoIds);
-      (pcData ?? []).forEach((r: any) => {
-        const momento = (momentosData ?? []).find(
-          (m: any) => m.id === r.momento_id,
-        );
-        if (!momento) return;
-        if (!cmxp[momento.paseo_id][r.momento_id])
-          cmxp[momento.paseo_id][r.momento_id] = {};
-        cmxp[momento.paseo_id][r.momento_id][r.participacion_id] = r.activo;
-      });
-    }
+    participantesComidaRows.forEach((r: any) => {
+      const momento = (momentosData ?? []).find((m: any) => m.id === r.momento_id);
+      if (!momento) return;
+      if (!cmxp[momento.paseo_id][r.momento_id])
+        cmxp[momento.paseo_id][r.momento_id] = {};
+      cmxp[momento.paseo_id][r.momento_id][r.participacion_id] = r.activo;
+    });
 
     setGastosPorPaseo(gxp);
     setParticipacionesPorPaseo(pxp);
     setPersonasPorPaseo(persxp);
+    setFamiliasPorPaseo(fxp);
     setGastosPartMap(gpm);
     setMomentosPorPaseo(mxp);
     setComidaMapPorPaseo(cmxp);
     setInitialized((prev) => {
       if (!prev) {
-        // Collapse all paseos by default on first load
         const allCollapsed: Record<string, boolean> = {};
-        paseoIds.forEach((pid) => {
-          allCollapsed[pid] = true;
-        });
+        paseoIds.forEach((pid) => { allCollapsed[pid] = true; });
         setCollapsedPaseos(allCollapsed);
       }
       return true;
@@ -502,33 +493,7 @@ export default function GastosScreen() {
         balance: (puso[f.id] ?? 0) - (leCorresponde[f.id] ?? 0),
       }));
 
-    // Liquidaciones mínimas entre familias
-    const deudores = balancePorFamilia
-      .filter((f) => f.balance < -0.5)
-      .map((f) => ({ ...f, monto: -f.balance }))
-      .sort((a, b) => b.monto - a.monto);
-    const acreedores = balancePorFamilia
-      .filter((f) => f.balance > 0.5)
-      .map((f) => ({ ...f, monto: f.balance }))
-      .sort((a, b) => b.monto - a.monto);
-
-    const liquidaciones: { de: string; para: string; monto: number }[] = [];
-    let i = 0;
-    let j = 0;
-    while (i < deudores.length && j < acreedores.length) {
-      const pago = Math.min(deudores[i].monto, acreedores[j].monto);
-      if (pago > 0.5)
-        liquidaciones.push({
-          de: deudores[i].nombre,
-          para: acreedores[j].nombre,
-          monto: pago,
-        });
-      deudores[i].monto -= pago;
-      acreedores[j].monto -= pago;
-      if (deudores[i].monto < 0.5) i++;
-      if (acreedores[j].monto < 0.5) j++;
-    }
-
+    const liquidaciones = calcularTransferenciasMinimas(balancePorFamilia, 0.5);
     return { balancePorFamilia, liquidaciones };
   };
 

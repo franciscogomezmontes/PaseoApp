@@ -171,7 +171,7 @@ export default function GroceryScreen() {
       return;
     }
 
-    const recetaIds = [...new Set(momentos.map((m) => m.receta_id))];
+    const recetaIds = [...new Set(momentos.map((m) => m.receta_id).filter((id): id is string => id !== null))];
     const { data: recetaIngs } = await supabase
       .from("receta_ingredientes")
       .select(
