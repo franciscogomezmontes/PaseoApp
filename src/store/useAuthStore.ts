@@ -10,7 +10,7 @@ let appStateSubscription: NativeEventSubscription | null = null;
 interface AuthStore {
   session: Session | null;
   user: User | null;
-  persona: { id: string; nombre: string; email: string } | null;
+  persona: { id: string; nombre: string; email: string | null } | null;
   loading: boolean;
   error: string | null;
   pendingSignup: { nombre: string; email: string } | null;

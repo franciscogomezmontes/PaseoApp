@@ -153,7 +153,7 @@ export default function AdminUploadScreen() {
     const table = tab === "recetas" ? "recetas" : "ingredientes";
 
     for (let i = 0; i < rows.length; i += BATCH) {
-      const batch = rows.slice(i, i + BATCH).map(transform);
+      const batch = rows.slice(i, i + BATCH).map((row) => transform(row));
       // Filter invalid rows
       const valid = batch.filter((r) => r.nombre && r.nombre.length > 0);
       if (valid.length === 0) continue;

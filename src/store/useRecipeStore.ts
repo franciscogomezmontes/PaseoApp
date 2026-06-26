@@ -6,7 +6,7 @@ export interface Ingrediente {
   nombre: string;
   unidad_base: string;
   categoria: string;
-  observaciones?: string;
+  observaciones?: string | null;
 }
 
 export interface RecetaIngrediente {
@@ -21,17 +21,16 @@ export interface Receta {
   nombre: string;
   tipo_comida: string;
   porciones_base: number;
-  descripcion?: string;
-  es_publica: boolean;
-  es_vegano?: boolean;
-  es_vegetariano?: boolean;
-  es_picante?: boolean;
-  contiene_nueces?: boolean;
-  sin_gluten?: boolean;
-  sin_lactosa?: boolean;
-  categoria?: string;
-  instrucciones?: string;
-  // Campos nuevos
+  descripcion?: string | null;
+  es_publica?: boolean | null;
+  es_vegano?: boolean | null;
+  es_vegetariano?: boolean | null;
+  es_picante?: boolean | null;
+  contiene_nueces?: boolean | null;
+  sin_gluten?: boolean | null;
+  sin_lactosa?: boolean | null;
+  categoria?: string | null;
+  instrucciones?: string | null;
   foto_url?: string | null;
   tiempo_preparacion?: number | null;
   tiempo_coccion?: number | null;

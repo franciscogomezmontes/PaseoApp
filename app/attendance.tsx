@@ -63,7 +63,7 @@ export default function AttendanceScreen() {
 
       // Override with saved values
       asistenciaData?.forEach((a) => {
-        map[a.momento_comida_id] = a.asiste;
+        if (a.momento_comida_id) map[a.momento_comida_id] = a.asiste;
       });
     }
 

@@ -169,7 +169,7 @@ export default function NewRecipeScreen() {
     const { data: receta } = await supabase
       .from("recetas")
       .select("*")
-      .eq("id", id)
+      .eq("id", id!)
       .single();
     if (receta) {
       setNombre(receta.nombre ?? "");
@@ -201,7 +201,7 @@ export default function NewRecipeScreen() {
     const { data: ingData } = await supabase
       .from("receta_ingredientes")
       .select("*, ingredientes(nombre, unidad_base)")
-      .eq("receta_id", id);
+      .eq("receta_id", id!);
     if (ingData) {
       setIngredientes(
         ingData.map((i: any) => ({
@@ -442,7 +442,7 @@ export default function NewRecipeScreen() {
 
   const handleDelete = async () => {
     setShowDeleteModal(false);
-    await supabase.from("recetas").delete().eq("id", id);
+    await supabase.from("recetas").delete().eq("id", id!);
     router.back();
     router.back();
   };

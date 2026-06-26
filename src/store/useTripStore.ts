@@ -15,7 +15,7 @@ export interface AsistenciaComida {
 
 export interface Participacion {
   id?: string;
-  paseo_id?: string;
+  paseo_id: string;
   persona_id: string;
   unidad_familiar: number;
   factor: number;
@@ -25,14 +25,14 @@ export interface Participacion {
 }
 
 export interface Paseo {
-  id?: string;
+  id: string;
   nombre: string;
-  lugar: string;
+  lugar: string | null;
   fecha_inicio: string;
   fecha_fin: string;
   estado: string;
-  codigo_invitacion?: string;
-  organizer_id?: string;
+  codigo_invitacion?: string | null;
+  organizer_id?: string | null;
   organizador_nombre?: string;
   link_alojamiento?: string | null;
   recomendaciones?: string | null;
@@ -48,7 +48,7 @@ interface TripStore {
   error: string | null;
   fetchPaseos: () => Promise<void>;
   fetchPersonas: () => Promise<void>;
-  crearPaseo: (paseo: Omit<Paseo, "id">) => Promise<Paseo | null>;
+  crearPaseo: (paseo: Omit<Paseo, "id" | "organizador_nombre" | "participaciones">) => Promise<Paseo | null>;
   crearPersona: (nombre: string) => Promise<Persona | null>;
   agregarParticipacion: (p: Participacion) => Promise<void>;
   guardarAsistencia: (
@@ -124,8 +124,8 @@ export const useTripStore = create<TripStore>((set) => ({
       return null;
     }
 
-    set((state) => ({ paseos: [data, ...state.paseos], loading: false }));
-    return data;
+    set((state) => ({ paseos: [data as Paseo, ...state.paseos], loading: false }));
+    return data as Paseo;
   },
 
   crearPersona: async (nombre) => {

@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import * as SecureStore from "expo-secure-store";
 import { AppState } from "react-native";
 import "react-native-url-polyfill/auto";
+import type { Database } from "./database.types";
 
 // ─────────────────────────────────────────────
 // SecureStore tiene un límite de 2048 bytes por clave.
@@ -102,7 +103,7 @@ const ChunkedSecureStoreAdapter = {
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: ChunkedSecureStoreAdapter,
     autoRefreshToken: true,
