@@ -2,7 +2,6 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import {
-  ActivityIndicator,
   Image,
   ScrollView,
   Share,
@@ -12,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import SkeletonBox from "../../src/components/SkeletonBox";
 import TabTooltip from "../../src/components/TabTooltip";
 import { TOOLTIP_KEYS } from "../../src/constants";
 import { useAuthStore } from "../../src/store/useAuthStore";
@@ -82,10 +82,25 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         bgColor="#EFF6FF"
       />
       {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#1B4F72" />
-          <Text style={styles.loadingText}>Cargando paseos...</Text>
-        </View>
+        <ScrollView contentContainerStyle={styles.content} pointerEvents="none">
+          {[1, 2, 3].map((i) => (
+            <View key={i} style={styles.card}>
+              <View style={[styles.cardTop, { marginBottom: 8 }]}>
+                <SkeletonBox style={{ width: 44, height: 44, borderRadius: 22 }} />
+                <View style={{ flex: 1, gap: 6 }}>
+                  <SkeletonBox style={{ width: "68%", height: 14 }} />
+                  <SkeletonBox style={{ width: "38%", height: 11 }} />
+                </View>
+                <SkeletonBox style={{ width: 68, height: 22, borderRadius: 11 }} />
+              </View>
+              <SkeletonBox style={{ width: "44%", height: 13, marginBottom: 12 }} />
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <SkeletonBox style={{ width: 84, height: 28, borderRadius: 14 }} />
+                <SkeletonBox style={{ width: 96, height: 28, borderRadius: 20 }} />
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       ) : paseos.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.emptyIcon}>🏖️</Text>
@@ -286,5 +301,4 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   createButtonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
-  loadingText: { color: "#64748b", marginTop: 12, fontSize: 14 },
 });

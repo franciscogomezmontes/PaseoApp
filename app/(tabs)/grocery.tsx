@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import TabTooltip from "../../src/components/TabTooltip";
 import { TOOLTIP_KEYS } from "../../src/constants";
+import SkeletonBox from "../../src/components/SkeletonBox";
 import { supabase } from "../../src/lib/supabase";
 import { showSuccess } from "../../src/lib/toast";
 import { useTripStore } from "../../src/store/useTripStore";
@@ -316,10 +317,19 @@ export default function GroceryScreen() {
         bgColor="#F0FDF4"
       />
       {loadingData ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#1B4F72" />
-          <Text style={styles.loadingText}>Cargando listas...</Text>
-        </View>
+        <ScrollView contentContainerStyle={styles.content} pointerEvents="none">
+          {[1, 2].map((i) => (
+            <View key={i} style={styles.paseoGroup}>
+              <View style={[styles.paseoHeader, { gap: 8 }]}>
+                <View style={{ flex: 1, gap: 8 }}>
+                  <SkeletonBox style={{ width: "55%", height: 14 }} />
+                  <SkeletonBox style={{ width: "30%", height: 11 }} />
+                </View>
+                <SkeletonBox style={{ width: 32, height: 32, borderRadius: 16 }} />
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       ) : paseos.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.emptyIcon}>🛒</Text>
@@ -865,7 +875,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 24,
   },
-  loadingText: { color: "#64748b", marginTop: 12, fontSize: 14 },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyTitle: {
     fontSize: 18,

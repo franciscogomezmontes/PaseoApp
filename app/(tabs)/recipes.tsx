@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import SkeletonBox from "../../src/components/SkeletonBox";
 import TabTooltip from "../../src/components/TabTooltip";
 import { TIPO_CONFIG, TOOLTIP_KEYS } from "../../src/constants";
 import { CATEGORIAS_ING, UNIDADES } from "../../src/ingredientConstants";
@@ -239,9 +240,43 @@ export default function RecipesScreen() {
 
   if (loading && activeTab === "recetas") {
     return (
-      <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#1B4F72" />
-        <Text style={styles.loadingText}>Cargando recetas...</Text>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>📖 Recetas</Text>
+            <Text style={styles.headerSub}>Cargando...</Text>
+          </View>
+        </View>
+        <View style={styles.tabRow}>
+          {(["recetas", "ingredientes"] as const).map((t) => (
+            <View
+              key={t}
+              style={[styles.tab, t === "recetas" && styles.tabActive]}
+            >
+              <Text style={[styles.tabText, t === "recetas" && styles.tabTextActive]}>
+                {t === "recetas" ? "📖 Recetas" : "🥕 Ingredientes"}
+              </Text>
+            </View>
+          ))}
+        </View>
+        <ScrollView contentContainerStyle={styles.content} pointerEvents="none">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <View
+              key={i}
+              style={[styles.card, { borderLeftColor: "#e2e8f0" }]}
+            >
+              <View style={styles.cardTop}>
+                <SkeletonBox style={{ width: "62%", height: 15 }} />
+                <SkeletonBox style={{ width: 20, height: 20, borderRadius: 10 }} />
+              </View>
+              <SkeletonBox style={{ width: "78%", height: 11, marginBottom: 10 }} />
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                <SkeletonBox style={{ width: 64, height: 22, borderRadius: 11 }} />
+                <SkeletonBox style={{ width: 88, height: 22, borderRadius: 11 }} />
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       </SafeAreaView>
     );
   }
