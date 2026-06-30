@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import TabTooltip from "../../src/components/TabTooltip";
 import { TOOLTIP_KEYS } from "../../src/constants";
 import { supabase } from "../../src/lib/supabase";
+import { showSuccess } from "../../src/lib/toast";
 import { useTripStore } from "../../src/store/useTripStore";
 
 // ─────────────────────────────────────────────
@@ -217,6 +218,7 @@ export default function GroceryScreen() {
     if (rows.length > 0) await supabase.from("lista_mercado").insert(rows);
 
     await loadAllItems();
+    showSuccess("Lista generada ✓", `${rows.length} ingredientes del menú`);
     setGeneratingPaseoId(null);
   };
 
@@ -261,6 +263,7 @@ export default function GroceryScreen() {
       setExtraRecomendaciones("");
       setExtraCategoria("Extras");
       await loadAllItems();
+      showSuccess("Item agregado ✓");
     }
     setSavingExtra(false);
   };

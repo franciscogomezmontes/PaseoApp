@@ -2,7 +2,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     ScrollView,
     StyleSheet,
     Switch,
@@ -13,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TIPO_CONFIG } from "../src/constants";
 import { supabase } from "../src/lib/supabase";
+import { showError as toastError, showSuccess } from "../src/lib/toast";
 
 const ORDEN = ["desayuno", "almuerzo", "cena", "snack"];
 
@@ -91,11 +91,10 @@ export default function AttendanceScreen() {
       .upsert(rows, { onConflict: "participacion_id,fecha,tipo_comida" });
 
     if (error) {
-      Alert.alert("Error", error.message);
+      toastError("Error al guardar", error.message);
     } else {
-      Alert.alert("✓ Guardado", "Asistencia actualizada.", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
+      showSuccess("Asistencia guardada ✓");
+      router.back();
     }
     setSaving(false);
   };

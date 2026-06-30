@@ -17,6 +17,7 @@ import TabTooltip from "../../src/components/TabTooltip";
 import { ESTADO_CONFIG, GASTO_CATEGORIAS, TOOLTIP_KEYS } from "../../src/constants";
 import { calcularTransferenciasMinimas } from "../../src/lib/liquidacion";
 import { supabase } from "../../src/lib/supabase";
+import { showSuccess } from "../../src/lib/toast";
 import { useTripStore } from "../../src/store/useTripStore";
 
 const formatCOP = (n: number) => "$" + Math.round(n).toLocaleString("es-CO");
@@ -336,8 +337,10 @@ export default function GastosScreen() {
       }
     }
 
+    const wasEditing = !!editingGasto;
     closeGastoModal();
     await loadAllData();
+    showSuccess(wasEditing ? "Gasto actualizado ✓" : "Gasto registrado ✓");
     setSavingGasto(false);
   };
 
@@ -349,7 +352,10 @@ export default function GastosScreen() {
       .delete()
       .eq("id", deleteTarget.id);
     if (error) showError(error.message);
-    else await loadAllData();
+    else {
+      await loadAllData();
+      showSuccess("Gasto eliminado");
+    }
     setDeleteTarget(null);
   };
 

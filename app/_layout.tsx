@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
+import Toast from "react-native-toast-message";
 import { ONBOARDING_KEY } from "../src/constants";
 import { useAuthStore } from "../src/store/useAuthStore";
 
@@ -46,6 +47,7 @@ export default function RootLayout() {
   }, [session, loading, segments, onboardingChecked, onboardingDone]);
 
   return (
+    <>
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="auth" />
@@ -79,5 +81,7 @@ export default function RootLayout() {
       <Stack.Screen name="newRecipe" options={{ headerShown: false }} />
       <Stack.Screen name="adminUpload" options={{ headerShown: false }} />
     </Stack>
+    <Toast />
+    </>
   );
 }
