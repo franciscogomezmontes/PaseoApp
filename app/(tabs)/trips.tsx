@@ -53,7 +53,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
   } as Record<string, { color: string; bg: string; label: string }>;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🗺️ Mis Paseos</Text>

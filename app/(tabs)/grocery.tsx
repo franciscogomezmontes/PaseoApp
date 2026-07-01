@@ -304,7 +304,7 @@ export default function GroceryScreen() {
   // Render
   // ─────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🛒 Mercado</Text>
       </View>

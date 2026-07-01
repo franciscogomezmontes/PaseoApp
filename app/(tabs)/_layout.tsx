@@ -26,27 +26,6 @@ export default function TabLayout() {
         options={{ href: null }}
       />
       <Tabs.Screen
-        name="grocery"
-        options={{
-          tabBarIcon: ({ color, size }) => <ShoppingCart color={color} size={size} />,
-          tabBarLabel: "Mercado",
-        }}
-      />
-      <Tabs.Screen
-        name="expenses"
-        options={{
-          tabBarIcon: ({ color, size }) => <Receipt color={color} size={size} />,
-          tabBarLabel: "Gastos",
-        }}
-      />
-      <Tabs.Screen
-        name="add"
-        options={{
-          tabBarLabel: "",
-          tabBarButton: (props) => <AddTabButton {...props} />,
-        }}
-      />
-      <Tabs.Screen
         name="trips"
         options={{
           tabBarIcon: ({ color, size }) => <Map color={color} size={size} />,
@@ -58,6 +37,27 @@ export default function TabLayout() {
         options={{
           tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size} />,
           tabBarLabel: "Recetas",
+        }}
+      />
+      <Tabs.Screen
+        name="add"
+        options={{
+          tabBarLabel: "",
+          tabBarButton: (props) => <AddTabButton {...props} />,
+        }}
+      />
+      <Tabs.Screen
+        name="grocery"
+        options={{
+          tabBarIcon: ({ color, size }) => <ShoppingCart color={color} size={size} />,
+          tabBarLabel: "Mercado",
+        }}
+      />
+      <Tabs.Screen
+        name="expenses"
+        options={{
+          tabBarIcon: ({ color, size }) => <Receipt color={color} size={size} />,
+          tabBarLabel: "Gastos",
         }}
       />
       <Tabs.Screen

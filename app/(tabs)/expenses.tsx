@@ -514,7 +514,7 @@ export default function GastosScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>💸 Gastos</Text>

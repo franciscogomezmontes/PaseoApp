@@ -305,7 +305,7 @@ export default function HomeScreen() {
 
   if (!persona) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
         <View
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         >
@@ -317,7 +317,7 @@ export default function HomeScreen() {
 
   // ── AUTHENTICATED ──
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <Animated.ScrollView
         style={{ opacity: fadeAnim }}
         contentContainerStyle={styles.content}

@@ -240,7 +240,7 @@ export default function RecipesScreen() {
 
   if (loading && activeTab === "recetas") {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>📖 Recetas</Text>
@@ -282,7 +282,7 @@ export default function RecipesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>📖 Recetas</Text>
