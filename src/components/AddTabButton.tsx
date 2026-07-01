@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: "center",
     overflow: "visible",
   },
   circle: {
@@ -111,12 +111,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#1B4F72",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 22,
+    transform: [{ translateY: -18 }],
     elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    shadowColor: "#1B4F72",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
   },
   overlay: {
     flex: 1,
