@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import { Home, Map, BookOpen, ShoppingCart, Receipt } from "lucide-react-native";
+import AddTabButton from "../../src/components/AddTabButton";
 
 export default function TabLayout() {
   return (
@@ -20,39 +21,50 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text>,
+          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
           tabBarLabel: "Inicio",
         }}
       />
       <Tabs.Screen
         name="trips"
         options={{
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🗺️</Text>,
+          tabBarIcon: ({ color, size }) => <Map color={color} size={size} />,
           tabBarLabel: "Mis Paseos",
+        }}
+      />
+      <Tabs.Screen
+        name="add"
+        options={{
+          href: null,
+          tabBarLabel: "",
+          tabBarButton: (props) => <AddTabButton {...props} />,
         }}
       />
       <Tabs.Screen
         name="recipes"
         options={{
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>📖</Text>,
+          tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size} />,
           tabBarLabel: "Recetas",
         }}
       />
       <Tabs.Screen
         name="grocery"
         options={{
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🛒</Text>,
+          tabBarIcon: ({ color, size }) => <ShoppingCart color={color} size={size} />,
           tabBarLabel: "Mercado",
         }}
       />
       <Tabs.Screen
         name="expenses"
         options={{
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>💸</Text>,
+          tabBarIcon: ({ color, size }) => <Receipt color={color} size={size} />,
           tabBarLabel: "Gastos",
         }}
       />
-
+      <Tabs.Screen
+        name="menu"
+        options={{ href: null }}
+      />
     </Tabs>
   );
 }
