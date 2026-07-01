@@ -9,9 +9,8 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Plus, MapPin, BookOpen, Receipt } from "lucide-react-native";
+import { Plus, MapPin, BookOpen } from "lucide-react-native";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
-import { showInfo } from "@/src/lib/toast";
 
 export default function AddTabButton({ style }: BottomTabBarButtonProps) {
   const [open, setOpen] = useState(false);
@@ -20,14 +19,6 @@ export default function AddTabButton({ style }: BottomTabBarButtonProps) {
   function go(path: string) {
     setOpen(false);
     setTimeout(() => router.push(path as Parameters<typeof router.push>[0]), 150);
-  }
-
-  function goGasto() {
-    setOpen(false);
-    setTimeout(() => {
-      showInfo("Selecciona un paseo para agregar un gasto");
-      router.push("/(tabs)/trips");
-    }, 150);
   }
 
   return (
@@ -72,16 +63,6 @@ export default function AddTabButton({ style }: BottomTabBarButtonProps) {
                   <View>
                     <Text style={styles.optionTitle}>Nueva Receta</Text>
                     <Text style={styles.optionSub}>Agrega una receta al catálogo</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.option} onPress={goGasto}>
-                  <View style={[styles.optionIcon, { backgroundColor: "#FEF3C7" }]}>
-                    <Receipt color="#92400E" size={22} />
-                  </View>
-                  <View>
-                    <Text style={styles.optionTitle}>Nuevo Gasto</Text>
-                    <Text style={styles.optionSub}>Registra un gasto en tu paseo</Text>
                   </View>
                 </TouchableOpacity>
 
