@@ -1,15 +1,16 @@
+import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import type { StyleProp, ViewStyle } from "react-native";
 
 export function MapView({ style }: { style?: StyleProp<ViewStyle> }) {
-  return (
-    <View style={[styles.placeholder, style]}>
-      <Text style={styles.text}>🗺️ Mapa no disponible en web</Text>
-    </View>
+  return React.createElement(
+    View,
+    { style: [styles.placeholder, style] },
+    React.createElement(Text, { style: styles.text }, "🗺️ Mapa no disponible en web"),
   );
 }
 
-export function Marker(_props: object) {
+export function Marker(_props: Record<string, unknown>) {
   return null;
 }
 
