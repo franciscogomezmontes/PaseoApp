@@ -17,6 +17,7 @@ import TabTooltip from "../../src/components/TabTooltip";
 import { ESTADO_CONFIG, GASTO_CATEGORIAS, TOOLTIP_KEYS } from "../../src/constants";
 import { calcularTransferenciasMinimas } from "../../src/lib/liquidacion";
 import { supabase } from "../../src/lib/supabase";
+import { showSuccess } from "../../src/lib/toast";
 import { useTripStore } from "../../src/store/useTripStore";
 
 const formatCOP = (n: number) => "$" + Math.round(n).toLocaleString("es-CO");
@@ -336,8 +337,10 @@ export default function GastosScreen() {
       }
     }
 
+    const wasEditing = !!editingGasto;
     closeGastoModal();
     await loadAllData();
+    showSuccess(wasEditing ? "Gasto actualizado ✓" : "Gasto registrado ✓");
     setSavingGasto(false);
   };
 
@@ -349,7 +352,10 @@ export default function GastosScreen() {
       .delete()
       .eq("id", deleteTarget.id);
     if (error) showError(error.message);
-    else await loadAllData();
+    else {
+      await loadAllData();
+      showSuccess("Gasto eliminado");
+    }
     setDeleteTarget(null);
   };
 
@@ -660,8 +666,10 @@ export default function GastosScreen() {
                     {/* Gastos list */}
                     {gastos.length === 0 ? (
                       <View style={styles.emptyGastos}>
+                        <Text style={styles.emptyGastosIcon}>💳</Text>
+                        <Text style={styles.emptyGastosTitle}>Sin gastos aún</Text>
                         <Text style={styles.emptyGastosText}>
-                          Sin gastos registrados
+                          Registra el primer gasto de este paseo con el botón de arriba.
                         </Text>
                       </View>
                     ) : (
@@ -1214,8 +1222,10 @@ const styles = StyleSheet.create({
   gastoMonto: { fontSize: 15, fontWeight: "800", color: "#1B4F72" },
   gastoHint: { fontSize: 10, color: "#cbd5e1", marginTop: 2 },
 
-  emptyGastos: { paddingVertical: 20, alignItems: "center" },
-  emptyGastosText: { fontSize: 13, color: "#94a3b8" },
+  emptyGastos: { paddingVertical: 28, alignItems: "center", paddingHorizontal: 16 },
+  emptyGastosIcon: { fontSize: 32, marginBottom: 8 },
+  emptyGastosTitle: { fontSize: 14, fontWeight: "700", color: "#1e293b", marginBottom: 4 },
+  emptyGastosText: { fontSize: 13, color: "#94a3b8", textAlign: "center", lineHeight: 18 },
 
   // Modals
   overlay: {

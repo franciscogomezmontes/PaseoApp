@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import SkeletonBox from "../../src/components/SkeletonBox";
 import TabTooltip from "../../src/components/TabTooltip";
 import { TIPO_CONFIG, TOOLTIP_KEYS } from "../../src/constants";
 import { CATEGORIAS_ING, UNIDADES } from "../../src/ingredientConstants";
@@ -239,9 +240,43 @@ export default function RecipesScreen() {
 
   if (loading && activeTab === "recetas") {
     return (
-      <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#1B4F72" />
-        <Text style={styles.loadingText}>Cargando recetas...</Text>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>📖 Recetas</Text>
+            <Text style={styles.headerSub}>Cargando...</Text>
+          </View>
+        </View>
+        <View style={styles.tabRow}>
+          {(["recetas", "ingredientes"] as const).map((t) => (
+            <View
+              key={t}
+              style={[styles.tab, t === "recetas" && styles.tabActive]}
+            >
+              <Text style={[styles.tabText, t === "recetas" && styles.tabTextActive]}>
+                {t === "recetas" ? "📖 Recetas" : "🥕 Ingredientes"}
+              </Text>
+            </View>
+          ))}
+        </View>
+        <ScrollView contentContainerStyle={styles.content} pointerEvents="none">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <View
+              key={i}
+              style={[styles.card, { borderLeftColor: "#e2e8f0" }]}
+            >
+              <View style={styles.cardTop}>
+                <SkeletonBox style={{ width: "62%", height: 15 }} />
+                <SkeletonBox style={{ width: 20, height: 20, borderRadius: 10 }} />
+              </View>
+              <SkeletonBox style={{ width: "78%", height: 11, marginBottom: 10 }} />
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                <SkeletonBox style={{ width: 64, height: 22, borderRadius: 11 }} />
+                <SkeletonBox style={{ width: 88, height: 22, borderRadius: 11 }} />
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -399,12 +434,31 @@ export default function RecipesScreen() {
 
               {letras.length === 0 && (
                 <View style={styles.emptySearch}>
-                  <Text style={styles.emptySearchIcon}>🔍</Text>
-                  <Text style={styles.emptySearchText}>
+                  <Text style={styles.emptySearchIcon}>
+                    {searchReceta.length > 0 || activeKeyword ? "🔍" : "📖"}
+                  </Text>
+                  <Text style={styles.emptySearchTitle}>
                     {searchReceta.length > 0
                       ? `Sin resultados para "${searchReceta}"`
-                      : "No hay recetas aún"}
+                      : activeKeyword
+                        ? `Sin recetas con "${activeKeyword}"`
+                        : "No hay recetas aún"}
                   </Text>
+                  {searchReceta.length > 0 || activeKeyword ? (
+                    <TouchableOpacity
+                      style={styles.emptySearchClear}
+                      onPress={() => { setSearchReceta(""); setActiveKeyword(null); }}
+                    >
+                      <Text style={styles.emptySearchClearText}>Limpiar filtros</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.emptySearchCta}
+                      onPress={() => router.push("/newRecipe")}
+                    >
+                      <Text style={styles.emptySearchCtaText}>+ Agregar primera receta</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </>
@@ -1050,9 +1104,19 @@ const styles = StyleSheet.create({
   ingMeta: { fontSize: 12, color: "#94a3b8", marginTop: 2 },
   ingEdit: { fontSize: 16 },
 
-  emptySearch: { alignItems: "center", paddingVertical: 40 },
-  emptySearchIcon: { fontSize: 36, marginBottom: 8 },
+  emptySearch: { alignItems: "center", paddingVertical: 40, paddingHorizontal: 16 },
+  emptySearchIcon: { fontSize: 40, marginBottom: 12 },
+  emptySearchTitle: { fontSize: 15, fontWeight: "700", color: "#1e293b", textAlign: "center", marginBottom: 16 },
   emptySearchText: { fontSize: 14, color: "#94a3b8", textAlign: "center" },
+  emptySearchClear: { paddingVertical: 8, paddingHorizontal: 16 },
+  emptySearchClearText: { fontSize: 14, color: "#1B4F72", fontWeight: "600" },
+  emptySearchCta: {
+    backgroundColor: "#1B4F72",
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  emptySearchCtaText: { color: "#fff", fontWeight: "700", fontSize: 14 },
 
   addButton: {
     borderWidth: 2,

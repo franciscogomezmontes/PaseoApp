@@ -1840,6 +1840,22 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
           ))}
         </View>
 
+        {/* Estado banner — planificacion / liquidado */}
+        {paseo?.estado === "planificacion" && (
+          <View style={styles.estadoBanner}>
+            <Text style={styles.estadoBannerText}>
+              📋 En planificación — agrega participantes y el menú del paseo
+            </Text>
+          </View>
+        )}
+        {paseo?.estado === "liquidado" && (
+          <View style={[styles.estadoBanner, styles.estadoBannerLiquidado]}>
+            <Text style={[styles.estadoBannerText, styles.estadoBannerLiquidadoText]}>
+              ✅ Paseo liquidado — los gastos están cerrados
+            </Text>
+          </View>
+        )}
+
         {/* ══════════════════════════════════════
             INFO TAB
         ══════════════════════════════════════ */}
@@ -2340,12 +2356,14 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                       Total: {formatCOP(totalGastado)}
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    style={styles.addBtn}
-                    onPress={() => setShowAddGastoModal(true)}
-                  >
-                    <Text style={styles.addBtnText}>+ Agregar</Text>
-                  </TouchableOpacity>
+                  {paseo?.estado !== "liquidado" && (
+                    <TouchableOpacity
+                      style={styles.addBtn}
+                      onPress={() => setShowAddGastoModal(true)}
+                    >
+                      <Text style={styles.addBtnText}>+ Agregar</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
                 {gastos.length === 0 ? (
                   <View style={styles.emptyState}>
@@ -5385,6 +5403,28 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   addBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+
+  // Estado banners
+  estadoBanner: {
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#FDE68A",
+  },
+  estadoBannerLiquidado: {
+    backgroundColor: "#DBEAFE",
+    borderBottomColor: "#BFDBFE",
+  },
+  estadoBannerText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#92400E",
+    textAlign: "center",
+  },
+  estadoBannerLiquidadoText: {
+    color: "#1D4ED8",
+  },
 
   // Familia card
   familiaCard: {

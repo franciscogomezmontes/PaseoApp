@@ -14,7 +14,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import TabTooltip from "../../src/components/TabTooltip";
 import { TOOLTIP_KEYS } from "../../src/constants";
+import SkeletonBox from "../../src/components/SkeletonBox";
 import { supabase } from "../../src/lib/supabase";
+import { showSuccess } from "../../src/lib/toast";
 import { useTripStore } from "../../src/store/useTripStore";
 
 // ─────────────────────────────────────────────
@@ -217,6 +219,7 @@ export default function GroceryScreen() {
     if (rows.length > 0) await supabase.from("lista_mercado").insert(rows);
 
     await loadAllItems();
+    showSuccess("Lista generada ✓", `${rows.length} ingredientes del menú`);
     setGeneratingPaseoId(null);
   };
 
@@ -261,6 +264,7 @@ export default function GroceryScreen() {
       setExtraRecomendaciones("");
       setExtraCategoria("Extras");
       await loadAllItems();
+      showSuccess("Item agregado ✓");
     }
     setSavingExtra(false);
   };
@@ -313,10 +317,19 @@ export default function GroceryScreen() {
         bgColor="#F0FDF4"
       />
       {loadingData ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#1B4F72" />
-          <Text style={styles.loadingText}>Cargando listas...</Text>
-        </View>
+        <ScrollView contentContainerStyle={styles.content} pointerEvents="none">
+          {[1, 2].map((i) => (
+            <View key={i} style={styles.paseoGroup}>
+              <View style={[styles.paseoHeader, { gap: 8 }]}>
+                <View style={{ flex: 1, gap: 8 }}>
+                  <SkeletonBox style={{ width: "55%", height: 14 }} />
+                  <SkeletonBox style={{ width: "30%", height: 11 }} />
+                </View>
+                <SkeletonBox style={{ width: 32, height: 32, borderRadius: 16 }} />
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       ) : paseos.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.emptyIcon}>🛒</Text>
@@ -416,8 +429,10 @@ export default function GroceryScreen() {
                     {/* Items */}
                     {items.length === 0 ? (
                       <View style={styles.emptyItems}>
+                        <Text style={styles.emptyItemsIcon}>🛒</Text>
+                        <Text style={styles.emptyItemsTitle}>Lista vacía</Text>
                         <Text style={styles.emptyItemsText}>
-                          Lista vacía — genera desde el menú o agrega items
+                          Usa "⚡ Generar desde menú" para crear la lista automáticamente, o agrega items con "+ Extra".
                         </Text>
                       </View>
                     ) : (
@@ -862,7 +877,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 24,
   },
-  loadingText: { color: "#64748b", marginTop: 12, fontSize: 14 },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyTitle: {
     fontSize: 18,
@@ -943,8 +957,10 @@ const styles = StyleSheet.create({
   actionBtnPrimaryText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   actionBtnText: { color: "#64748b", fontWeight: "600", fontSize: 13 },
 
-  emptyItems: { paddingVertical: 20, alignItems: "center" },
-  emptyItemsText: { fontSize: 13, color: "#94a3b8", textAlign: "center" },
+  emptyItems: { paddingVertical: 28, alignItems: "center", paddingHorizontal: 16 },
+  emptyItemsIcon: { fontSize: 36, marginBottom: 10 },
+  emptyItemsTitle: { fontSize: 15, fontWeight: "700", color: "#1e293b", marginBottom: 6 },
+  emptyItemsText: { fontSize: 13, color: "#94a3b8", textAlign: "center", lineHeight: 18 },
 
   // Category
   categorySection: { marginBottom: 16 },
