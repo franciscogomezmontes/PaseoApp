@@ -1,24 +1,50 @@
 import { createClient } from "@supabase/supabase-js";
-import * as SecureStore from "expo-secure-store";
-import { AppState } from "react-native";
+import { Platform, AppState } from "react-native";
 import "react-native-url-polyfill/auto";
 import type { Database } from "./database.types";
 
 // ─────────────────────────────────────────────
-// SecureStore tiene un límite de 2048 bytes por clave.
-// El JWT de Supabase supera ese límite, así que lo dividimos
-// en chunks y los guardamos/recuperamos por partes.
+// Web: usa localStorage para persistir la sesión
 // ─────────────────────────────────────────────
-const CHUNK_SIZE = 1800; // bytes seguros por debajo del límite
+const WebStorageAdapter = {
+  getItem: (key: string): Promise<string | null> => {
+    try {
+      return Promise.resolve(
+        typeof localStorage !== "undefined" ? localStorage.getItem(key) : null,
+      );
+    } catch {
+      return Promise.resolve(null);
+    }
+  },
+  setItem: (key: string, value: string): Promise<void> => {
+    try {
+      if (typeof localStorage !== "undefined") localStorage.setItem(key, value);
+    } catch {}
+    return Promise.resolve();
+  },
+  removeItem: (key: string): Promise<void> => {
+    try {
+      if (typeof localStorage !== "undefined") localStorage.removeItem(key);
+    } catch {}
+    return Promise.resolve();
+  },
+};
+
+// ─────────────────────────────────────────────
+// Native: SecureStore con chunking (límite 2KB por clave)
+// ─────────────────────────────────────────────
+const CHUNK_SIZE = 1800;
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const SecureStore = Platform.OS !== "web" ? require("expo-secure-store") : null;
 
 const ChunkedSecureStoreAdapter = {
   getItem: async (key: string): Promise<string | null> => {
+    if (!SecureStore) return null;
     try {
-      // Intentar primero sin chunks (compatibilidad hacia atrás)
       const single = await SecureStore.getItemAsync(key);
       if (single !== null) return single;
 
-      // Leer chunks
       const countStr = await SecureStore.getItemAsync(`${key}_count`);
       if (!countStr) return null;
 
@@ -36,11 +62,10 @@ const ChunkedSecureStoreAdapter = {
   },
 
   setItem: async (key: string, value: string): Promise<void> => {
+    if (!SecureStore) return;
     try {
       if (value.length <= CHUNK_SIZE) {
-        // Valor pequeño — guardar directamente
         await SecureStore.setItemAsync(key, value);
-        // Limpiar chunks viejos si existían
         const oldCountStr = await SecureStore.getItemAsync(`${key}_count`);
         if (oldCountStr) {
           const oldCount = parseInt(oldCountStr, 10);
@@ -52,16 +77,12 @@ const ChunkedSecureStoreAdapter = {
         return;
       }
 
-      // Valor grande — dividir en chunks
-      // Limpiar valor simple si existía
       await SecureStore.deleteItemAsync(key);
-
       const chunks: string[] = [];
       for (let i = 0; i < value.length; i += CHUNK_SIZE) {
         chunks.push(value.slice(i, i + CHUNK_SIZE));
       }
 
-      // Limpiar chunks viejos
       const oldCountStr = await SecureStore.getItemAsync(`${key}_count`);
       if (oldCountStr) {
         const oldCount = parseInt(oldCountStr, 10);
@@ -70,7 +91,6 @@ const ChunkedSecureStoreAdapter = {
         }
       }
 
-      // Guardar nuevos chunks
       for (let i = 0; i < chunks.length; i++) {
         await SecureStore.setItemAsync(`${key}_chunk_${i}`, chunks[i]);
       }
@@ -81,6 +101,7 @@ const ChunkedSecureStoreAdapter = {
   },
 
   removeItem: async (key: string): Promise<void> => {
+    if (!SecureStore) return;
     try {
       await SecureStore.deleteItemAsync(key);
       const countStr = await SecureStore.getItemAsync(`${key}_count`);
@@ -105,7 +126,7 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: ChunkedSecureStoreAdapter,
+    storage: Platform.OS === "web" ? WebStorageAdapter : ChunkedSecureStoreAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
@@ -113,7 +134,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// Pausa/reanuda el refresh del token según el estado de la app
 AppState.addEventListener("change", (state) => {
   if (state === "active") {
     supabase.auth.startAutoRefresh();
