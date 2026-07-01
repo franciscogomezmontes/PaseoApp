@@ -105,12 +105,20 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         <View style={styles.centered}>
           <Text style={styles.emptyIcon}>🏖️</Text>
           <Text style={styles.emptyTitle}>Aún no hay paseos</Text>
-          <Text style={styles.emptySub}>Crea tu primer paseo para empezar</Text>
+          <Text style={styles.emptySub}>
+            Organiza tu próxima aventura en grupo — planea fechas, menú y gastos en un solo lugar.
+          </Text>
           <TouchableOpacity
             style={styles.createButton}
             onPress={() => router.push("/newTrip")}
           >
             <Text style={styles.createButtonText}>+ Crear primer paseo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.joinLink}
+            onPress={() => router.push("/joinTrip")}
+          >
+            <Text style={styles.joinLinkText}>🔑 ¿Ya tienes un código? Únete a uno</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -293,7 +301,7 @@ const styles = StyleSheet.create({
     color: "#1e293b",
     marginBottom: 4,
   },
-  emptySub: { fontSize: 14, color: "#94a3b8", marginBottom: 24 },
+  emptySub: { fontSize: 14, color: "#94a3b8", marginBottom: 24, textAlign: "center", lineHeight: 20 },
   createButton: {
     backgroundColor: "#1B4F72",
     borderRadius: 12,
@@ -301,4 +309,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   createButtonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  joinLink: { marginTop: 16, padding: 8 },
+  joinLinkText: { fontSize: 14, color: "#1B4F72", fontWeight: "600" },
 });

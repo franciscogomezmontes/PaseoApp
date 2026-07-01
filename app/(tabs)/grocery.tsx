@@ -429,8 +429,10 @@ export default function GroceryScreen() {
                     {/* Items */}
                     {items.length === 0 ? (
                       <View style={styles.emptyItems}>
+                        <Text style={styles.emptyItemsIcon}>🛒</Text>
+                        <Text style={styles.emptyItemsTitle}>Lista vacía</Text>
                         <Text style={styles.emptyItemsText}>
-                          Lista vacía — genera desde el menú o agrega items
+                          Usa "⚡ Generar desde menú" para crear la lista automáticamente, o agrega items con "+ Extra".
                         </Text>
                       </View>
                     ) : (
@@ -955,8 +957,10 @@ const styles = StyleSheet.create({
   actionBtnPrimaryText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   actionBtnText: { color: "#64748b", fontWeight: "600", fontSize: 13 },
 
-  emptyItems: { paddingVertical: 20, alignItems: "center" },
-  emptyItemsText: { fontSize: 13, color: "#94a3b8", textAlign: "center" },
+  emptyItems: { paddingVertical: 28, alignItems: "center", paddingHorizontal: 16 },
+  emptyItemsIcon: { fontSize: 36, marginBottom: 10 },
+  emptyItemsTitle: { fontSize: 15, fontWeight: "700", color: "#1e293b", marginBottom: 6 },
+  emptyItemsText: { fontSize: 13, color: "#94a3b8", textAlign: "center", lineHeight: 18 },
 
   // Category
   categorySection: { marginBottom: 16 },

@@ -434,12 +434,31 @@ export default function RecipesScreen() {
 
               {letras.length === 0 && (
                 <View style={styles.emptySearch}>
-                  <Text style={styles.emptySearchIcon}>🔍</Text>
-                  <Text style={styles.emptySearchText}>
+                  <Text style={styles.emptySearchIcon}>
+                    {searchReceta.length > 0 || activeKeyword ? "🔍" : "📖"}
+                  </Text>
+                  <Text style={styles.emptySearchTitle}>
                     {searchReceta.length > 0
                       ? `Sin resultados para "${searchReceta}"`
-                      : "No hay recetas aún"}
+                      : activeKeyword
+                        ? `Sin recetas con "${activeKeyword}"`
+                        : "No hay recetas aún"}
                   </Text>
+                  {searchReceta.length > 0 || activeKeyword ? (
+                    <TouchableOpacity
+                      style={styles.emptySearchClear}
+                      onPress={() => { setSearchReceta(""); setActiveKeyword(null); }}
+                    >
+                      <Text style={styles.emptySearchClearText}>Limpiar filtros</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.emptySearchCta}
+                      onPress={() => router.push("/newRecipe")}
+                    >
+                      <Text style={styles.emptySearchCtaText}>+ Agregar primera receta</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </>
@@ -1085,9 +1104,19 @@ const styles = StyleSheet.create({
   ingMeta: { fontSize: 12, color: "#94a3b8", marginTop: 2 },
   ingEdit: { fontSize: 16 },
 
-  emptySearch: { alignItems: "center", paddingVertical: 40 },
-  emptySearchIcon: { fontSize: 36, marginBottom: 8 },
+  emptySearch: { alignItems: "center", paddingVertical: 40, paddingHorizontal: 16 },
+  emptySearchIcon: { fontSize: 40, marginBottom: 12 },
+  emptySearchTitle: { fontSize: 15, fontWeight: "700", color: "#1e293b", textAlign: "center", marginBottom: 16 },
   emptySearchText: { fontSize: 14, color: "#94a3b8", textAlign: "center" },
+  emptySearchClear: { paddingVertical: 8, paddingHorizontal: 16 },
+  emptySearchClearText: { fontSize: 14, color: "#1B4F72", fontWeight: "600" },
+  emptySearchCta: {
+    backgroundColor: "#1B4F72",
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  emptySearchCtaText: { color: "#fff", fontWeight: "700", fontSize: 14 },
 
   addButton: {
     borderWidth: 2,

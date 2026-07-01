@@ -666,8 +666,10 @@ export default function GastosScreen() {
                     {/* Gastos list */}
                     {gastos.length === 0 ? (
                       <View style={styles.emptyGastos}>
+                        <Text style={styles.emptyGastosIcon}>💳</Text>
+                        <Text style={styles.emptyGastosTitle}>Sin gastos aún</Text>
                         <Text style={styles.emptyGastosText}>
-                          Sin gastos registrados
+                          Registra el primer gasto de este paseo con el botón de arriba.
                         </Text>
                       </View>
                     ) : (
@@ -1220,8 +1222,10 @@ const styles = StyleSheet.create({
   gastoMonto: { fontSize: 15, fontWeight: "800", color: "#1B4F72" },
   gastoHint: { fontSize: 10, color: "#cbd5e1", marginTop: 2 },
 
-  emptyGastos: { paddingVertical: 20, alignItems: "center" },
-  emptyGastosText: { fontSize: 13, color: "#94a3b8" },
+  emptyGastos: { paddingVertical: 28, alignItems: "center", paddingHorizontal: 16 },
+  emptyGastosIcon: { fontSize: 32, marginBottom: 8 },
+  emptyGastosTitle: { fontSize: 14, fontWeight: "700", color: "#1e293b", marginBottom: 4 },
+  emptyGastosText: { fontSize: 13, color: "#94a3b8", textAlign: "center", lineHeight: 18 },
 
   // Modals
   overlay: {
