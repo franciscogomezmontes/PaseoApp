@@ -35,7 +35,6 @@ export default function TabLayout() {
       <Tabs.Screen
         name="add"
         options={{
-          href: null,
           tabBarLabel: "",
           tabBarButton: (props) => <AddTabButton {...props} />,
         }}
