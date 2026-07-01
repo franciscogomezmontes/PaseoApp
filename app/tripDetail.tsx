@@ -18,7 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import { MapView, Marker } from "../src/lib/maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ESTADO_CONFIG, GASTO_CATEGORIAS, TIPO_CONFIG } from "../src/constants";
 import { calcularTransferenciasMinimas } from "../src/lib/liquidacion";
