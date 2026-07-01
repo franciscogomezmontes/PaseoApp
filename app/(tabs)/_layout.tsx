@@ -1,12 +1,14 @@
 import { Tabs } from "expo-router";
-import { Home, Map, BookOpen, ShoppingCart, Receipt } from "lucide-react-native";
+import { Map, BookOpen, ShoppingCart, Receipt } from "lucide-react-native";
 import AddTabButton from "../../src/components/AddTabButton";
+import TopBar from "../../src/components/TopBar";
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
+        headerShown: true,
+        header: () => <TopBar />,
         tabBarActiveTintColor: "#1B4F72",
         tabBarInactiveTintColor: "#94a3b8",
         tabBarStyle: {
@@ -18,33 +20,10 @@ export default function TabLayout() {
         },
       }}
     >
+      {/* Inicio — oculto del tab bar, accesible desde la foto en el top bar */}
       <Tabs.Screen
         name="index"
-        options={{
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
-          tabBarLabel: "Inicio",
-        }}
-      />
-      <Tabs.Screen
-        name="trips"
-        options={{
-          tabBarIcon: ({ color, size }) => <Map color={color} size={size} />,
-          tabBarLabel: "Mis Paseos",
-        }}
-      />
-      <Tabs.Screen
-        name="add"
-        options={{
-          tabBarLabel: "",
-          tabBarButton: (props) => <AddTabButton {...props} />,
-        }}
-      />
-      <Tabs.Screen
-        name="recipes"
-        options={{
-          tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size} />,
-          tabBarLabel: "Recetas",
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="grocery"
@@ -58,6 +37,27 @@ export default function TabLayout() {
         options={{
           tabBarIcon: ({ color, size }) => <Receipt color={color} size={size} />,
           tabBarLabel: "Gastos",
+        }}
+      />
+      <Tabs.Screen
+        name="add"
+        options={{
+          tabBarLabel: "",
+          tabBarButton: (props) => <AddTabButton {...props} />,
+        }}
+      />
+      <Tabs.Screen
+        name="trips"
+        options={{
+          tabBarIcon: ({ color, size }) => <Map color={color} size={size} />,
+          tabBarLabel: "Mis Paseos",
+        }}
+      />
+      <Tabs.Screen
+        name="recipes"
+        options={{
+          tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size} />,
+          tabBarLabel: "Recetas",
         }}
       />
       <Tabs.Screen
