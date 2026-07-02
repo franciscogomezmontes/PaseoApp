@@ -93,8 +93,8 @@ export default function TripDetailScreen() {
 
   // ── Core data ──
   const [activeTab, setActiveTab] = useState<
-    "info" | "participantes" | "menu" | "gastos"
-  >("info");
+    "resumen" | "gente" | "menu" | "gastos" | "info"
+  >("resumen");
   const [paseo, setPaseo] = useState<any>(null);
   const [participaciones, setParticipaciones] = useState<any[]>([]);
   const [familiasList, setFamiliasList] = useState<any[]>([]);
@@ -1815,8 +1815,13 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         </View>
 
         {/* TABS */}
-        <View style={styles.tabs}>
-          {(["info", "participantes", "menu", "gastos"] as const).map((tab) => (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tabsScroll}
+          contentContainerStyle={styles.tabs}
+        >
+          {(["resumen", "gente", "menu", "gastos", "info"] as const).map((tab) => (
             <TouchableOpacity
               key={tab}
               style={[styles.tab, activeTab === tab && styles.tabActive]}
@@ -1828,17 +1833,19 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   activeTab === tab && styles.tabTextActive,
                 ]}
               >
-                {tab === "info"
-                  ? "📋 Info"
-                  : tab === "participantes"
-                    ? "👥 Asistentes"
+                {tab === "resumen"
+                  ? "🏕️ Resumen"
+                  : tab === "gente"
+                    ? "👥 Gente"
                     : tab === "menu"
                       ? "🍽️ Menú"
-                      : "💸 Gastos"}
+                      : tab === "gastos"
+                        ? "💸 Gastos"
+                        : "📋 Info"}
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
 
         {/* Estado banner — planificacion / liquidado */}
         {paseo?.estado === "planificacion" && (
@@ -1854,6 +1861,131 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               ✅ Paseo liquidado — los gastos están cerrados
             </Text>
           </View>
+        )}
+
+        {/* ══════════════════════════════════════
+            RESUMEN TAB
+        ══════════════════════════════════════ */}
+        {activeTab === "resumen" && (
+          <ScrollView contentContainerStyle={styles.content}>
+            {/* Photo banner */}
+            <TouchableOpacity
+              style={styles.tripPhotoContainer}
+              onPress={() => setShowPhotoModal(true)}
+            >
+              {uploadingPhoto ? (
+                <View style={styles.tripPhotoPlaceholder}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              ) : editFotoUrl ? (
+                <Image source={{ uri: editFotoUrl }} style={styles.tripPhoto} />
+              ) : (
+                <View style={styles.tripPhotoPlaceholder}>
+                  <Text style={styles.tripPhotoIcon}>📸</Text>
+                  <Text style={styles.tripPhotoText}>Toca para agregar foto</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Stats row */}
+            <View style={styles.statsRow}>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{participaciones.length}</Text>
+                <Text style={styles.statLabel}>Asistentes</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{momentos.length}</Text>
+                <Text style={styles.statLabel}>Comidas</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{familiasList.length}</Text>
+                <Text style={styles.statLabel}>Familias</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{formatCOP(totalGastado)}</Text>
+                <Text style={styles.statLabel}>Gastado</Text>
+              </View>
+            </View>
+
+            {/* Quick info */}
+            <View style={styles.section}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>📍 Lugar</Text>
+                <Text style={styles.infoValue}>{paseo?.lugar}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>📅 Fechas</Text>
+                <Text style={styles.infoValue}>
+                  {paseo?.fecha_inicio} → {paseo?.fecha_fin}
+                </Text>
+              </View>
+              {organizadorNombre ? (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>👤 Organizador</Text>
+                  <Text style={styles.infoValue}>{organizadorNombre}</Text>
+                </View>
+              ) : null}
+              {fechas.length > 0 && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>⏱️ Duración</Text>
+                  <Text style={styles.infoValue}>{fechas.length} {fechas.length === 1 ? "día" : "días"}</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Invite card */}
+            <View style={styles.inviteCard}>
+              <Text style={styles.inviteLabel}>🔑 Código de invitación</Text>
+              <Text style={styles.inviteCode}>{paseo?.codigo_invitacion}</Text>
+              <TouchableOpacity
+                style={styles.inviteShareBtn}
+                onPress={compartirInvitacion}
+              >
+                <Text style={styles.inviteShareBtnText}>📤 Compartir invitación</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Próximas comidas */}
+            {momentos.length > 0 && (() => {
+              const today = new Date().toISOString().split("T")[0];
+              const proximas = momentos
+                .filter((m) => m.fecha >= today)
+                .slice(0, 3);
+              if (proximas.length === 0) return null;
+              return (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>🍽️ Próximas comidas</Text>
+                  {proximas.map((m) => {
+                    const cfg = TIPO_CONFIG[m.tipo_comida] ?? TIPO_CONFIG["almuerzo"];
+                    return (
+                      <View key={m.id} style={styles.proximaRow}>
+                        <Text style={styles.proximaEmoji}>{cfg.icon}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.proximaLabel}>
+                            {m.tipo_comida} · {m.fecha}
+                          </Text>
+                          {m.recetas?.nombre && (
+                            <Text style={styles.proximaReceta}>{m.recetas.nombre}</Text>
+                          )}
+                        </View>
+                        <Text style={styles.proximaPorciones}>{m.porciones}p</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              );
+            })()}
+
+            {/* Delete trip */}
+            {isOrganizer && (
+              <TouchableOpacity
+                style={styles.deleteTripBtn}
+                onPress={() => setShowDeleteTripModal(true)}
+              >
+                <Text style={styles.deleteTripText}>🗑️ Eliminar paseo</Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
         )}
 
         {/* ══════════════════════════════════════
@@ -2094,7 +2226,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         {/* ══════════════════════════════════════
             PARTICIPANTES TAB
         ══════════════════════════════════════ */}
-        {activeTab === "participantes" && (
+        {activeTab === "gente" && (
           <ScrollView contentContainerStyle={styles.content}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>
@@ -5252,9 +5384,7 @@ const styles = StyleSheet.create({
   // Tabs
   tabs: {
     flexDirection: "row",
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
+    paddingHorizontal: 4,
   },
   tab: { flex: 1, paddingVertical: 12, alignItems: "center" },
   tabActive: { borderBottomWidth: 2, borderBottomColor: "#1B4F72" },
@@ -6264,4 +6394,48 @@ const styles = StyleSheet.create({
   },
   switchLabel: { fontSize: 14, fontWeight: "600", color: "#1e293b" },
   switchSub: { fontSize: 11, color: "#94a3b8", marginTop: 2 },
+
+  // Tab scroll
+  tabsScroll: { backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#e2e8f0", maxHeight: 44 },
+
+  // Resumen tab
+  statsRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  statNumber: { fontSize: 14, fontWeight: "800", color: "#1B4F72", marginBottom: 2 },
+  statLabel: { fontSize: 11, color: "#64748b", fontWeight: "600" },
+
+  proximaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
+  },
+  proximaEmoji: { fontSize: 22 },
+  proximaLabel: { fontSize: 13, fontWeight: "700", color: "#1e293b" },
+  proximaReceta: { fontSize: 12, color: "#64748b", marginTop: 1 },
+  proximaPorciones: { fontSize: 12, color: "#94a3b8", fontWeight: "600" },
+
+  deleteTripBtn: {
+    marginTop: 8,
+    marginBottom: 16,
+    padding: 14,
+    alignItems: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    backgroundColor: "#fff5f5",
+  },
+  deleteTripText: { color: "#dc2626", fontSize: 14, fontWeight: "700" },
 });
