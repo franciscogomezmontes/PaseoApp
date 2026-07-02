@@ -21,6 +21,7 @@ import {
 import { MapView, Marker } from "../src/lib/maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ESTADO_CONFIG, GASTO_CATEGORIAS, TIPO_CONFIG } from "../src/constants";
+import { useTheme } from "../src/hooks/useTheme";
 import { calcularTransferenciasMinimas } from "../src/lib/liquidacion";
 import { supabase } from "../src/lib/supabase";
 import { useRecipeStore } from "../src/store/useRecipeStore";
@@ -82,6 +83,7 @@ const formatCOP = (n: number) => "$" + Math.round(n).toLocaleString("es-CO");
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const theme = useTheme();
   const {
     personas,
     fetchPersonas,
@@ -1722,7 +1724,8 @@ export default function TripDetailScreen() {
 📍 ${paseo?.lugar}
 📅 ${paseo?.fecha_inicio} → ${paseo?.fecha_fin}
 
-🔑 Código de invitación: *${paseo?.codigo_invitacion}*
+🔗 Únete directamente: paseoapp://join?code=${paseo?.codigo_invitacion}
+🔑 O usa el código: *${paseo?.codigo_invitacion}*
 
 Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         title: `Invitación — ${paseo?.nombre}`,
@@ -1778,7 +1781,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={[styles.centered, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color="#1B4F72" />
       </SafeAreaView>
     );
@@ -1793,9 +1796,9 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={0}
     >
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         {/* HEADER */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={styles.backText}>← Volver</Text>
           </TouchableOpacity>
@@ -1818,19 +1821,20 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.tabsScroll}
+          style={[styles.tabsScroll, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}
           contentContainerStyle={styles.tabs}
         >
           {(["resumen", "gente", "menu", "gastos", "info"] as const).map((tab) => (
             <TouchableOpacity
               key={tab}
-              style={[styles.tab, activeTab === tab && styles.tabActive]}
+              style={[styles.tab, activeTab === tab && [styles.tabActive, { borderBottomColor: theme.tabActive }]]}
               onPress={() => setActiveTab(tab)}
             >
               <Text
                 style={[
                   styles.tabText,
-                  activeTab === tab && styles.tabTextActive,
+                  { color: theme.tabInactive },
+                  activeTab === tab && [styles.tabTextActive, { color: theme.tabActive }],
                 ]}
               >
                 {tab === "resumen"
@@ -1889,46 +1893,46 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
 
             {/* Stats row */}
             <View style={styles.statsRow}>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{participaciones.length}</Text>
-                <Text style={styles.statLabel}>Asistentes</Text>
+              <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+                <Text style={[styles.statNumber, { color: theme.primary }]}>{participaciones.length}</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Asistentes</Text>
               </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{momentos.length}</Text>
-                <Text style={styles.statLabel}>Comidas</Text>
+              <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+                <Text style={[styles.statNumber, { color: theme.primary }]}>{momentos.length}</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Comidas</Text>
               </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{familiasList.length}</Text>
-                <Text style={styles.statLabel}>Familias</Text>
+              <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+                <Text style={[styles.statNumber, { color: theme.primary }]}>{familiasList.length}</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Familias</Text>
               </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{formatCOP(totalGastado)}</Text>
-                <Text style={styles.statLabel}>Gastado</Text>
+              <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+                <Text style={[styles.statNumber, { color: theme.primary }]}>{formatCOP(totalGastado)}</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Gastado</Text>
               </View>
             </View>
 
             {/* Quick info */}
-            <View style={styles.section}>
+            <View style={[styles.section, { backgroundColor: theme.surface }]}>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>📍 Lugar</Text>
-                <Text style={styles.infoValue}>{paseo?.lugar}</Text>
+                <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>📍 Lugar</Text>
+                <Text style={[styles.infoValue, { color: theme.text }]}>{paseo?.lugar}</Text>
               </View>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>📅 Fechas</Text>
-                <Text style={styles.infoValue}>
+                <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>📅 Fechas</Text>
+                <Text style={[styles.infoValue, { color: theme.text }]}>
                   {paseo?.fecha_inicio} → {paseo?.fecha_fin}
                 </Text>
               </View>
               {organizadorNombre ? (
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>👤 Organizador</Text>
-                  <Text style={styles.infoValue}>{organizadorNombre}</Text>
+                  <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>👤 Organizador</Text>
+                  <Text style={[styles.infoValue, { color: theme.text }]}>{organizadorNombre}</Text>
                 </View>
               ) : null}
               {fechas.length > 0 && (
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>⏱️ Duración</Text>
-                  <Text style={styles.infoValue}>{fechas.length} {fechas.length === 1 ? "día" : "días"}</Text>
+                  <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>⏱️ Duración</Text>
+                  <Text style={[styles.infoValue, { color: theme.text }]}>{fechas.length} {fechas.length === 1 ? "día" : "días"}</Text>
                 </View>
               )}
             </View>
@@ -1953,22 +1957,22 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 .slice(0, 3);
               if (proximas.length === 0) return null;
               return (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>🍽️ Próximas comidas</Text>
+                <View style={[styles.section, { backgroundColor: theme.surface }]}>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>🍽️ Próximas comidas</Text>
                   {proximas.map((m) => {
                     const cfg = TIPO_CONFIG[m.tipo_comida] ?? TIPO_CONFIG["almuerzo"];
                     return (
-                      <View key={m.id} style={styles.proximaRow}>
+                      <View key={m.id} style={[styles.proximaRow, { borderBottomColor: theme.borderLight }]}>
                         <Text style={styles.proximaEmoji}>{cfg.icon}</Text>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.proximaLabel}>
+                          <Text style={[styles.proximaLabel, { color: theme.text }]}>
                             {m.tipo_comida} · {m.fecha}
                           </Text>
                           {m.recetas?.nombre && (
-                            <Text style={styles.proximaReceta}>{m.recetas.nombre}</Text>
+                            <Text style={[styles.proximaReceta, { color: theme.textSecondary }]}>{m.recetas.nombre}</Text>
                           )}
                         </View>
-                        <Text style={styles.proximaPorciones}>{m.porciones}p</Text>
+                        <Text style={[styles.proximaPorciones, { color: theme.textTertiary }]}>{m.porciones}p</Text>
                       </View>
                     );
                   })}
@@ -2012,9 +2016,9 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 </View>
               )}
             </TouchableOpacity>
-            <View style={styles.section}>
+            <View style={[styles.section, { backgroundColor: theme.surface }]}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>📋 Información</Text>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>📋 Información</Text>
                 {editing ? (
                   <View style={styles.editActions}>
                     <TouchableOpacity onPress={() => setEditing(false)}>
@@ -2166,9 +2170,9 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               (() => {
                 const coords = extractCoordsFromLink(paseo.link_mapa);
                 return (
-                  <View style={styles.section}>
+                  <View style={[styles.section, { backgroundColor: theme.surface }]}>
                     <View style={styles.sectionHeaderRow}>
-                      <Text style={styles.sectionTitle}>🗺️ Ubicación</Text>
+                      <Text style={[styles.sectionTitle, { color: theme.text }]}>🗺️ Ubicación</Text>
                       <TouchableOpacity
                         onPress={() => Linking.openURL(paseo.link_mapa)}
                       >
@@ -2260,10 +2264,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 if (miembros.length === 0) return null;
                 const color = UF_COLORS[fidx % UF_COLORS.length];
                 return (
-                  <View key={fam.id} style={styles.familiaCard}>
+                  <View key={fam.id} style={[styles.familiaCard, { backgroundColor: theme.surface }]}>
                     {/* Familia header */}
                     <TouchableOpacity
-                      style={styles.familiaHeader}
+                      style={[styles.familiaHeader, { borderBottomColor: theme.borderLight }]}
                       onPress={() => openEditFamilia(fam)}
                     >
                       {fam.foto_url ? (
@@ -2284,13 +2288,13 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                         </View>
                       )}
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.familiaTitulo}>{fam.nombre}</Text>
-                        <Text style={styles.familiaCount}>
+                        <Text style={[styles.familiaTitulo, { color: theme.text }]}>{fam.nombre}</Text>
+                        <Text style={[styles.familiaCount, { color: theme.textTertiary }]}>
                           {miembros.length} persona
                           {miembros.length !== 1 ? "s" : ""} · toca para editar
                         </Text>
                       </View>
-                      <Text style={{ fontSize: 18, color: "#cbd5e1" }}>›</Text>
+                      <Text style={{ fontSize: 18, color: theme.border }}>›</Text>
                     </TouchableOpacity>
                     {/* Members */}
                     {miembros.map((m) => (

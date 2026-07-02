@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CATEGORIAS_ING, UNIDADES } from "../src/ingredientConstants";
+import { useTheme } from "../src/hooks/useTheme";
 import { supabase } from "../src/lib/supabase";
 
 // ─────────────────────────────────────────────
@@ -92,6 +93,7 @@ interface IngredienteRow {
 // ─────────────────────────────────────────────
 export default function NewRecipeScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditing = !!id;
   const savingRef = useRef(0);
@@ -449,8 +451,8 @@ export default function NewRecipeScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#1B4F72" />
+      <SafeAreaView style={[styles.centered, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </SafeAreaView>
     );
   }
@@ -461,7 +463,7 @@ export default function NewRecipeScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={0}
     >
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         {/* HEADER */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
@@ -484,8 +486,8 @@ export default function NewRecipeScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* ── FOTO ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📷 Foto del plato</Text>
+          <View style={[styles.section, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>📷 Foto del plato</Text>
             {fotoUrl ? (
               <View style={styles.fotoContainer}>
                 <Image
@@ -534,37 +536,37 @@ export default function NewRecipeScreen() {
           </View>
 
           {/* ── INFORMACIÓN BÁSICA ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📋 Información básica</Text>
+          <View style={[styles.section, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>📋 Información básica</Text>
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Nombre *</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
                 value={nombre}
                 onChangeText={setNombre}
                 placeholder="Ej: Arroz con pollo"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={theme.inputPlaceholder}
               />
             </View>
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Descripción</Text>
               <TextInput
-                style={[styles.input, { height: 70 }]}
+                style={[styles.input, { height: 70, backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
                 value={descripcion}
                 onChangeText={setDescripcion}
                 placeholder="Breve descripción..."
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={theme.inputPlaceholder}
                 multiline
               />
             </View>
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Créditos</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
                 value={creditos}
                 onChangeText={setCreditos}
                 placeholder="Ej: Receta de la abuela María"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={theme.inputPlaceholder}
               />
             </View>
             <View style={styles.field}>
@@ -604,28 +606,28 @@ export default function NewRecipeScreen() {
           </View>
 
           {/* ── TIEMPOS ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>⏱ Tiempos</Text>
+          <View style={[styles.section, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>⏱ Tiempos</Text>
             <View style={styles.tiemposRow}>
               <View style={styles.tiempoField}>
                 <Text style={styles.fieldLabel}>Preparación (min)</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
                   value={tiempoPrep}
                   onChangeText={setTiempoPrep}
                   placeholder="0"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={theme.inputPlaceholder}
                   keyboardType="numeric"
                 />
               </View>
               <View style={styles.tiempoField}>
                 <Text style={styles.fieldLabel}>Cocción (min)</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
                   value={tiempoCoccion}
                   onChangeText={setTiempoCoccion}
                   placeholder="0"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={theme.inputPlaceholder}
                   keyboardType="numeric"
                 />
               </View>
@@ -640,8 +642,8 @@ export default function NewRecipeScreen() {
           </View>
 
           {/* ── CLASIFICACIÓN ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🍽️ Clasificación</Text>
+          <View style={[styles.section, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>🍽️ Clasificación</Text>
             <Text style={styles.fieldLabel}>Momento del día</Text>
             <View style={styles.chipRow}>
               {TIPOS_COMIDA.map((tipo) => (
@@ -688,8 +690,8 @@ export default function NewRecipeScreen() {
           </View>
 
           {/* ── ETIQUETAS DIETÉTICAS ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🏷️ Etiquetas dietéticas</Text>
+          <View style={[styles.section, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>🏷️ Etiquetas dietéticas</Text>
             <View style={styles.tagsGrid}>
               {TAGS.map((tag) => (
                 <TouchableOpacity
@@ -716,18 +718,18 @@ export default function NewRecipeScreen() {
           </View>
 
           {/* ── PALABRAS CLAVE ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🔖 Palabras clave</Text>
+          <View style={[styles.section, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>🔖 Palabras clave</Text>
             <Text style={styles.fieldHint}>
               Facilitan la búsqueda en el recetario
             </Text>
             <View style={styles.kwInputRow}>
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={[styles.input, { flex: 1, backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
                 value={nuevaPalabra}
                 onChangeText={setNuevaPalabra}
                 placeholder="Ej: fácil, navidad, parrilla..."
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={theme.inputPlaceholder}
                 onSubmitEditing={agregarPalabra}
                 returnKeyType="done"
               />
@@ -754,8 +756,8 @@ export default function NewRecipeScreen() {
           </View>
 
           {/* ── UTENSILIOS ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🍳 Equipos y utensilios</Text>
+          <View style={[styles.section, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>🍳 Equipos y utensilios</Text>
             <Text style={styles.fieldHint}>
               Selecciona los que necesita esta receta
             </Text>
@@ -783,8 +785,8 @@ export default function NewRecipeScreen() {
           </View>
 
           {/* ── INGREDIENTES ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🛒 Ingredientes</Text>
+          <View style={[styles.section, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>🛒 Ingredientes</Text>
             <TextInput
               style={styles.input}
               value={busqueda}
@@ -794,7 +796,7 @@ export default function NewRecipeScreen() {
               }}
               onFocus={() => setShowCatalogo(true)}
               placeholder="Buscar ingrediente..."
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.inputPlaceholder}
             />
             {showCatalogo && busqueda.length > 0 && (
               <View style={styles.dropdown}>
@@ -836,7 +838,7 @@ export default function NewRecipeScreen() {
                     handleCantidadChange(ing.ingrediente_id, v)
                   }
                   placeholder="0"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={theme.inputPlaceholder}
                   keyboardType="numeric"
                 />
                 <Text style={styles.ingredienteUnidad}>{ing.unidad}</Text>
@@ -855,19 +857,19 @@ export default function NewRecipeScreen() {
           </View>
 
           {/* ── PREPARACIÓN ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📋 Preparación</Text>
+          <View style={[styles.section, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>📋 Preparación</Text>
             <Text style={styles.fieldHint}>
               Escribe cada paso en una línea separada
             </Text>
             <TextInput
-              style={[styles.input, { height: 160, marginTop: 8 }]}
+              style={[styles.input, { height: 160, marginTop: 8, backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
               value={instrucciones}
               onChangeText={setInstrucciones}
               placeholder={
                 "Paso 1: Picar las cebollas\nPaso 2: Sofreír en aceite"
               }
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.inputPlaceholder}
               multiline
               textAlignVertical="top"
             />
@@ -984,7 +986,7 @@ export default function NewRecipeScreen() {
           presentationStyle="pageSheet"
           onRequestClose={() => setShowCreateIngModal(false)}
         >
-          <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+          <SafeAreaView style={{ flex: 1, backgroundColor: theme.surface }}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowCreateIngModal(false)}>
                 <Text style={styles.modalCancel}>Cancelar</Text>
@@ -1001,11 +1003,11 @@ export default function NewRecipeScreen() {
               <View style={styles.field}>
                 <Text style={styles.fieldLabel}>Nombre *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
                   value={newIngNombre}
                   onChangeText={setNewIngNombre}
                   placeholder="Nombre del ingrediente"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={theme.inputPlaceholder}
                   autoFocus
                 />
               </View>
@@ -1066,11 +1068,11 @@ export default function NewRecipeScreen() {
                   Marca, frescura, tamaño, dónde encontrarlo...
                 </Text>
                 <TextInput
-                  style={[styles.input, { height: 80 }]}
+                  style={[styles.input, { height: 80, backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
                   value={newIngRecomendaciones}
                   onChangeText={setNewIngRecomendaciones}
                   placeholder="Ej: Preferir de marca X, que sea fresco..."
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={theme.inputPlaceholder}
                   multiline
                   textAlignVertical="top"
                 />

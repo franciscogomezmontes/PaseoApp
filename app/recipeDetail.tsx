@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TIPO_CONFIG } from "../src/constants";
+import { useTheme } from "../src/hooks/useTheme";
 import { supabase } from "../src/lib/supabase";
 import { useTripStore } from "../src/store/useTripStore";
 
@@ -51,6 +52,7 @@ const TAGS = [
 // ─────────────────────────────────────────────
 export default function RecipeDetailScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { paseos, fetchPaseos } = useTripStore();
 
@@ -154,8 +156,8 @@ export default function RecipeDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#1B4F72" />
+      <SafeAreaView style={[styles.centered, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </SafeAreaView>
     );
   }
@@ -166,7 +168,7 @@ export default function RecipeDetailScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={0}
     >
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         {/* HEADER */}
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
@@ -258,8 +260,8 @@ export default function RecipeDetailScreen() {
 
           {/* Palabras clave */}
           {(receta?.palabras_clave ?? []).length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🔖 Palabras clave</Text>
+            <View style={[styles.section, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>🔖 Palabras clave</Text>
               <View style={styles.kwRow}>
                 {(receta.palabras_clave as string[]).map((kw) => (
                   <View key={kw} style={styles.kwTag}>
@@ -272,8 +274,8 @@ export default function RecipeDetailScreen() {
 
           {/* Utensilios */}
           {(receta?.utensilios ?? []).length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🍳 Equipos y utensilios</Text>
+            <View style={[styles.section, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>🍳 Equipos y utensilios</Text>
               <View style={styles.kwRow}>
                 {(receta.utensilios as string[]).map((u) => (
                   <View key={u} style={styles.utensilioTag}>
@@ -332,10 +334,10 @@ export default function RecipeDetailScreen() {
                     i === ingredientes.length - 1 && { borderBottomWidth: 0 },
                   ]}
                 >
-                  <Text style={styles.ingredienteNombre}>
+                  <Text style={[styles.ingredienteNombre, { color: theme.text }]}>
                     {ing.ingredientes?.nombre}
                   </Text>
-                  <Text style={styles.ingredienteCantidad}>
+                  <Text style={[styles.ingredienteCantidad, { color: theme.textSecondary }]}>
                     {scaledAmount(ing.cantidad_por_porcion)}{" "}
                     {ing.ingredientes?.unidad_base}
                   </Text>
@@ -346,8 +348,8 @@ export default function RecipeDetailScreen() {
 
           {/* PREPARACIÓN */}
           {receta?.instrucciones && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📋 Preparación</Text>
+            <View style={[styles.section, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>📋 Preparación</Text>
               {receta.instrucciones
                 .split("\n")
                 .filter(Boolean)

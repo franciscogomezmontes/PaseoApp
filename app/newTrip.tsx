@@ -15,12 +15,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../src/hooks/useTheme";
 import { supabase } from "../src/lib/supabase";
 import { useAuthStore } from "../src/store/useAuthStore";
 import { useTripStore } from "../src/store/useTripStore";
 
 export default function NewTripScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { crearPaseo } = useTripStore();
 
   // ── Campos obligatorios ──
@@ -180,7 +182,7 @@ export default function NewTripScreen() {
   // RENDER
   // ─────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -237,25 +239,25 @@ export default function NewTripScreen() {
           </TouchableOpacity>
 
           {/* ── Campos obligatorios ── */}
-          <Text style={styles.sectionLabel}>Información básica</Text>
+          <Text style={[styles.sectionLabel, { color: theme.textTertiary }]}>Información básica</Text>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Nombre del paseo *</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Nombre del paseo *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
               placeholder="Ej: Anapoima Enero 2026"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.inputPlaceholder}
               value={nombre}
               onChangeText={setNombre}
             />
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Lugar *</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Lugar *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
               placeholder="Ej: Anapoima, Cundinamarca"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.inputPlaceholder}
               value={lugar}
               onChangeText={setLugar}
             />
@@ -263,11 +265,11 @@ export default function NewTripScreen() {
 
           <View style={styles.dateRow}>
             <View style={[styles.field, { flex: 1 }]}>
-              <Text style={styles.label}>Fecha inicio *</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>Fecha inicio *</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
                 placeholder="AAAA-MM-DD"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={theme.inputPlaceholder}
                 value={fechaInicio}
                 onChangeText={setFechaInicio}
                 keyboardType="numeric"
@@ -275,11 +277,11 @@ export default function NewTripScreen() {
             </View>
             <View style={{ width: 12 }} />
             <View style={[styles.field, { flex: 1 }]}>
-              <Text style={styles.label}>Fecha fin *</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>Fecha fin *</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
                 placeholder="AAAA-MM-DD"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={theme.inputPlaceholder}
                 value={fechaFin}
                 onChangeText={setFechaFin}
                 keyboardType="numeric"
@@ -308,11 +310,11 @@ export default function NewTripScreen() {
           {showOpcionales && (
             <View style={styles.opcionalesContent}>
               <View style={styles.field}>
-                <Text style={styles.label}>🏠 Link de alojamiento</Text>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>🏠 Link de alojamiento</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
                   placeholder="https://airbnb.com/..."
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={theme.inputPlaceholder}
                   value={linkAlojamiento}
                   onChangeText={setLinkAlojamiento}
                   autoCapitalize="none"
@@ -321,11 +323,11 @@ export default function NewTripScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.label}>🗺️ Link de ubicación</Text>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>🗺️ Link de ubicación</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
                   placeholder="https://maps.google.com/..."
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={theme.inputPlaceholder}
                   value={linkMapa}
                   onChangeText={setLinkMapa}
                   autoCapitalize="none"
@@ -334,11 +336,11 @@ export default function NewTripScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.label}>💡 Recomendaciones de llegada</Text>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>💡 Recomendaciones de llegada</Text>
                 <TextInput
-                  style={[styles.input, styles.inputMultiline]}
+                  style={[styles.input, styles.inputMultiline, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
                   placeholder="Ej: Tomar la vía principal, la casa es la segunda a la derecha..."
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={theme.inputPlaceholder}
                   value={recomendaciones}
                   onChangeText={setRecomendaciones}
                   multiline

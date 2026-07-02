@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TIPO_CONFIG } from "../src/constants";
+import { useTheme } from "../src/hooks/useTheme";
 import { supabase } from "../src/lib/supabase";
 import { showError as toastError, showSuccess } from "../src/lib/toast";
 
@@ -18,6 +19,7 @@ const ORDEN = ["desayuno", "almuerzo", "cena", "snack"];
 
 export default function AttendanceScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { participacionId, nombre, paseoId } = useLocalSearchParams<{
     participacionId: string;
     nombre: string;
@@ -104,16 +106,16 @@ export default function AttendanceScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#1B4F72" />
+      <SafeAreaView style={[styles.centered, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* HEADER */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backText}>← Volver</Text>
         </TouchableOpacity>
@@ -124,8 +126,8 @@ export default function AttendanceScreen() {
       {momentos.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.emptyIcon}>🍴</Text>
-          <Text style={styles.emptyText}>No hay comidas en este paseo</Text>
-          <Text style={styles.emptySub}>
+          <Text style={[styles.emptyText, { color: theme.text }]}>No hay comidas en este paseo</Text>
+          <Text style={[styles.emptySub, { color: theme.textTertiary }]}>
             Agrega comidas desde la pestaña Menú
           </Text>
         </View>
@@ -142,7 +144,7 @@ export default function AttendanceScreen() {
 
               return (
                 <View key={fecha} style={styles.dateSection}>
-                  <Text style={styles.dateTitle}>
+                  <Text style={[styles.dateTitle, { color: theme.textSecondary }]}>
                     📅{" "}
                     {new Date(fecha + "T12:00:00").toLocaleDateString("es-CO", {
                       weekday: "long",
@@ -161,6 +163,7 @@ export default function AttendanceScreen() {
                         key={m.id}
                         style={[
                           styles.mealRow,
+                          { backgroundColor: theme.surface },
                           !attending && styles.mealRowInactive,
                         ]}
                       >
@@ -182,6 +185,7 @@ export default function AttendanceScreen() {
                           <Text
                             style={[
                               styles.mealNombre,
+                              { color: theme.text },
                               !attending && styles.mealNombreInactive,
                             ]}
                           >
@@ -191,7 +195,7 @@ export default function AttendanceScreen() {
                         <Switch
                           value={attending}
                           onValueChange={(v) => handleToggle(m.id, v)}
-                          trackColor={{ false: "#e2e8f0", true: "#1B4F72" }}
+                          trackColor={{ false: theme.border, true: theme.primary }}
                           thumbColor="#fff"
                         />
                       </View>
@@ -203,7 +207,7 @@ export default function AttendanceScreen() {
           </ScrollView>
 
           {/* SAVE BUTTON */}
-          <View style={styles.footer}>
+          <View style={[styles.footer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
             <TouchableOpacity
               style={[styles.saveButton, saving && styles.saveButtonDisabled]}
               onPress={handleSave}

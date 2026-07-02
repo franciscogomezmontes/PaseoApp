@@ -11,11 +11,13 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../src/hooks/useTheme";
 import { supabase } from "../src/lib/supabase";
 import { useAuthStore } from "../src/store/useAuthStore";
 
 export default function JoinTripScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { code } = useLocalSearchParams<{ code?: string }>();
   const { persona } = useAuthStore();
   const [codigo, setCodigo] = useState(code ?? "");
@@ -99,7 +101,7 @@ export default function JoinTripScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -108,26 +110,26 @@ export default function JoinTripScreen() {
           {/* ICON */}
           <View style={styles.iconArea}>
             <Text style={styles.icon}>🗺️</Text>
-            <Text style={styles.title}>Unirse a un paseo</Text>
-            <Text style={styles.sub}>
+            <Text style={[styles.title, { color: theme.text }]}>Unirse a un paseo</Text>
+            <Text style={[styles.sub, { color: theme.textSecondary }]}>
               Pídele el código de invitación al organizador del paseo
             </Text>
           </View>
 
           {/* CODE INPUT */}
           <View style={styles.inputArea}>
-            <Text style={styles.label}>Código de invitación</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Código de invitación</Text>
             <TextInput
-              style={styles.codeInput}
+              style={[styles.codeInput, { backgroundColor: theme.surface, borderColor: theme.primary, color: theme.text }]}
               placeholder="ej: a1b2c3d4"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.textTertiary}
               value={codigo}
               onChangeText={(t) => setCodigo(t.toLowerCase())}
               autoCapitalize="none"
               autoCorrect={false}
               maxLength={8}
             />
-            <Text style={styles.hint}>El código tiene 8 caracteres</Text>
+            <Text style={[styles.hint, { color: theme.textTertiary }]}>El código tiene 8 caracteres</Text>
           </View>
 
           {/* JOIN BUTTON */}

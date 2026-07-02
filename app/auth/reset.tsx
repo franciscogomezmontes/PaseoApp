@@ -12,10 +12,12 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../../src/hooks/useTheme";
 import { supabase } from "../../src/lib/supabase";
 
 export default function ResetScreen() {
   const router = useRouter();
+  const theme = useTheme();
 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -45,15 +47,15 @@ export default function ResetScreen() {
 
   if (showResetConfirm) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <ScrollView contentContainerStyle={styles.confirmContent}>
           <Text style={styles.confirmEmoji}>🔑</Text>
-          <Text style={styles.confirmTitle}>Revisa tu correo</Text>
-          <Text style={styles.confirmSub}>
+          <Text style={[styles.confirmTitle, { color: theme.text }]}>Revisa tu correo</Text>
+          <Text style={[styles.confirmSub, { color: theme.textSecondary }]}>
             Te enviamos un enlace a{"\n"}
-            <Text style={styles.confirmEmail}>{email}</Text>
+            <Text style={[styles.confirmEmail, { color: theme.primary }]}>{email}</Text>
           </Text>
-          <Text style={styles.confirmHint}>
+          <Text style={[styles.confirmHint, { backgroundColor: theme.surface, color: theme.textSecondary }]}>
             Abre el enlace en tu correo para crear una nueva contraseña. Una vez
             cambiada, regresa aquí e inicia sesión.
           </Text>
@@ -73,7 +75,7 @@ export default function ResetScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -88,18 +90,18 @@ export default function ResetScreen() {
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.resetTitle}>¿Olvidaste tu contraseña?</Text>
-            <Text style={styles.resetSub}>
+            <Text style={[styles.resetTitle, { color: theme.text }]}>¿Olvidaste tu contraseña?</Text>
+            <Text style={[styles.resetSub, { color: theme.textSecondary }]}>
               Ingresa tu correo y te enviamos un enlace para crear una nueva
               contraseña.
             </Text>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Correo electrónico</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>Correo electrónico</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
                 placeholder="correo@ejemplo.com"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={theme.textTertiary}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -123,7 +125,7 @@ export default function ResetScreen() {
               style={styles.secondaryBtn}
               onPress={() => router.back()}
             >
-              <Text style={styles.secondaryBtnText}>← Volver a iniciar sesión</Text>
+              <Text style={[styles.secondaryBtnText, { color: theme.textSecondary }]}>← Volver a iniciar sesión</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -136,9 +138,9 @@ export default function ResetScreen() {
         onRequestClose={() => setShowErrorModal(false)}
       >
         <View style={styles.overlay}>
-          <View style={styles.errorBox}>
-            <Text style={styles.errorTitle}>⚠️ Error</Text>
-            <Text style={styles.errorMsg}>{errorMsg}</Text>
+          <View style={[styles.errorBox, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.errorTitle, { color: theme.text }]}>⚠️ Error</Text>
+            <Text style={[styles.errorMsg, { color: theme.textSecondary }]}>{errorMsg}</Text>
             <TouchableOpacity
               style={styles.errorBtn}
               onPress={() => setShowErrorModal(false)}

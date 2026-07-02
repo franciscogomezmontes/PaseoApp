@@ -12,10 +12,12 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../../src/hooks/useTheme";
 import { useAuthStore } from "../../src/store/useAuthStore";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { signIn, error, clearError } = useAuthStore();
 
   const [email, setEmail] = useState("");
@@ -51,7 +53,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -68,9 +70,9 @@ export default function LoginScreen() {
             </Text>
           </View>
 
-          <View style={styles.toggle}>
-            <View style={[styles.toggleBtn, styles.toggleBtnActive]}>
-              <Text style={[styles.toggleText, styles.toggleTextActive]}>
+          <View style={[styles.toggle, { backgroundColor: theme.border }]}>
+            <View style={[styles.toggleBtn, styles.toggleBtnActive, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.toggleText, styles.toggleTextActive, { color: theme.primary }]}>
                 Iniciar sesión
               </Text>
             </View>
@@ -81,17 +83,17 @@ export default function LoginScreen() {
                 router.replace("/auth/signup");
               }}
             >
-              <Text style={styles.toggleText}>Crear cuenta</Text>
+              <Text style={[styles.toggleText, { color: theme.textSecondary }]}>Crear cuenta</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.form}>
             <View style={styles.field}>
-              <Text style={styles.label}>Correo electrónico</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>Correo electrónico</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
                 placeholder="correo@ejemplo.com"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={theme.textTertiary}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -101,12 +103,12 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Contraseña</Text>
-              <View style={styles.passwordWrapper}>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>Contraseña</Text>
+              <View style={[styles.passwordWrapper, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <TextInput
-                  style={styles.passwordInput}
+                  style={[styles.passwordInput, { color: theme.text }]}
                   placeholder="Mínimo 6 caracteres"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={theme.textTertiary}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
