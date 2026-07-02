@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import Toast from "react-native-toast-message";
 import { ONBOARDING_KEY } from "../src/constants";
 import { useAuthStore } from "../src/store/useAuthStore";
+import { useThemeStore } from "../src/store/useThemeStore";
 
 export default function RootLayout() {
   const { session, loading, initialize } = useAuthStore();
+  const { hydrate } = useThemeStore();
   const router = useRouter();
   const segments = useSegments();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
@@ -14,6 +16,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     initialize();
+    hydrate();
     checkOnboarding();
   }, []);
 
@@ -39,7 +42,7 @@ export default function RootLayout() {
       if (!onboardingDone && !inOnboarding) {
         router.replace("/onboarding");
       } else if (onboardingDone && !inAuthScreen && !inOnboarding) {
-        router.replace("/auth");
+        router.replace("/auth/index");
       }
     } else if (session && inAuthScreen) {
       router.replace("/(tabs)");

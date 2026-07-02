@@ -81,7 +81,7 @@ export default function OnboardingScreen() {
 
   const handleFinish = async () => {
     await AsyncStorage.setItem(ONBOARDING_KEY, "true");
-    router.replace("/auth");
+    router.replace("/auth/index");
   };
 
   const currentSlide = SLIDES[currentIndex];

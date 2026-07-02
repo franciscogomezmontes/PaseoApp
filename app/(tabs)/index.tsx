@@ -22,6 +22,7 @@ import { ESTADO_CONFIG, ONBOARDING_KEY } from "../../src/constants";
 import { useTheme } from "../../src/hooks/useTheme";
 import { supabase } from "../../src/lib/supabase";
 import { useAuthStore } from "../../src/store/useAuthStore";
+import { useThemeStore } from "../../src/store/useThemeStore";
 import { useTripStore } from "../../src/store/useTripStore";
 
 const VERSION = "0.1.0";
@@ -77,6 +78,8 @@ export default function HomeScreen() {
   const [fotoUrl, setFotoUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const { followSystem, setFollowSystem } = useThemeStore();
 
   // ── UI ──
   const [notificaciones, setNotificaciones] = useState(true);
@@ -581,6 +584,23 @@ export default function HomeScreen() {
                 <Switch
                   value={notificaciones}
                   onValueChange={setNotificaciones}
+                  trackColor={{ false: "#e2e8f0", true: "#1B4F72" }}
+                  thumbColor="#fff"
+                />
+              </View>
+              <View style={styles.settingRow}>
+                <View style={styles.settingLeft}>
+                  <Text style={styles.settingIcon}>🌙</Text>
+                  <View>
+                    <Text style={styles.settingLabel}>Modo oscuro automático</Text>
+                    <Text style={styles.settingSub}>
+                      Sigue la configuración del teléfono
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={followSystem}
+                  onValueChange={setFollowSystem}
                   trackColor={{ false: "#e2e8f0", true: "#1B4F72" }}
                   thumbColor="#fff"
                 />
