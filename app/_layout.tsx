@@ -1,19 +1,32 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Linking from "expo-linking";
 import { Stack, useRouter, useSegments } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Toast from "react-native-toast-message";
 import { ONBOARDING_KEY } from "../src/constants";
 import { useAuthStore } from "../src/store/useAuthStore";
+import { useThemeStore } from "../src/store/useThemeStore";
+
+const PENDING_JOIN_KEY = "paseoapp_pending_join_code";
 
 export default function RootLayout() {
   const { session, loading, initialize } = useAuthStore();
+  const { hydrate } = useThemeStore();
   const router = useRouter();
   const segments = useSegments();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(false);
 
+  // Tracks a join code received from a deep link before auth is ready
+  const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
+  // Prevent navigating to joinTrip twice on the same URL
+  const handledUrlRef = useRef<string | null>(null);
+
+  const url = Linking.useURL();
+
   useEffect(() => {
     initialize();
+    hydrate();
     checkOnboarding();
   }, []);
 
@@ -29,6 +42,42 @@ export default function RootLayout() {
     setOnboardingChecked(true);
   };
 
+  // ── Deep link handler ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!url || url === handledUrlRef.current) return;
+    const parsed = Linking.parse(url);
+    if (parsed.path === "join" && parsed.queryParams?.code) {
+      handledUrlRef.current = url;
+      setPendingJoinCode(parsed.queryParams.code as string);
+    }
+  }, [url]);
+
+  // Route the pending code once auth state is known
+  useEffect(() => {
+    if (loading || !pendingJoinCode) return;
+    if (session) {
+      const code = pendingJoinCode;
+      setPendingJoinCode(null);
+      router.push({ pathname: "/joinTrip", params: { code } });
+    } else {
+      // Store for after the user logs in
+      AsyncStorage.setItem(PENDING_JOIN_KEY, pendingJoinCode);
+      setPendingJoinCode(null);
+    }
+  }, [session, loading, pendingJoinCode]);
+
+  // After login, check for a code that was saved while unauthenticated
+  useEffect(() => {
+    if (!session || loading) return;
+    AsyncStorage.getItem(PENDING_JOIN_KEY).then((code) => {
+      if (code) {
+        AsyncStorage.removeItem(PENDING_JOIN_KEY);
+        router.push({ pathname: "/joinTrip", params: { code } });
+      }
+    });
+  }, [session]);
+
+  // ── Auth guard ─────────────────────────────────────────────────────
   useEffect(() => {
     if (loading || !onboardingChecked) return;
 
@@ -39,6 +88,7 @@ export default function RootLayout() {
       if (!onboardingDone && !inOnboarding) {
         router.replace("/onboarding");
       } else if (onboardingDone && !inAuthScreen && !inOnboarding) {
+        // @ts-ignore — expo-router types use /auth/index but runtime path is /auth
         router.replace("/auth");
       }
     } else if (session && inAuthScreen) {

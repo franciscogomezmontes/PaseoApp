@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
     Alert,
@@ -16,8 +16,9 @@ import { useAuthStore } from "../src/store/useAuthStore";
 
 export default function JoinTripScreen() {
   const router = useRouter();
+  const { code } = useLocalSearchParams<{ code?: string }>();
   const { persona } = useAuthStore();
-  const [codigo, setCodigo] = useState("");
+  const [codigo, setCodigo] = useState(code ?? "");
   const [loading, setLoading] = useState(false);
 
   const handleJoin = async () => {
