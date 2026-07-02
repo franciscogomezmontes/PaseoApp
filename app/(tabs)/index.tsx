@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ESTADO_CONFIG, ONBOARDING_KEY } from "../../src/constants";
+import { useTheme } from "../../src/hooks/useTheme";
 import { supabase } from "../../src/lib/supabase";
 import { useAuthStore } from "../../src/store/useAuthStore";
 import { useTripStore } from "../../src/store/useTripStore";
@@ -65,6 +66,7 @@ export default function HomeScreen() {
   const { persona, signOut, initialize } = useAuthStore();
   const { paseos, fetchPaseos } = useTripStore();
   const router = useRouter();
+  const theme = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // ── Profile ──
@@ -305,7 +307,7 @@ export default function HomeScreen() {
 
   if (!persona) {
     return (
-      <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["bottom", "left", "right"]}>
         <View
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         >
@@ -317,7 +319,7 @@ export default function HomeScreen() {
 
   // ── AUTHENTICATED ──
   return (
-    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["bottom", "left", "right"]}>
       <Animated.ScrollView
         style={{ opacity: fadeAnim }}
         contentContainerStyle={styles.content}

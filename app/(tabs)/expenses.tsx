@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import TabTooltip from "../../src/components/TabTooltip";
 import { ESTADO_CONFIG, GASTO_CATEGORIAS, TOOLTIP_KEYS } from "../../src/constants";
+import { useTheme } from "../../src/hooks/useTheme";
 import { calcularTransferenciasMinimas } from "../../src/lib/liquidacion";
 import { supabase } from "../../src/lib/supabase";
 import { showSuccess } from "../../src/lib/toast";
@@ -28,6 +29,7 @@ const formatCOP = (n: number) => "$" + Math.round(n).toLocaleString("es-CO");
 export default function GastosScreen() {
   const router = useRouter();
   const { paseos, fetchPaseos } = useTripStore();
+  const theme = useTheme();
 
   // ── Data ──
   const [gastosPorPaseo, setGastosPorPaseo] = useState<Record<string, any[]>>(
@@ -514,10 +516,10 @@ export default function GastosScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["bottom", "left", "right"]}>
       {/* HEADER */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>💸 Gastos</Text>
+      <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
+        <Text style={[styles.headerTitle, { color: theme.headerText }]}>💸 Gastos</Text>
       </View>
       <TabTooltip
         storageKey={TOOLTIP_KEYS.expenses}

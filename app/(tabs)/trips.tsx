@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import SkeletonBox from "../../src/components/SkeletonBox";
 import TabTooltip from "../../src/components/TabTooltip";
 import { TOOLTIP_KEYS } from "../../src/constants";
+import { useTheme } from "../../src/hooks/useTheme";
 import { useAuthStore } from "../../src/store/useAuthStore";
 import { useTripStore } from "../../src/store/useTripStore";
 
@@ -21,6 +22,7 @@ export default function TripsScreen() {
   const router = useRouter();
   const { paseos, loading, fetchPaseos } = useTripStore();
   const { persona } = useAuthStore();
+  const theme = useTheme();
 
   const handleCompartir = async (p: any) => {
     try {
@@ -53,10 +55,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
   } as Record<string, { color: string; bg: string; label: string }>;
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["bottom", "left", "right"]}>
       {/* HEADER */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>🗺️ Mis Paseos</Text>
+      <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
+        <Text style={[styles.headerTitle, { color: theme.headerText }]}>🗺️ Mis Paseos</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.joinButton}
@@ -130,7 +132,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
             return (
               <TouchableOpacity
                 key={p.id}
-                style={styles.card}
+                style={[styles.card, { backgroundColor: theme.surface }]}
                 onPress={() =>
                   router.push({ pathname: "/tripDetail", params: { id: p.id } })
                 }

@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import SkeletonBox from "../../src/components/SkeletonBox";
 import TabTooltip from "../../src/components/TabTooltip";
 import { TIPO_CONFIG, TOOLTIP_KEYS } from "../../src/constants";
+import { useTheme } from "../../src/hooks/useTheme";
 import { CATEGORIAS_ING, UNIDADES } from "../../src/ingredientConstants";
 import { supabase } from "../../src/lib/supabase";
 import { useRecipeStore } from "../../src/store/useRecipeStore";
@@ -28,6 +29,7 @@ import { useRecipeStore } from "../../src/store/useRecipeStore";
 export default function RecipesScreen() {
   const { recetas, loading, error, fetchRecetas } = useRecipeStore();
   const router = useRouter();
+  const theme = useTheme();
   const [activeTab, setActiveTab] = useState<"recetas" | "ingredientes">(
     "recetas",
   );
@@ -243,7 +245,7 @@ export default function RecipesScreen() {
       <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>📖 Recetas</Text>
+            <Text style={[styles.headerTitle, { color: theme.headerText }]}>📖 Recetas</Text>
             <Text style={styles.headerSub}>Cargando...</Text>
           </View>
         </View>
@@ -282,10 +284,10 @@ export default function RecipesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["bottom", "left", "right"]}>
+      <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>📖 Recetas</Text>
+          <Text style={[styles.headerTitle, { color: theme.headerText }]}>📖 Recetas</Text>
           <Text style={styles.headerSub}>
             {activeTab !== "recetas"
               ? `${ingredientes.length} ingredientes en catálogo`

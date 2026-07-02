@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import TabTooltip from "../../src/components/TabTooltip";
 import { TOOLTIP_KEYS } from "../../src/constants";
 import SkeletonBox from "../../src/components/SkeletonBox";
+import { useTheme } from "../../src/hooks/useTheme";
 import { supabase } from "../../src/lib/supabase";
 import { showSuccess } from "../../src/lib/toast";
 import { useTripStore } from "../../src/store/useTripStore";
@@ -46,6 +47,7 @@ const getCategoriaConfig = (cat: string) =>
 // ─────────────────────────────────────────────
 export default function GroceryScreen() {
   const { paseos, fetchPaseos } = useTripStore();
+  const theme = useTheme();
 
   // ── Data ──
   const [itemsPorPaseo, setItemsPorPaseo] = useState<Record<string, any[]>>({});
@@ -304,9 +306,9 @@ export default function GroceryScreen() {
   // Render
   // ─────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>🛒 Mercado</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["bottom", "left", "right"]}>
+      <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
+        <Text style={[styles.headerTitle, { color: theme.headerText }]}>🛒 Mercado</Text>
       </View>
       <TabTooltip
         storageKey={TOOLTIP_KEYS.grocery}

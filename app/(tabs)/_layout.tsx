@@ -1,19 +1,24 @@
 import { Tabs } from "expo-router";
 import { Map, BookOpen, ShoppingCart, Receipt } from "lucide-react-native";
+import { useColorScheme } from "react-native";
 import AddTabButton from "../../src/components/AddTabButton";
 import TopBar from "../../src/components/TopBar";
+import { lightTheme, darkTheme } from "../../src/theme";
 
 export default function TabLayout() {
+  const scheme = useColorScheme();
+  const theme = scheme === "dark" ? darkTheme : lightTheme;
+
   return (
     <Tabs
       screenOptions={{
         headerShown: true,
         header: () => <TopBar />,
-        tabBarActiveTintColor: "#1B4F72",
-        tabBarInactiveTintColor: "#94a3b8",
+        tabBarActiveTintColor: theme.tabActive,
+        tabBarInactiveTintColor: theme.tabInactive,
         tabBarStyle: {
-          backgroundColor: "#ffffff",
-          borderTopColor: "#e2e8f0",
+          backgroundColor: theme.tabBarBg,
+          borderTopColor: theme.tabBarBorder,
           paddingBottom: 8,
           paddingTop: 4,
           height: 60,
@@ -21,11 +26,7 @@ export default function TabLayout() {
         },
       }}
     >
-      {/* Inicio — oculto del tab bar, accesible desde la foto en el top bar */}
-      <Tabs.Screen
-        name="index"
-        options={{ href: null }}
-      />
+      <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen
         name="trips"
         options={{
@@ -61,10 +62,7 @@ export default function TabLayout() {
           tabBarLabel: "Gastos",
         }}
       />
-      <Tabs.Screen
-        name="menu"
-        options={{ href: null }}
-      />
+      <Tabs.Screen name="menu" options={{ href: null }} />
     </Tabs>
   );
 }
