@@ -81,7 +81,8 @@ export default function OnboardingScreen() {
 
   const handleFinish = async () => {
     await AsyncStorage.setItem(ONBOARDING_KEY, "true");
-    router.replace("/auth/index");
+    // @ts-ignore — expo-router types use /auth/index but runtime path is /auth
+    router.replace("/auth");
   };
 
   const currentSlide = SLIDES[currentIndex];

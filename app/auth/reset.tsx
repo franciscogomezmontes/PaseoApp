@@ -59,7 +59,8 @@ export default function ResetScreen() {
           </Text>
           <TouchableOpacity
             style={styles.submitBtn}
-            onPress={() => router.replace("/auth/index")}
+            onPress={() => // @ts-ignore — expo-router types use /auth/index but runtime path is /auth
+            router.replace("/auth")}
           >
             <Text style={styles.submitText}>Ir a iniciar sesión →</Text>
           </TouchableOpacity>

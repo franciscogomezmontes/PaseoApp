@@ -88,7 +88,8 @@ export default function RootLayout() {
       if (!onboardingDone && !inOnboarding) {
         router.replace("/onboarding");
       } else if (onboardingDone && !inAuthScreen && !inOnboarding) {
-        router.replace("/auth/index");
+        // @ts-ignore — expo-router types use /auth/index but runtime path is /auth
+        router.replace("/auth");
       }
     } else if (session && inAuthScreen) {
       router.replace("/(tabs)");
