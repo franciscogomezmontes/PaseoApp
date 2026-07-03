@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../src/hooks/useTheme";
 import { useAuthStore } from "../../src/store/useAuthStore";
@@ -18,6 +19,7 @@ import { useAuthStore } from "../../src/store/useAuthStore";
 export default function LoginScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { t } = useTranslation();
   const { signIn, error, clearError } = useAuthStore();
 
   const [email, setEmail] = useState("");
@@ -34,7 +36,7 @@ export default function LoginScreen() {
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
-      showError("Por favor completa todos los campos.");
+      showError(t("auth.errors.fillAll"));
       return;
     }
     clearError();
@@ -46,8 +48,8 @@ export default function LoginScreen() {
     } else {
       showError(
         error === "Email not confirmed"
-          ? "Debes confirmar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada."
-          : (error ?? "No se pudo iniciar sesión. Verifica tus datos."),
+          ? t("auth.errors.emailNotConfirmed")
+          : (error ?? t("auth.errors.loginFailed")),
       );
     }
   };
@@ -65,15 +67,13 @@ export default function LoginScreen() {
           <View style={styles.logoArea}>
             <Text style={styles.logoEmoji}>🌴</Text>
             <Text style={styles.logoTitle}>PaseoApp</Text>
-            <Text style={styles.logoSub}>
-              Planifica paseos. Divide gastos.{"\n"}Disfruta sin calcular.
-            </Text>
+            <Text style={styles.logoSub}>{t("auth.logoSub")}</Text>
           </View>
 
           <View style={[styles.toggle, { backgroundColor: theme.border }]}>
             <View style={[styles.toggleBtn, styles.toggleBtnActive, { backgroundColor: theme.surface }]}>
               <Text style={[styles.toggleText, styles.toggleTextActive, { color: theme.primary }]}>
-                Iniciar sesión
+                {t("auth.login")}
               </Text>
             </View>
             <TouchableOpacity
@@ -83,16 +83,16 @@ export default function LoginScreen() {
                 router.replace("/auth/signup");
               }}
             >
-              <Text style={[styles.toggleText, { color: theme.textSecondary }]}>Crear cuenta</Text>
+              <Text style={[styles.toggleText, { color: theme.textSecondary }]}>{t("auth.signup")}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.form}>
             <View style={styles.field}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>Correo electrónico</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t("auth.email")}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="correo@ejemplo.com"
+                placeholder={t("auth.emailPlaceholder")}
                 placeholderTextColor={theme.textTertiary}
                 value={email}
                 onChangeText={setEmail}
@@ -103,11 +103,11 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>Contraseña</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t("auth.password")}</Text>
               <View style={[styles.passwordWrapper, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <TextInput
                   style={[styles.passwordInput, { color: theme.text }]}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder={t("auth.passwordPlaceholder")}
                   placeholderTextColor={theme.textTertiary}
                   value={password}
                   onChangeText={setPassword}
@@ -132,7 +132,7 @@ export default function LoginScreen() {
                 router.push("/auth/reset");
               }}
             >
-              <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+              <Text style={styles.forgotText}>{t("auth.forgotPassword")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -141,7 +141,7 @@ export default function LoginScreen() {
               disabled={loading}
             >
               <Text style={styles.submitText}>
-                {loading ? "Cargando..." : "Entrar"}
+                {loading ? t("common.loading") : t("auth.loginBtn")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -162,7 +162,7 @@ export default function LoginScreen() {
               style={styles.errorBtn}
               onPress={() => setShowErrorModal(false)}
             >
-              <Text style={styles.errorBtnText}>Entendido</Text>
+              <Text style={styles.errorBtnText}>{t("common.ok")}</Text>
             </TouchableOpacity>
           </View>
         </View>

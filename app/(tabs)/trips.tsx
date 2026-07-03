@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SkeletonBox from "../../src/components/SkeletonBox";
 import TabTooltip from "../../src/components/TabTooltip";
@@ -23,19 +24,13 @@ export default function TripsScreen() {
   const { paseos, loading, fetchPaseos } = useTripStore();
   const { persona } = useAuthStore();
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const handleCompartir = async (p: any) => {
     try {
       await Share.share({
-        message: `🏕️ Te invito al paseo *${p.nombre}* en PaseoApp!
-
-📍 ${p.lugar}
-📅 ${p.fecha_inicio} → ${p.fecha_fin}
-
-🔑 Código de invitación: *${p.codigo_invitacion}*
-
-Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
-        title: `Invitación — ${p.nombre}`,
+        message: t("trips.shareMessage", { name: p.nombre, place: p.lugar, start: p.fecha_inicio, end: p.fecha_fin, code: p.codigo_invitacion }),
+        title: t("trips.shareTitle", { name: p.nombre }),
       });
     } catch {
       /* user cancelled */
@@ -49,28 +44,28 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
   );
 
   const estadoConfig = {
-    planificacion: { color: "#92400E", bg: "#FEF3C7", label: "Planificación" },
-    activo: { color: "#065F46", bg: "#D1FAE5", label: "Activo" },
-    liquidado: { color: "#1D4ED8", bg: "#DBEAFE", label: "Liquidado" },
+    planificacion: { color: "#92400E", bg: "#FEF3C7", label: t("trips.estados.planificacion") },
+    activo: { color: "#065F46", bg: "#D1FAE5", label: t("trips.estados.activo") },
+    liquidado: { color: "#1D4ED8", bg: "#DBEAFE", label: t("trips.estados.liquidado") },
   } as Record<string, { color: string; bg: string; label: string }>;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["bottom", "left", "right"]}>
       {/* HEADER */}
       <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
-        <Text style={[styles.headerTitle, { color: theme.headerText }]}>🗺️ Mis Paseos</Text>
+        <Text style={[styles.headerTitle, { color: theme.headerText }]}>{t("trips.title")}</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.joinButton}
             onPress={() => router.push("/joinTrip")}
           >
-            <Text style={styles.joinButtonText}>🔑 Unirse</Text>
+            <Text style={styles.joinButtonText}>{t("trips.joinBtn")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.newButton}
             onPress={() => router.push("/newTrip")}
           >
-            <Text style={styles.newButtonText}>+ Nuevo</Text>
+            <Text style={styles.newButtonText}>{t("trips.newBtn")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -106,21 +101,19 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
       ) : paseos.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.emptyIcon}>🏖️</Text>
-          <Text style={styles.emptyTitle}>Aún no hay paseos</Text>
-          <Text style={styles.emptySub}>
-            Organiza tu próxima aventura en grupo — planea fechas, menú y gastos en un solo lugar.
-          </Text>
+          <Text style={styles.emptyTitle}>{t("trips.empty.title")}</Text>
+          <Text style={styles.emptySub}>{t("trips.empty.sub")}</Text>
           <TouchableOpacity
             style={styles.createButton}
             onPress={() => router.push("/newTrip")}
           >
-            <Text style={styles.createButtonText}>+ Crear primer paseo</Text>
+            <Text style={styles.createButtonText}>{t("trips.empty.createBtn")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.joinLink}
             onPress={() => router.push("/joinTrip")}
           >
-            <Text style={styles.joinLinkText}>🔑 ¿Ya tienes un código? Únete a uno</Text>
+            <Text style={styles.joinLinkText}>{t("trips.empty.joinLink")}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -174,14 +167,14 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                     style={styles.compartirBtn}
                     onPress={() => handleCompartir(p)}
                   >
-                    <Text style={styles.compartirBtnText}>📤 Compartir</Text>
+                    <Text style={styles.compartirBtnText}>{t("trips.card.share")}</Text>
                   </TouchableOpacity>
                 </View>
                 {p.organizador_nombre ? (
                   <Text style={styles.organizadorText}>
                     {esOrganizador
-                      ? "👑 Organizador: Tú"
-                      : `👤 Organizador: ${p.organizador_nombre}`}
+                      ? t("trips.card.youOrganizer")
+                      : t("trips.card.organizer", { name: p.organizador_nombre })}
                   </Text>
                 ) : null}
               </TouchableOpacity>

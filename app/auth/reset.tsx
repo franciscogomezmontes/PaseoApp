@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../src/hooks/useTheme";
 import { supabase } from "../../src/lib/supabase";
@@ -18,6 +19,7 @@ import { supabase } from "../../src/lib/supabase";
 export default function ResetScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -50,7 +52,7 @@ export default function ResetScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <ScrollView contentContainerStyle={styles.confirmContent}>
           <Text style={styles.confirmEmoji}>🔑</Text>
-          <Text style={[styles.confirmTitle, { color: theme.text }]}>Revisa tu correo</Text>
+          <Text style={[styles.confirmTitle, { color: theme.text }]}>{t("auth.reset.successTitle")}</Text>
           <Text style={[styles.confirmSub, { color: theme.textSecondary }]}>
             Te enviamos un enlace a{"\n"}
             <Text style={[styles.confirmEmail, { color: theme.primary }]}>{email}</Text>
@@ -64,7 +66,7 @@ export default function ResetScreen() {
             onPress={() => // @ts-ignore — expo-router types use /auth/index but runtime path is /auth
             router.replace("/auth")}
           >
-            <Text style={styles.submitText}>Ir a iniciar sesión →</Text>
+            <Text style={styles.submitText}>{t("auth.reset.backToLogin")}</Text>
           </TouchableOpacity>
           <Text style={styles.confirmFooter}>
             ¿No llegó el correo? Revisa la carpeta de spam.
@@ -90,17 +92,14 @@ export default function ResetScreen() {
           </View>
 
           <View style={styles.form}>
-            <Text style={[styles.resetTitle, { color: theme.text }]}>¿Olvidaste tu contraseña?</Text>
-            <Text style={[styles.resetSub, { color: theme.textSecondary }]}>
-              Ingresa tu correo y te enviamos un enlace para crear una nueva
-              contraseña.
-            </Text>
+            <Text style={[styles.resetTitle, { color: theme.text }]}>{t("auth.reset.title")}</Text>
+            <Text style={[styles.resetSub, { color: theme.textSecondary }]}>{t("auth.reset.sub")}</Text>
 
             <View style={styles.field}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>Correo electrónico</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t("auth.email")}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="correo@ejemplo.com"
+                placeholder={t("auth.emailPlaceholder")}
                 placeholderTextColor={theme.textTertiary}
                 value={email}
                 onChangeText={setEmail}
@@ -117,7 +116,7 @@ export default function ResetScreen() {
               disabled={loading}
             >
               <Text style={styles.submitText}>
-                {loading ? "Enviando..." : "Enviar enlace"}
+                {loading ? t("auth.reset.sending") : t("auth.reset.sendBtn")}
               </Text>
             </TouchableOpacity>
 
@@ -125,7 +124,7 @@ export default function ResetScreen() {
               style={styles.secondaryBtn}
               onPress={() => router.back()}
             >
-              <Text style={[styles.secondaryBtnText, { color: theme.textSecondary }]}>← Volver a iniciar sesión</Text>
+              <Text style={[styles.secondaryBtnText, { color: theme.textSecondary }]}>← {t("auth.reset.backToLogin")}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -145,7 +144,7 @@ export default function ResetScreen() {
               style={styles.errorBtn}
               onPress={() => setShowErrorModal(false)}
             >
-              <Text style={styles.errorBtnText}>Entendido</Text>
+              <Text style={styles.errorBtnText}>{t("common.ok")}</Text>
             </TouchableOpacity>
           </View>
         </View>

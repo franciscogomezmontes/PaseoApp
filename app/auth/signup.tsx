@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../src/hooks/useTheme";
 import { useAuthStore } from "../../src/store/useAuthStore";
@@ -18,6 +19,7 @@ import { useAuthStore } from "../../src/store/useAuthStore";
 export default function SignupScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { t } = useTranslation();
   const { signUp, error, clearError } = useAuthStore();
 
   const [email, setEmail] = useState("");
@@ -36,11 +38,11 @@ export default function SignupScreen() {
 
   const handleSubmit = async () => {
     if (!nombre.trim()) {
-      showError("Por favor ingresa tu nombre.");
+      showError(t("auth.errors.fillAll"));
       return;
     }
     if (!email.trim() || !password.trim()) {
-      showError("Por favor completa todos los campos.");
+      showError(t("auth.errors.fillAll"));
       return;
     }
     clearError();
@@ -52,7 +54,7 @@ export default function SignupScreen() {
     } else if (result === "confirm_email") {
       setShowConfirmScreen(true);
     } else {
-      showError(error ?? "No se pudo crear la cuenta.");
+      showError(error ?? t("auth.errors.signupFailed"));
     }
   };
 
@@ -105,9 +107,7 @@ export default function SignupScreen() {
           <View style={styles.logoArea}>
             <Text style={styles.logoEmoji}>🌴</Text>
             <Text style={styles.logoTitle}>PaseoApp</Text>
-            <Text style={styles.logoSub}>
-              Planifica paseos. Divide gastos.{"\n"}Disfruta sin calcular.
-            </Text>
+            <Text style={styles.logoSub}>{t("auth.logoSub")}</Text>
           </View>
 
           <View style={[styles.toggle, { backgroundColor: theme.border }]}>
@@ -119,21 +119,21 @@ export default function SignupScreen() {
                 router.replace("/auth");
               }}
             >
-              <Text style={[styles.toggleText, { color: theme.textSecondary }]}>Iniciar sesión</Text>
+              <Text style={[styles.toggleText, { color: theme.textSecondary }]}>{t("auth.login")}</Text>
             </TouchableOpacity>
             <View style={[styles.toggleBtn, styles.toggleBtnActive, { backgroundColor: theme.surface }]}>
               <Text style={[styles.toggleText, styles.toggleTextActive, { color: theme.primary }]}>
-                Crear cuenta
+                {t("auth.signup")}
               </Text>
             </View>
           </View>
 
           <View style={styles.form}>
             <View style={styles.field}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>Nombre</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t("auth.name")}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Tu nombre completo"
+                placeholder={t("auth.namePlaceholder")}
                 placeholderTextColor={theme.textTertiary}
                 value={nombre}
                 onChangeText={setNombre}
@@ -143,10 +143,10 @@ export default function SignupScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>Correo electrónico</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t("auth.email")}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="correo@ejemplo.com"
+                placeholder={t("auth.emailPlaceholder")}
                 placeholderTextColor={theme.textTertiary}
                 value={email}
                 onChangeText={setEmail}
