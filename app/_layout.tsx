@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useRef, useState } from "react";
+import { Platform, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { ONBOARDING_KEY } from "../src/constants";
 import { useAuthStore } from "../src/store/useAuthStore";
@@ -96,42 +97,48 @@ export default function RootLayout() {
     }
   }, [session, loading, segments, onboardingChecked, onboardingDone]);
 
+  const isWeb = Platform.OS === "web";
+
   return (
     <>
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="onboarding" />
-      <Stack.Screen name="auth" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen
-        name="newTrip"
-        options={{
-          presentation: "modal",
-          headerShown: true,
-          headerTitle: "Nuevo Paseo",
-          headerStyle: { backgroundColor: "#1B4F72" },
-          headerTintColor: "#fff",
-          headerTitleStyle: { fontWeight: "800" },
-        }}
-      />
-      <Stack.Screen name="tripDetail" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="joinTrip"
-        options={{
-          presentation: "modal",
-          headerShown: true,
-          headerTitle: "Unirse a un paseo",
-          headerStyle: { backgroundColor: "#1B4F72" },
-          headerTintColor: "#fff",
-          headerTitleStyle: { fontWeight: "800" },
-        }}
-      />
-      <Stack.Screen name="participantDetail" options={{ headerShown: false }} />
-      <Stack.Screen name="attendance" options={{ headerShown: false }} />
-      <Stack.Screen name="recipeDetail" options={{ headerShown: false }} />
-      <Stack.Screen name="newRecipe" options={{ headerShown: false }} />
-      <Stack.Screen name="adminUpload" options={{ headerShown: false }} />
-    </Stack>
-    <Toast />
+      <View style={isWeb ? { flex: 1, backgroundColor: "#1B4F72", alignItems: "center" } : { flex: 1 }}>
+        <View style={isWeb ? { flex: 1, width: 430, maxWidth: "100%", overflow: "hidden" as const } : { flex: 1 }}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="onboarding" />
+            <Stack.Screen name="auth" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen
+              name="newTrip"
+              options={{
+                presentation: "modal",
+                headerShown: true,
+                headerTitle: "Nuevo Paseo",
+                headerStyle: { backgroundColor: "#1B4F72" },
+                headerTintColor: "#fff",
+                headerTitleStyle: { fontWeight: "800" },
+              }}
+            />
+            <Stack.Screen name="tripDetail" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="joinTrip"
+              options={{
+                presentation: "modal",
+                headerShown: true,
+                headerTitle: "Unirse a un paseo",
+                headerStyle: { backgroundColor: "#1B4F72" },
+                headerTintColor: "#fff",
+                headerTitleStyle: { fontWeight: "800" },
+              }}
+            />
+            <Stack.Screen name="participantDetail" options={{ headerShown: false }} />
+            <Stack.Screen name="attendance" options={{ headerShown: false }} />
+            <Stack.Screen name="recipeDetail" options={{ headerShown: false }} />
+            <Stack.Screen name="newRecipe" options={{ headerShown: false }} />
+            <Stack.Screen name="adminUpload" options={{ headerShown: false }} />
+          </Stack>
+        </View>
+      </View>
+      <Toast />
     </>
   );
 }

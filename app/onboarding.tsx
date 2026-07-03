@@ -1,9 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
     Dimensions,
-    FlatList,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -66,11 +65,11 @@ const SLIDES = [
 export default function OnboardingScreen() {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
+
+  const currentSlide = SLIDES[currentIndex];
 
   const handleNext = () => {
     if (currentIndex < SLIDES.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
       setCurrentIndex(currentIndex + 1);
     } else {
       handleFinish();
@@ -85,8 +84,6 @@ export default function OnboardingScreen() {
     router.replace("/auth");
   };
 
-  const currentSlide = SLIDES[currentIndex];
-
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: currentSlide.bgColor }]}
@@ -100,52 +97,34 @@ export default function OnboardingScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Slides */}
-      <FlatList
-        ref={flatListRef}
-        data={SLIDES}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        scrollEnabled={false}
-        keyExtractor={(item) => item.id}
-        onMomentumScrollEnd={(e) => {
-          const idx = Math.round(e.nativeEvent.contentOffset.x / width);
-          setCurrentIndex(idx);
-        }}
-        renderItem={({ item }) => (
-          <View style={[styles.slide, { width }]}>
-            <View
-              style={[
-                styles.emojiContainer,
-                { borderColor: item.color + "33" },
-              ]}
-            >
-              <Text style={styles.emoji}>{item.emoji}</Text>
-            </View>
-            <Text
-              style={[
-                styles.titulo,
-                { color: item.color },
-                (item as any).isHero && styles.tituloHero,
-              ]}
-            >
-              {item.titulo}
-            </Text>
-            <Text style={styles.descripcion}>{item.descripcion}</Text>
-          </View>
-        )}
-      />
+      {/* Current slide */}
+      <View style={styles.slide}>
+        <View
+          style={[
+            styles.emojiContainer,
+            { borderColor: currentSlide.color + "33" },
+          ]}
+        >
+          <Text style={styles.emoji}>{currentSlide.emoji}</Text>
+        </View>
+        <Text
+          style={[
+            styles.titulo,
+            { color: currentSlide.color },
+            (currentSlide as any).isHero && styles.tituloHero,
+          ]}
+        >
+          {currentSlide.titulo}
+        </Text>
+        <Text style={styles.descripcion}>{currentSlide.descripcion}</Text>
+      </View>
 
       {/* Dots */}
       <View style={styles.dotsRow}>
         {SLIDES.map((_, i) => (
           <TouchableOpacity
             key={i}
-            onPress={() => {
-              flatListRef.current?.scrollToIndex({ index: i });
-              setCurrentIndex(i);
-            }}
+            onPress={() => setCurrentIndex(i)}
           >
             <View
               style={[

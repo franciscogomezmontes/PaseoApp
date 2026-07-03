@@ -83,7 +83,7 @@ export default function HomeScreen() {
 
   // ── UI ──
   const [notificaciones, setNotificaciones] = useState(true);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [faqExpanded, setFaqExpanded] = useState(false);
   const [paseosExpanded, setPaseosExpanded] = useState(false);
   const [configExpanded, setConfigExpanded] = useState(false);
 
@@ -636,25 +636,28 @@ export default function HomeScreen() {
 
         {/* 7. FAQ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preguntas frecuentes</Text>
-          {FAQ.map((item, i) => (
-            <TouchableOpacity
+          <TouchableOpacity
+            style={styles.collapseHeader}
+            onPress={() => setFaqExpanded(!faqExpanded)}
+            activeOpacity={0.7}
+          >
+            <View>
+              <Text style={styles.sectionTitle}>Preguntas frecuentes</Text>
+              <Text style={styles.collapseHint}>Dudas comunes sobre PaseoApp</Text>
+            </View>
+            <Text style={styles.collapseIcon}>{faqExpanded ? "▲" : "▼"}</Text>
+          </TouchableOpacity>
+          {faqExpanded && FAQ.map((item, i) => (
+            <View
               key={i}
               style={[
                 styles.faqItem,
                 i === FAQ.length - 1 && { borderBottomWidth: 0 },
               ]}
-              onPress={() => setOpenFaq(openFaq === i ? null : i)}
-              activeOpacity={0.7}
             >
-              <View style={styles.faqHeader}>
-                <Text style={styles.faqQ}>{item.q}</Text>
-                <Text style={styles.faqChevron}>
-                  {openFaq === i ? "↑" : "↓"}
-                </Text>
-              </View>
-              {openFaq === i && <Text style={styles.faqA}>{item.a}</Text>}
-            </TouchableOpacity>
+              <Text style={styles.faqQ}>{item.q}</Text>
+              <Text style={styles.faqA}>{item.a}</Text>
+            </View>
           ))}
         </View>
 
@@ -1201,7 +1204,7 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 11, color: "#94a3b8", fontWeight: "500" },
 
   inviteCard: {
-    backgroundColor: "#0f172a",
+    backgroundColor: "#1B4F72",
     borderRadius: 16,
     padding: 16,
     flexDirection: "row",
