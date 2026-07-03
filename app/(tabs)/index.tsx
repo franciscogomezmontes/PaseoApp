@@ -22,6 +22,7 @@ import { ESTADO_CONFIG, ONBOARDING_KEY } from "../../src/constants";
 import { useTheme } from "../../src/hooks/useTheme";
 import { supabase } from "../../src/lib/supabase";
 import { useAuthStore } from "../../src/store/useAuthStore";
+import { useLanguageStore } from "../../src/store/useLanguageStore";
 import { useThemeStore } from "../../src/store/useThemeStore";
 import { useTripStore } from "../../src/store/useTripStore";
 
@@ -80,6 +81,8 @@ export default function HomeScreen() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const { followSystem, setFollowSystem } = useThemeStore();
+  const { language, setLanguage } = useLanguageStore();
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
 
   // ── UI ──
   const [notificaciones, setNotificaciones] = useState(true);
@@ -605,16 +608,16 @@ export default function HomeScreen() {
                   thumbColor="#fff"
                 />
               </View>
-              <View style={styles.settingRow}>
+              <TouchableOpacity style={styles.settingRow} onPress={() => setShowLanguageModal(true)}>
                 <View style={styles.settingLeft}>
                   <Text style={styles.settingIcon}>🌍</Text>
                   <View>
-                    <Text style={styles.settingLabel}>Idioma</Text>
-                    <Text style={styles.settingSub}>Español</Text>
+                    <Text style={styles.settingLabel}>Idioma / Language</Text>
+                    <Text style={styles.settingSub}>{language === "es" ? "Español" : "English"}</Text>
                   </View>
                 </View>
                 <Text style={styles.settingArrow}>›</Text>
-              </View>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.settingRow, { borderBottomWidth: 0 }]}
                 onPress={handleVerOnboarding}
@@ -1045,6 +1048,38 @@ export default function HomeScreen() {
               onPress={() => setShowSignOutModal(false)}
             >
               <Text style={styles.confirmCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Idioma / Language */}
+      <Modal
+        visible={showLanguageModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLanguageModal(false)}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.confirmBox}>
+            <Text style={styles.confirmTitle}>🌍 Idioma / Language</Text>
+            <TouchableOpacity
+              style={[styles.confirmBtn, { backgroundColor: language === "es" ? "#1B4F72" : "#e2e8f0" }]}
+              onPress={() => { setLanguage("es"); setShowLanguageModal(false); }}
+            >
+              <Text style={[styles.confirmBtnText, { color: language === "es" ? "#fff" : "#1B4F72" }]}>🇨🇴 Español</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.confirmBtn, { backgroundColor: language === "en" ? "#1B4F72" : "#e2e8f0", marginTop: 8 }]}
+              onPress={() => { setLanguage("en"); setShowLanguageModal(false); }}
+            >
+              <Text style={[styles.confirmBtnText, { color: language === "en" ? "#fff" : "#1B4F72" }]}>🇺🇸 English</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.confirmCancel}
+              onPress={() => setShowLanguageModal(false)}
+            >
+              <Text style={styles.confirmCancelText}>Cancelar / Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>

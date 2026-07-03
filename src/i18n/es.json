@@ -1,0 +1,416 @@
+{
+  "common": {
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "close": "Cerrar",
+    "ok": "Entendido",
+    "done": "Listo",
+    "saving": "Guardando...",
+    "loading": "Cargando...",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "share": "Compartir",
+    "error": "Error",
+    "confirm": "Confirmar",
+    "back": "Volver",
+    "next": "Siguiente →",
+    "begin": "¡Comenzar! →",
+    "skip": "Saltar",
+    "or": "o",
+    "yes": "Sí",
+    "no": "No",
+    "search": "Buscar...",
+    "optional": "opcional",
+    "required": "*"
+  },
+  "tabs": {
+    "trips": "Mis Paseos",
+    "recipes": "Recetas",
+    "grocery": "Mercado",
+    "expenses": "Gastos"
+  },
+  "auth": {
+    "logoSub": "Planifica paseos. Divide gastos.\nDisfruta sin calcular.",
+    "login": "Iniciar sesión",
+    "signup": "Crear cuenta",
+    "email": "Correo electrónico",
+    "emailPlaceholder": "correo@ejemplo.com",
+    "password": "Contraseña",
+    "passwordPlaceholder": "Mínimo 6 caracteres",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "loginBtn": "Entrar",
+    "signupBtn": "Crear cuenta",
+    "name": "Nombre completo",
+    "namePlaceholder": "Tu nombre",
+    "confirmPassword": "Confirmar contraseña",
+    "confirmPasswordPlaceholder": "Repite tu contraseña",
+    "errors": {
+      "fillAll": "Por favor completa todos los campos.",
+      "passwordsMismatch": "Las contraseñas no coinciden.",
+      "emailNotConfirmed": "Debes confirmar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.",
+      "loginFailed": "No se pudo iniciar sesión. Verifica tus datos.",
+      "signupFailed": "No se pudo crear la cuenta."
+    },
+    "reset": {
+      "title": "Recuperar contraseña",
+      "sub": "Te enviaremos un enlace para restablecer tu contraseña.",
+      "sendBtn": "Enviar enlace",
+      "sending": "Enviando...",
+      "successTitle": "¡Correo enviado!",
+      "successSub": "Revisa tu bandeja de entrada y sigue las instrucciones.",
+      "backToLogin": "Volver al inicio de sesión"
+    }
+  },
+  "home": {
+    "greetings": {
+      "morning": "Buenos días",
+      "afternoon": "Buenas tardes",
+      "evening": "Buenas noches"
+    },
+    "quickAccess": {
+      "trips": "Mis paseos",
+      "recipes": "Recetas",
+      "grocery": "Mercado",
+      "expenses": "Gastos"
+    },
+    "activeTrips": {
+      "title": "Paseos activos",
+      "empty": "Sin paseos activos",
+      "count_one": "{{count}} paseo",
+      "count_other": "{{count}} paseos",
+      "emptyTitle": "Sin paseos aún",
+      "emptySub": "Ve a Mis Paseos para crear el primero"
+    },
+    "summary": {
+      "title": "Resumen",
+      "trips": "Paseos",
+      "active": "Activos",
+      "planning": "Planeando",
+      "settled": "Liquidados"
+    },
+    "invite": {
+      "title": "Invita a tus amigos",
+      "sub": "Comparte PaseoApp con tu grupo",
+      "modalTitle": "Invitar amigos",
+      "sentTitle": "¡Invitación enviada!",
+      "sentSub": "Le llegará un correo a {{email}} con toda la información de PaseoApp.",
+      "inviteAnother": "Invitar a otra persona",
+      "byEmail": "📧 Enviar por correo",
+      "byEmailSub": "Le llegará un correo con el pitch completo de PaseoApp.",
+      "nameLabel": "Nombre (opcional)",
+      "namePlaceholder": "Nombre de tu amigo",
+      "emailLabel": "Correo electrónico *",
+      "emailPlaceholder": "amigo@ejemplo.com",
+      "sendEmailBtn": "📧 Enviar invitación por correo",
+      "byWhatsapp": "💬 Compartir por WhatsApp o SMS",
+      "byWhatsappSub": "Abre el menú de compartir de tu teléfono.",
+      "shareBtn": "📤 Compartir enlace",
+      "shareMessage": "🏕️ Te invito a usar *PaseoApp* — la app para organizar paseos en grupo sin dramas.\n\n✅ Menú del paseo\n✅ División de gastos automática\n✅ Liquidaciones mínimas\n\nDescárgala y organiza tu próximo paseo sin hojas de cálculo ni peleas.",
+      "shareTitle": "Invitación a PaseoApp",
+      "errors": {
+        "noEmail": "Ingresa un correo electrónico.",
+        "sendFailed": "No se pudo enviar la invitación. Intenta de nuevo."
+      }
+    },
+    "config": {
+      "title": "Configuración",
+      "hint": "Perfil, notificaciones, idioma",
+      "editProfile": "Editar perfil",
+      "changePassword": "Cambiar contraseña",
+      "changePasswordSub": "Actualiza tu contraseña de acceso",
+      "notifications": "Notificaciones",
+      "notificationsSub": "Gastos y cambios al menú",
+      "darkMode": "Modo oscuro automático",
+      "darkModeSub": "Sigue la configuración del teléfono",
+      "language": "Idioma",
+      "tutorial": "Ver tutorial",
+      "tutorialSub": "Volver a ver las pantallas de introducción"
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "hint": "Dudas comunes sobre PaseoApp",
+      "q1": "¿Cuántas personas puede tener un paseo?",
+      "a1": "No hay límite. Puedes tener tantos participantes como necesites, organizados por familias.",
+      "q2": "¿Qué pasa si alguien no come en una comida?",
+      "a2": "Puedes desactivarlo para ese momento específico y el costo se redistribuye automáticamente.",
+      "q3": "¿Puedo usar PaseoApp sin internet?",
+      "a3": "Necesitas conexión para sincronizar datos, pero la navegación básica funciona con caché.",
+      "q4": "¿Cómo se calculan las liquidaciones?",
+      "a4": "Usamos el algoritmo de transferencias mínimas para reducir al máximo el número de pagos."
+    },
+    "logout": "Cerrar sesión",
+    "footer": "PaseoApp v{{version}} · Hecho con ❤️ en Colombia",
+    "profile": {
+      "title": "Editar perfil",
+      "photo": "Foto de perfil",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "Tu nombre completo",
+      "phoneLabel": "Teléfono",
+      "phonePlaceholder": "Tu número de teléfono",
+      "restrictionsLabel": "Restricciones alimentarias",
+      "restrictionsPlaceholder": "Ej: vegetariano, sin gluten...",
+      "emailLabel": "Correo electrónico",
+      "emailReadOnly": "El correo no se puede cambiar",
+      "takePhoto": "📷 Tomar foto",
+      "chooseGallery": "🖼️ Elegir de galería",
+      "photoTitle": "Foto de perfil",
+      "errors": {
+        "noProfile": "No se pudo identificar tu perfil.",
+        "noCamera": "Necesitamos acceso a tu cámara.",
+        "noGallery": "Necesitamos acceso a tu galería.",
+        "imageError": "No se pudo procesar la imagen."
+      }
+    },
+    "password": {
+      "title": "Cambiar contraseña",
+      "newLabel": "Nueva contraseña",
+      "newPlaceholder": "Mínimo 6 caracteres",
+      "confirmLabel": "Confirmar contraseña",
+      "confirmPlaceholder": "Repite la nueva contraseña",
+      "saveBtn": "Guardar contraseña",
+      "successTitle": "¡Contraseña actualizada!",
+      "successSub": "Tu contraseña fue cambiada exitosamente.",
+      "errors": {
+        "tooShort": "La contraseña debe tener al menos 6 caracteres.",
+        "mismatch": "Las contraseñas no coinciden."
+      }
+    },
+    "signout": {
+      "title": "Cerrar sesión",
+      "message": "¿Estás seguro de que quieres cerrar sesión?",
+      "confirm": "Cerrar sesión",
+      "cancel": "Cancelar"
+    },
+    "languageModal": {
+      "title": "Idioma / Language",
+      "spanish": "Español",
+      "english": "English"
+    }
+  },
+  "trips": {
+    "title": "🗺️ Mis Paseos",
+    "joinBtn": "🔑 Unirse",
+    "newBtn": "+ Nuevo",
+    "tooltip": {
+      "title": "Mis Paseos",
+      "desc": "Aquí están todos tus paseos. Crea uno nuevo con '+ Nuevo' o únete a uno existente con el código de invitación."
+    },
+    "empty": {
+      "title": "Aún no hay paseos",
+      "sub": "Organiza tu próxima aventura en grupo — planea fechas, menú y gastos en un solo lugar.",
+      "createBtn": "+ Crear primer paseo",
+      "joinLink": "🔑 ¿Ya tienes un código? Únete a uno"
+    },
+    "card": {
+      "share": "📤 Compartir",
+      "youOrganizer": "👑 Organizador: Tú",
+      "organizer": "👤 Organizador: {{name}}"
+    },
+    "shareMessage": "🏕️ Te invito al paseo *{{name}}* en PaseoApp!\n\n📍 {{place}}\n📅 {{start}} → {{end}}\n\n🔑 Código de invitación: *{{code}}*\n\nDescarga PaseoApp, crea tu cuenta y úsalo para unirte.",
+    "shareTitle": "Invitación — {{name}}",
+    "estados": {
+      "planificacion": "Planificación",
+      "activo": "Activo",
+      "liquidado": "Liquidado"
+    }
+  },
+  "newTrip": {
+    "title": "Nuevo Paseo",
+    "nameLabel": "Nombre del paseo *",
+    "namePlaceholder": "Ej: Finca La Esperanza",
+    "placeLabel": "Lugar *",
+    "placePlaceholder": "Ej: Guatapé, Antioquia",
+    "startLabel": "Fecha inicio *",
+    "endLabel": "Fecha fin *",
+    "datePlaceholder": "AAAA-MM-DD",
+    "photoLabel": "Foto del paseo",
+    "stateLabel": "Estado",
+    "accommodationLabel": "Link alojamiento",
+    "accommodationPlaceholder": "https://...",
+    "mapLabel": "Link mapa",
+    "mapPlaceholder": "https://...",
+    "recommendationsLabel": "Recomendaciones",
+    "recommendationsPlaceholder": "Qué llevar, cómo llegar...",
+    "createBtn": "Crear paseo",
+    "creating": "Creando...",
+    "errors": {
+      "fillRequired": "Por favor completa nombre, lugar y fechas.",
+      "createFailed": "No se pudo crear el paseo."
+    }
+  },
+  "joinTrip": {
+    "title": "Unirse a un paseo",
+    "label": "Código de invitación",
+    "placeholder": "Ej: ABC123",
+    "hint": "Pide el código al organizador del paseo",
+    "joinBtn": "Unirse al paseo",
+    "joining": "Uniéndose...",
+    "errors": {
+      "noCode": "Ingresa el código de invitación.",
+      "notFound": "No se encontró un paseo con ese código.",
+      "alreadyJoined": "Ya eres participante de este paseo.",
+      "joinFailed": "No se pudo unir al paseo."
+    }
+  },
+  "recipes": {
+    "tabRecetas": "Recetas",
+    "tabIngredientes": "Ingredientes",
+    "searchRecipePlaceholder": "Buscar receta...",
+    "searchIngredientPlaceholder": "Buscar ingrediente...",
+    "newRecipeBtn": "+ Nueva receta",
+    "exportBtn": "Exportar PDF",
+    "selectAll": "Seleccionar todo",
+    "deselectAll": "Deseleccionar",
+    "cancelSelection": "Cancelar",
+    "exporting": "Generando PDF...",
+    "noRecipes": "No hay recetas aún",
+    "noIngredients": "No hay ingredientes aún",
+    "addIngredientBtn": "+ Ingrediente",
+    "deleteIngredientTitle": "Eliminar ingrediente",
+    "deleteIngredientMsg": "¿Eliminar \"{{name}}\"? Esta acción no se puede deshacer.",
+    "ingredient": {
+      "nameLabel": "Nombre *",
+      "namePlaceholder": "Ej: Arroz",
+      "unitLabel": "Unidad base *",
+      "categoryLabel": "Categoría",
+      "notesLabel": "Observaciones",
+      "notesPlaceholder": "Notas opcionales...",
+      "saveBtn": "Guardar ingrediente",
+      "newTitle": "Nuevo ingrediente",
+      "editTitle": "Editar ingrediente"
+    },
+    "tags": {
+      "vegan": "Vegano",
+      "vegetarian": "Vegetariano",
+      "glutenFree": "Sin gluten",
+      "lactoseFree": "Sin lactosa"
+    },
+    "tooltip": {
+      "title": "Recetas",
+      "desc": "Aquí puedes explorar y crear recetas para tus paseos."
+    }
+  },
+  "grocery": {
+    "title": "🛒 Mercado",
+    "generateBtn": "Generar lista",
+    "generating": "Generando...",
+    "addExtraBtn": "+ Agregar extra",
+    "shareBtn": "Compartir lista",
+    "emptyTitle": "Lista vacía",
+    "emptySub": "Genera la lista desde el menú del paseo",
+    "deleteItem": "Eliminar",
+    "extraTitle": "Agregar extra",
+    "extraNameLabel": "Nombre *",
+    "extraNamePlaceholder": "Ej: Papel higiénico",
+    "extraQtyLabel": "Cantidad",
+    "extraQtyPlaceholder": "Ej: 2",
+    "extraUnitLabel": "Unidad",
+    "extraCategoryLabel": "Categoría",
+    "extraNotesLabel": "Recomendaciones",
+    "extraNotesPlaceholder": "Notas opcionales...",
+    "saveExtraBtn": "Agregar a la lista",
+    "tooltip": {
+      "title": "Mercado",
+      "desc": "Aquí está la lista de compras generada desde el menú de cada paseo."
+    }
+  },
+  "expenses": {
+    "title": "💸 Gastos",
+    "addBtn": "+ Gasto",
+    "settlementTitle": "Liquidación",
+    "settled": "Liquidado ✓",
+    "markSettled": "Marcar como liquidado",
+    "totalExpenses": "Total gastos",
+    "perPerson": "Por persona",
+    "gastoForm": {
+      "newTitle": "Nuevo gasto",
+      "editTitle": "Editar gasto",
+      "nameLabel": "Nombre *",
+      "namePlaceholder": "Ej: Mercado del sábado",
+      "amountLabel": "Monto *",
+      "amountPlaceholder": "0",
+      "categoryLabel": "Categoría",
+      "paidByLabel": "Pagado por *",
+      "participantsLabel": "Participantes",
+      "saveBtn": "Guardar gasto",
+      "saving": "Guardando...",
+      "errors": {
+        "fillRequired": "Por favor completa nombre, monto y quién pagó.",
+        "saveFailed": "No se pudo guardar el gasto."
+      }
+    },
+    "deleteTitle": "Eliminar gasto",
+    "deleteMsg": "¿Eliminar \"{{name}}\"? Esta acción no se puede deshacer.",
+    "tooltip": {
+      "title": "Gastos",
+      "desc": "Registra los gastos del grupo y calcula quién le debe a quién."
+    }
+  },
+  "tripDetail": {
+    "tabs": {
+      "info": "Info",
+      "menu": "Menú",
+      "grocery": "Mercado",
+      "expenses": "Gastos",
+      "participants": "Participantes"
+    },
+    "editBtn": "Editar",
+    "deleteBtn": "Eliminar paseo",
+    "leaveBtn": "Salir del paseo",
+    "inviteCode": "Código de invitación",
+    "copyCode": "Copiar código",
+    "shareInvite": "Compartir invitación"
+  },
+  "attendance": {
+    "title": "Asistencia",
+    "saveBtn": "Guardar",
+    "saving": "Guardando...",
+    "meals": {
+      "desayuno": "Desayuno",
+      "almuerzo": "Almuerzo",
+      "cena": "Cena",
+      "snack": "Snack"
+    }
+  },
+  "recipeDetail": {
+    "ingredients": "Ingredientes",
+    "preparation": "Preparación",
+    "servings": "Porciones",
+    "prepTime": "Prep",
+    "cookTime": "Cocción",
+    "credits": "Créditos",
+    "utensils": "Utensilios",
+    "keywords": "Palabras clave",
+    "diet": "Dieta",
+    "adjustServings": "Ajustar porciones",
+    "for": "Para {{n}} personas"
+  },
+  "newRecipe": {
+    "title": "Nueva receta",
+    "editTitle": "Editar receta",
+    "nameLabel": "Nombre *",
+    "namePlaceholder": "Ej: Arroz con pollo",
+    "typeLabel": "Tipo de comida",
+    "servingsLabel": "Porciones base *",
+    "servingsPlaceholder": "Ej: 6",
+    "descLabel": "Descripción",
+    "descPlaceholder": "Descripción breve...",
+    "prepTimeLabel": "Tiempo preparación (min)",
+    "cookTimeLabel": "Tiempo cocción (min)",
+    "creditsLabel": "Créditos",
+    "creditsPlaceholder": "Ej: Receta de la abuela",
+    "utensilsLabel": "Utensilios",
+    "utensilsPlaceholder": "Ej: Olla grande, sartén",
+    "keywordsLabel": "Palabras clave",
+    "keywordsPlaceholder": "Ej: fácil, rápido",
+    "dietLabel": "Etiquetas de dieta",
+    "ingredientsLabel": "Ingredientes",
+    "addIngBtn": "+ Agregar ingrediente",
+    "saveBtn": "Guardar receta",
+    "saving": "Guardando...",
+    "errors": {
+      "fillRequired": "Por favor completa nombre y porciones.",
+      "saveFailed": "No se pudo guardar la receta."
+    }
+  }
+}

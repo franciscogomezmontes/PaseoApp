@@ -1,0 +1,416 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close",
+    "ok": "Got it",
+    "done": "Done",
+    "saving": "Saving...",
+    "loading": "Loading...",
+    "delete": "Delete",
+    "edit": "Edit",
+    "share": "Share",
+    "error": "Error",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next →",
+    "begin": "Let's go! →",
+    "skip": "Skip",
+    "or": "or",
+    "yes": "Yes",
+    "no": "No",
+    "search": "Search...",
+    "optional": "optional",
+    "required": "*"
+  },
+  "tabs": {
+    "trips": "My Trips",
+    "recipes": "Recipes",
+    "grocery": "Grocery",
+    "expenses": "Expenses"
+  },
+  "auth": {
+    "logoSub": "Plan trips. Split costs.\nEnjoy without calculating.",
+    "login": "Sign in",
+    "signup": "Create account",
+    "email": "Email address",
+    "emailPlaceholder": "email@example.com",
+    "password": "Password",
+    "passwordPlaceholder": "At least 6 characters",
+    "forgotPassword": "Forgot your password?",
+    "loginBtn": "Sign in",
+    "signupBtn": "Create account",
+    "name": "Full name",
+    "namePlaceholder": "Your name",
+    "confirmPassword": "Confirm password",
+    "confirmPasswordPlaceholder": "Repeat your password",
+    "errors": {
+      "fillAll": "Please fill in all fields.",
+      "passwordsMismatch": "Passwords do not match.",
+      "emailNotConfirmed": "Please confirm your email before signing in. Check your inbox.",
+      "loginFailed": "Could not sign in. Please check your credentials.",
+      "signupFailed": "Could not create the account."
+    },
+    "reset": {
+      "title": "Reset password",
+      "sub": "We'll send you a link to reset your password.",
+      "sendBtn": "Send link",
+      "sending": "Sending...",
+      "successTitle": "Email sent!",
+      "successSub": "Check your inbox and follow the instructions.",
+      "backToLogin": "Back to sign in"
+    }
+  },
+  "home": {
+    "greetings": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "quickAccess": {
+      "trips": "My trips",
+      "recipes": "Recipes",
+      "grocery": "Grocery",
+      "expenses": "Expenses"
+    },
+    "activeTrips": {
+      "title": "Active trips",
+      "empty": "No active trips",
+      "count_one": "{{count}} trip",
+      "count_other": "{{count}} trips",
+      "emptyTitle": "No trips yet",
+      "emptySub": "Go to My Trips to create your first one"
+    },
+    "summary": {
+      "title": "Summary",
+      "trips": "Trips",
+      "active": "Active",
+      "planning": "Planning",
+      "settled": "Settled"
+    },
+    "invite": {
+      "title": "Invite your friends",
+      "sub": "Share PaseoApp with your group",
+      "modalTitle": "Invite friends",
+      "sentTitle": "Invitation sent!",
+      "sentSub": "{{email}} will receive an email with everything about PaseoApp.",
+      "inviteAnother": "Invite someone else",
+      "byEmail": "📧 Send by email",
+      "byEmailSub": "They'll receive a full introduction to PaseoApp.",
+      "nameLabel": "Name (optional)",
+      "namePlaceholder": "Your friend's name",
+      "emailLabel": "Email address *",
+      "emailPlaceholder": "friend@example.com",
+      "sendEmailBtn": "📧 Send email invitation",
+      "byWhatsapp": "💬 Share via WhatsApp or SMS",
+      "byWhatsappSub": "Opens your phone's share menu.",
+      "shareBtn": "📤 Share link",
+      "shareMessage": "🏕️ I'm inviting you to use *PaseoApp* — the app to organize group trips without the hassle.\n\n✅ Trip menu planning\n✅ Automatic expense splitting\n✅ Minimum transfers settlement\n\nDownload it and plan your next trip without spreadsheets or arguments.",
+      "shareTitle": "PaseoApp Invitation",
+      "errors": {
+        "noEmail": "Please enter an email address.",
+        "sendFailed": "Could not send the invitation. Please try again."
+      }
+    },
+    "config": {
+      "title": "Settings",
+      "hint": "Profile, notifications, language",
+      "editProfile": "Edit profile",
+      "changePassword": "Change password",
+      "changePasswordSub": "Update your access password",
+      "notifications": "Notifications",
+      "notificationsSub": "Expenses and menu changes",
+      "darkMode": "Auto dark mode",
+      "darkModeSub": "Follow system settings",
+      "language": "Language",
+      "tutorial": "View tutorial",
+      "tutorialSub": "Watch the introduction screens again"
+    },
+    "faq": {
+      "title": "FAQ",
+      "hint": "Common questions about PaseoApp",
+      "q1": "How many people can join a trip?",
+      "a1": "There's no limit. You can have as many participants as you need, organized by families.",
+      "q2": "What if someone skips a meal?",
+      "a2": "You can deactivate them for that specific meal and the cost is automatically redistributed.",
+      "q3": "Can I use PaseoApp without internet?",
+      "a3": "You need a connection to sync data, but basic navigation works with the cache.",
+      "q4": "How are settlements calculated?",
+      "a4": "We use a minimum-cash-flow algorithm to reduce the total number of transfers needed."
+    },
+    "logout": "Sign out",
+    "footer": "PaseoApp v{{version}} · Made with ❤️ in Colombia",
+    "profile": {
+      "title": "Edit profile",
+      "photo": "Profile photo",
+      "nameLabel": "Name",
+      "namePlaceholder": "Your full name",
+      "phoneLabel": "Phone",
+      "phonePlaceholder": "Your phone number",
+      "restrictionsLabel": "Dietary restrictions",
+      "restrictionsPlaceholder": "E.g: vegetarian, gluten-free...",
+      "emailLabel": "Email address",
+      "emailReadOnly": "Email cannot be changed",
+      "takePhoto": "📷 Take photo",
+      "chooseGallery": "🖼️ Choose from gallery",
+      "photoTitle": "Profile photo",
+      "errors": {
+        "noProfile": "Could not identify your profile.",
+        "noCamera": "We need access to your camera.",
+        "noGallery": "We need access to your gallery.",
+        "imageError": "Could not process the image."
+      }
+    },
+    "password": {
+      "title": "Change password",
+      "newLabel": "New password",
+      "newPlaceholder": "At least 6 characters",
+      "confirmLabel": "Confirm password",
+      "confirmPlaceholder": "Repeat your new password",
+      "saveBtn": "Save password",
+      "successTitle": "Password updated!",
+      "successSub": "Your password was changed successfully.",
+      "errors": {
+        "tooShort": "Password must be at least 6 characters.",
+        "mismatch": "Passwords do not match."
+      }
+    },
+    "signout": {
+      "title": "Sign out",
+      "message": "Are you sure you want to sign out?",
+      "confirm": "Sign out",
+      "cancel": "Cancel"
+    },
+    "languageModal": {
+      "title": "Idioma / Language",
+      "spanish": "Español",
+      "english": "English"
+    }
+  },
+  "trips": {
+    "title": "🗺️ My Trips",
+    "joinBtn": "🔑 Join",
+    "newBtn": "+ New",
+    "tooltip": {
+      "title": "My Trips",
+      "desc": "All your trips are here. Create a new one with '+ New' or join an existing one with an invite code."
+    },
+    "empty": {
+      "title": "No trips yet",
+      "sub": "Organize your next group adventure — plan dates, menus, and expenses in one place.",
+      "createBtn": "+ Create first trip",
+      "joinLink": "🔑 Have a code? Join one"
+    },
+    "card": {
+      "share": "📤 Share",
+      "youOrganizer": "👑 Organizer: You",
+      "organizer": "👤 Organizer: {{name}}"
+    },
+    "shareMessage": "🏕️ I'm inviting you to *{{name}}* on PaseoApp!\n\n📍 {{place}}\n📅 {{start}} → {{end}}\n\n🔑 Invite code: *{{code}}*\n\nDownload PaseoApp, create your account and use the code to join.",
+    "shareTitle": "Invitation — {{name}}",
+    "estados": {
+      "planificacion": "Planning",
+      "activo": "Active",
+      "liquidado": "Settled"
+    }
+  },
+  "newTrip": {
+    "title": "New Trip",
+    "nameLabel": "Trip name *",
+    "namePlaceholder": "E.g: La Esperanza Farm",
+    "placeLabel": "Location *",
+    "placePlaceholder": "E.g: Guatapé, Antioquia",
+    "startLabel": "Start date *",
+    "endLabel": "End date *",
+    "datePlaceholder": "YYYY-MM-DD",
+    "photoLabel": "Trip photo",
+    "stateLabel": "Status",
+    "accommodationLabel": "Accommodation link",
+    "accommodationPlaceholder": "https://...",
+    "mapLabel": "Map link",
+    "mapPlaceholder": "https://...",
+    "recommendationsLabel": "Recommendations",
+    "recommendationsPlaceholder": "What to bring, how to get there...",
+    "createBtn": "Create trip",
+    "creating": "Creating...",
+    "errors": {
+      "fillRequired": "Please fill in name, location, and dates.",
+      "createFailed": "Could not create the trip."
+    }
+  },
+  "joinTrip": {
+    "title": "Join a trip",
+    "label": "Invite code",
+    "placeholder": "E.g: ABC123",
+    "hint": "Ask the trip organizer for the code",
+    "joinBtn": "Join trip",
+    "joining": "Joining...",
+    "errors": {
+      "noCode": "Please enter the invite code.",
+      "notFound": "No trip found with that code.",
+      "alreadyJoined": "You're already a participant in this trip.",
+      "joinFailed": "Could not join the trip."
+    }
+  },
+  "recipes": {
+    "tabRecetas": "Recipes",
+    "tabIngredientes": "Ingredients",
+    "searchRecipePlaceholder": "Search recipe...",
+    "searchIngredientPlaceholder": "Search ingredient...",
+    "newRecipeBtn": "+ New recipe",
+    "exportBtn": "Export PDF",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect",
+    "cancelSelection": "Cancel",
+    "exporting": "Generating PDF...",
+    "noRecipes": "No recipes yet",
+    "noIngredients": "No ingredients yet",
+    "addIngredientBtn": "+ Ingredient",
+    "deleteIngredientTitle": "Delete ingredient",
+    "deleteIngredientMsg": "Delete \"{{name}}\"? This cannot be undone.",
+    "ingredient": {
+      "nameLabel": "Name *",
+      "namePlaceholder": "E.g: Rice",
+      "unitLabel": "Base unit *",
+      "categoryLabel": "Category",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Optional notes...",
+      "saveBtn": "Save ingredient",
+      "newTitle": "New ingredient",
+      "editTitle": "Edit ingredient"
+    },
+    "tags": {
+      "vegan": "Vegan",
+      "vegetarian": "Vegetarian",
+      "glutenFree": "Gluten-free",
+      "lactoseFree": "Lactose-free"
+    },
+    "tooltip": {
+      "title": "Recipes",
+      "desc": "Explore and create recipes for your trips."
+    }
+  },
+  "grocery": {
+    "title": "🛒 Grocery",
+    "generateBtn": "Generate list",
+    "generating": "Generating...",
+    "addExtraBtn": "+ Add extra",
+    "shareBtn": "Share list",
+    "emptyTitle": "Empty list",
+    "emptySub": "Generate the list from the trip menu",
+    "deleteItem": "Delete",
+    "extraTitle": "Add extra item",
+    "extraNameLabel": "Name *",
+    "extraNamePlaceholder": "E.g: Paper towels",
+    "extraQtyLabel": "Quantity",
+    "extraQtyPlaceholder": "E.g: 2",
+    "extraUnitLabel": "Unit",
+    "extraCategoryLabel": "Category",
+    "extraNotesLabel": "Notes",
+    "extraNotesPlaceholder": "Optional notes...",
+    "saveExtraBtn": "Add to list",
+    "tooltip": {
+      "title": "Grocery",
+      "desc": "Shopping list generated from each trip's menu."
+    }
+  },
+  "expenses": {
+    "title": "💸 Expenses",
+    "addBtn": "+ Expense",
+    "settlementTitle": "Settlement",
+    "settled": "Settled ✓",
+    "markSettled": "Mark as settled",
+    "totalExpenses": "Total expenses",
+    "perPerson": "Per person",
+    "gastoForm": {
+      "newTitle": "New expense",
+      "editTitle": "Edit expense",
+      "nameLabel": "Name *",
+      "namePlaceholder": "E.g: Saturday groceries",
+      "amountLabel": "Amount *",
+      "amountPlaceholder": "0",
+      "categoryLabel": "Category",
+      "paidByLabel": "Paid by *",
+      "participantsLabel": "Participants",
+      "saveBtn": "Save expense",
+      "saving": "Saving...",
+      "errors": {
+        "fillRequired": "Please fill in name, amount and who paid.",
+        "saveFailed": "Could not save the expense."
+      }
+    },
+    "deleteTitle": "Delete expense",
+    "deleteMsg": "Delete \"{{name}}\"? This cannot be undone.",
+    "tooltip": {
+      "title": "Expenses",
+      "desc": "Log group expenses and calculate who owes what."
+    }
+  },
+  "tripDetail": {
+    "tabs": {
+      "info": "Info",
+      "menu": "Menu",
+      "grocery": "Grocery",
+      "expenses": "Expenses",
+      "participants": "Participants"
+    },
+    "editBtn": "Edit",
+    "deleteBtn": "Delete trip",
+    "leaveBtn": "Leave trip",
+    "inviteCode": "Invite code",
+    "copyCode": "Copy code",
+    "shareInvite": "Share invite"
+  },
+  "attendance": {
+    "title": "Attendance",
+    "saveBtn": "Save",
+    "saving": "Saving...",
+    "meals": {
+      "desayuno": "Breakfast",
+      "almuerzo": "Lunch",
+      "cena": "Dinner",
+      "snack": "Snack"
+    }
+  },
+  "recipeDetail": {
+    "ingredients": "Ingredients",
+    "preparation": "Preparation",
+    "servings": "Servings",
+    "prepTime": "Prep",
+    "cookTime": "Cook",
+    "credits": "Credits",
+    "utensils": "Utensils",
+    "keywords": "Keywords",
+    "diet": "Diet",
+    "adjustServings": "Adjust servings",
+    "for": "For {{n}} people"
+  },
+  "newRecipe": {
+    "title": "New recipe",
+    "editTitle": "Edit recipe",
+    "nameLabel": "Name *",
+    "namePlaceholder": "E.g: Chicken rice",
+    "typeLabel": "Meal type",
+    "servingsLabel": "Base servings *",
+    "servingsPlaceholder": "E.g: 6",
+    "descLabel": "Description",
+    "descPlaceholder": "Brief description...",
+    "prepTimeLabel": "Prep time (min)",
+    "cookTimeLabel": "Cook time (min)",
+    "creditsLabel": "Credits",
+    "creditsPlaceholder": "E.g: Grandma's recipe",
+    "utensilsLabel": "Utensils",
+    "utensilsPlaceholder": "E.g: Large pot, frying pan",
+    "keywordsLabel": "Keywords",
+    "keywordsPlaceholder": "E.g: easy, quick",
+    "dietLabel": "Diet tags",
+    "ingredientsLabel": "Ingredients",
+    "addIngBtn": "+ Add ingredient",
+    "saveBtn": "Save recipe",
+    "saving": "Saving...",
+    "errors": {
+      "fillRequired": "Please fill in name and servings.",
+      "saveFailed": "Could not save the recipe."
+    }
+  }
+}

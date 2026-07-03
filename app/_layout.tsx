@@ -4,8 +4,10 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, View } from "react-native";
 import Toast from "react-native-toast-message";
+import "../src/i18n";
 import { ONBOARDING_KEY } from "../src/constants";
 import { useAuthStore } from "../src/store/useAuthStore";
+import { useLanguageStore } from "../src/store/useLanguageStore";
 import { useThemeStore } from "../src/store/useThemeStore";
 
 const PENDING_JOIN_KEY = "paseoapp_pending_join_code";
@@ -13,6 +15,7 @@ const PENDING_JOIN_KEY = "paseoapp_pending_join_code";
 export default function RootLayout() {
   const { session, loading, initialize } = useAuthStore();
   const { hydrate } = useThemeStore();
+  const { hydrate: hydrateLanguage } = useLanguageStore();
   const router = useRouter();
   const segments = useSegments();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
@@ -28,6 +31,7 @@ export default function RootLayout() {
   useEffect(() => {
     initialize();
     hydrate();
+    hydrateLanguage();
     checkOnboarding();
   }, []);
 
