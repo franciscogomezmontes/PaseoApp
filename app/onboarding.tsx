@@ -16,47 +16,47 @@ const { width } = Dimensions.get("window");
 const SLIDES = [
   {
     id: "0",
-    emoji: "🌴",
-    titulo: "Planea. Come bien.\nCuadra cuentas.",
+    emoji: "🏕️",
+    titulo: "Tu paseo, sin enredos",
     descripcion:
-      "PaseoApp organiza el menú, los gastos y las deudas de tu próximo paseo — sin hojas de cálculo, sin peleas.",
+      "Organiza salidas con amigos o familia en un solo lugar: menú, mercado y cuentas claras. Tú solo disfruta el paseo.",
     color: "#0f172a",
     bgColor: "#f8fafc",
     isHero: true,
   },
   {
     id: "1",
-    emoji: "🏕️",
-    titulo: "Bienvenido a PaseoApp",
+    emoji: "🎟️",
+    titulo: "Todos a bordo, fácil",
     descripcion:
-      "La app para organizar paseos en grupo sin dramas. Menú, gastos y cuentas — todo en un solo lugar.",
+      "Crea tu paseo y comparte el código. Cada quien se une desde su celular en segundos.",
     color: "#1B4F72",
     bgColor: "#EFF6FF",
   },
   {
     id: "2",
-    emoji: "📅",
-    titulo: "Planea el paseo",
+    emoji: "🍳",
+    titulo: "Qué comemos cada día",
     descripcion:
-      "Crea un paseo, invita a tu grupo con un código y organiza el menú día a día eligiendo recetas del catálogo compartido.",
+      "Asigna recetas a desayunos, almuerzos y cenas. Las porciones se ajustan solas según quién asiste a cada comida.",
     color: "#065F46",
     bgColor: "#F0FDF4",
   },
   {
     id: "3",
-    emoji: "🍽️",
-    titulo: "El menú en tus manos",
+    emoji: "🛒",
+    titulo: "La lista se hace sola",
     descripcion:
-      "Asigna recetas a cada comida, controla quién come qué y calcula porciones automáticamente según los participantes.",
+      "Del menú sale tu lista de mercado completa, sin olvidos ni compras dobles.",
     color: "#6D28D9",
     bgColor: "#F5F3FF",
   },
   {
     id: "4",
     emoji: "💸",
-    titulo: "Divide sin pelear",
+    titulo: "Cuentas claras, amistades largas",
     descripcion:
-      "Registra los gastos, asigna quién pagó y PaseoApp calcula automáticamente las transferencias mínimas para cuadrar cuentas.",
+      "Registra los gastos del grupo y al final te decimos quién le transfiere a quién. Sin dramas.",
     color: "#B45309",
     bgColor: "#FFFBEB",
   },
