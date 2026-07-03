@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import { Map, BookOpen, ShoppingCart, Receipt } from "lucide-react-native";
-import { useColorScheme } from "react-native";
+import { Platform, useColorScheme } from "react-native";
 import AddTabButton from "../../src/components/AddTabButton";
 import TopBar from "../../src/components/TopBar";
 import { lightTheme, darkTheme } from "../../src/theme";
@@ -19,10 +19,14 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: theme.tabBarBg,
           borderTopColor: theme.tabBarBorder,
-          paddingBottom: 8,
+          paddingBottom: Platform.OS === "web" ? 10 : 8,
           paddingTop: 4,
-          height: 60,
+          height: Platform.OS === "web" ? 72 : 60,
           overflow: "visible",
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          marginBottom: Platform.OS === "web" ? 2 : 0,
         },
       }}
     >

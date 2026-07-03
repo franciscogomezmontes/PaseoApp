@@ -102,7 +102,7 @@ export default function RootLayout() {
   return (
     <>
       <View style={isWeb ? { flex: 1, backgroundColor: "#1B4F72", alignItems: "center" } : { flex: 1 }}>
-        <View style={isWeb ? { flex: 1, width: 430, maxWidth: "100%", overflow: "hidden" as const } : { flex: 1 }}>
+        <View style={isWeb ? { flex: 1, width: 520, maxWidth: "100%", overflow: "hidden" as const } : { flex: 1 }}>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="onboarding" />
             <Stack.Screen name="auth" />
