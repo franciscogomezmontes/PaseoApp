@@ -39,6 +39,9 @@ jobs:
       - name: Add .nojekyll
         run: touch dist/.nojekyll
 
+      - name: Copy static pages
+        run: cp docs/privacy-policy.html dist/privacy-policy.html
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
