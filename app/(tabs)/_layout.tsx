@@ -66,7 +66,6 @@ export default function TabLayout() {
           tabBarLabel: "Gastos",
         }}
       />
-      <Tabs.Screen name="menu" options={{ href: null }} />
     </Tabs>
   );
 }

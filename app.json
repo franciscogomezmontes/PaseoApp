@@ -19,6 +19,14 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.frang_x1.PaseoApp",
+      "compileSdkVersion": 35,
+      "privacyPolicyUrl": "https://franciscogomezmontes.notion.site/Politica-de-Privacidad-PaseoApp",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.INTERNET"
+      ],
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyDgQF140x1bNsj1g3y9FKeKYTZtBx32ky4"
@@ -43,8 +51,8 @@
           }
         }
       ],
-      "expo-sqlite",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,
