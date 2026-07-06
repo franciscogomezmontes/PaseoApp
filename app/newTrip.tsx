@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../src/hooks/useTheme";
 import { supabase } from "../src/lib/supabase";
@@ -23,6 +24,7 @@ import { useTripStore } from "../src/store/useTripStore";
 export default function NewTripScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { t } = useTranslation();
   const { crearPaseo } = useTripStore();
 
   // ── Campos obligatorios ──
@@ -64,7 +66,7 @@ export default function NewTripScreen() {
     if (source === "camera") {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== "granted") {
-        showError("Necesitamos acceso a tu cámara.");
+        showError(t("newTrip.errors.noCamera"));
         return;
       }
       result = await ImagePicker.launchCameraAsync({
@@ -76,7 +78,7 @@ export default function NewTripScreen() {
       const { status } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
-        showError("Necesitamos acceso a tu galería.");
+        showError(t("newTrip.errors.noGallery"));
         return;
       }
       result = await ImagePicker.launchImageLibraryAsync({
@@ -110,7 +112,7 @@ export default function NewTripScreen() {
         .getPublicUrl(tmpName);
       setFotoUrl(urlData.publicUrl + "?t=" + Date.now());
     } catch {
-      showError("No se pudo procesar la imagen.");
+      showError(t("newTrip.errors.imageError"));
     }
     setUploadingPhoto(false);
   };
@@ -124,11 +126,11 @@ export default function NewTripScreen() {
     // Validate date format
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(fechaInicio) || !dateRegex.test(fechaFin)) {
-      showError("Las fechas deben tener el formato AAAA-MM-DD.");
+      showError(t("newTrip.errors.dateFormat"));
       return;
     }
     if (fechaInicio > fechaFin) {
-      showError("La fecha de inicio no puede ser posterior a la fecha de fin.");
+      showError(t("newTrip.errors.dateOrder"));
       return;
     }
 
@@ -149,7 +151,12 @@ export default function NewTripScreen() {
     setSaving(false);
 
     if (!paseo) {
-      showError("No se pudo crear el paseo. Revisa tu conexión.");
+      // Clean up the temp photo from Storage so it doesn't become orphaned
+      if (fotoUrl) {
+        const tmpName = fotoUrl.split("/").pop()?.split("?")[0] ?? "";
+        if (tmpName) supabase.storage.from("avatars").remove([tmpName]).catch(() => {});
+      }
+      showError(t("newTrip.errors.createFailed"));
       return;
     }
 
@@ -190,9 +197,9 @@ export default function NewTripScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.headerBack}>← Volver</Text>
+            <Text style={styles.headerBack}>{t("newTrip.back")}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Nuevo paseo</Text>
+          <Text style={styles.headerTitle}>{t("newTrip.title")}</Text>
           <TouchableOpacity
             onPress={handleCreate}
             disabled={!isValid || saving}
@@ -203,7 +210,7 @@ export default function NewTripScreen() {
                 (!isValid || saving) && styles.headerSaveDisabled,
               ]}
             >
-              {saving ? "..." : "Crear"}
+              {saving ? "..." : t("newTrip.create")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -231,21 +238,19 @@ export default function NewTripScreen() {
             ) : (
               <View style={styles.photoPlaceholder}>
                 <Text style={styles.photoIcon}>📸</Text>
-                <Text style={styles.photoHint}>
-                  Toca para agregar una foto{"\n"}del lugar (opcional)
-                </Text>
+                <Text style={styles.photoHint}>{t("newTrip.photoHint")}</Text>
               </View>
             )}
           </TouchableOpacity>
 
           {/* ── Campos obligatorios ── */}
-          <Text style={[styles.sectionLabel, { color: theme.textTertiary }]}>Información básica</Text>
+          <Text style={[styles.sectionLabel, { color: theme.textTertiary }]}>{t("newTrip.basicInfo")}</Text>
 
           <View style={styles.field}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>Nombre del paseo *</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t("newTrip.nameLabel")}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
-              placeholder="Ej: Anapoima Enero 2026"
+              placeholder={t("newTrip.namePlaceholder")}
               placeholderTextColor={theme.inputPlaceholder}
               value={nombre}
               onChangeText={setNombre}
@@ -253,10 +258,10 @@ export default function NewTripScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>Lugar *</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t("newTrip.placeLabel")}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
-              placeholder="Ej: Anapoima, Cundinamarca"
+              placeholder={t("newTrip.placePlaceholder")}
               placeholderTextColor={theme.inputPlaceholder}
               value={lugar}
               onChangeText={setLugar}
@@ -265,10 +270,10 @@ export default function NewTripScreen() {
 
           <View style={styles.dateRow}>
             <View style={[styles.field, { flex: 1 }]}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>Fecha inicio *</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t("newTrip.startLabel")}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
-                placeholder="AAAA-MM-DD"
+                placeholder={t("newTrip.datePlaceholder")}
                 placeholderTextColor={theme.inputPlaceholder}
                 value={fechaInicio}
                 onChangeText={setFechaInicio}
@@ -277,10 +282,10 @@ export default function NewTripScreen() {
             </View>
             <View style={{ width: 12 }} />
             <View style={[styles.field, { flex: 1 }]}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>Fecha fin *</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t("newTrip.endLabel")}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
-                placeholder="AAAA-MM-DD"
+                placeholder={t("newTrip.datePlaceholder")}
                 placeholderTextColor={theme.inputPlaceholder}
                 value={fechaFin}
                 onChangeText={setFechaFin}
@@ -296,24 +301,22 @@ export default function NewTripScreen() {
           >
             <View>
               <Text style={styles.opcionalesToggleTitle}>
-                {showOpcionales ? "▾" : "▸"} Información adicional
+                {showOpcionales ? "▾" : "▸"} {t("newTrip.additionalInfo")}
               </Text>
-              <Text style={styles.opcionalesToggleSub}>
-                Alojamiento, ubicación, recomendaciones
-              </Text>
+              <Text style={styles.opcionalesToggleSub}>{t("newTrip.additionalInfoSub")}</Text>
             </View>
             <Text style={styles.opcionalesToggleHint}>
-              {showOpcionales ? "Ocultar" : "Opcional"}
+              {showOpcionales ? t("newTrip.hide") : t("newTrip.optional")}
             </Text>
           </TouchableOpacity>
 
           {showOpcionales && (
             <View style={styles.opcionalesContent}>
               <View style={styles.field}>
-                <Text style={[styles.label, { color: theme.textSecondary }]}>🏠 Link de alojamiento</Text>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>{t("newTrip.accommodationLabel")}</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
-                  placeholder="https://airbnb.com/..."
+                  placeholder={t("newTrip.accommodationPlaceholder")}
                   placeholderTextColor={theme.inputPlaceholder}
                   value={linkAlojamiento}
                   onChangeText={setLinkAlojamiento}
@@ -323,10 +326,10 @@ export default function NewTripScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={[styles.label, { color: theme.textSecondary }]}>🗺️ Link de ubicación</Text>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>{t("newTrip.mapLabel")}</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
-                  placeholder="https://maps.google.com/..."
+                  placeholder={t("newTrip.mapPlaceholder")}
                   placeholderTextColor={theme.inputPlaceholder}
                   value={linkMapa}
                   onChangeText={setLinkMapa}
@@ -336,10 +339,10 @@ export default function NewTripScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={[styles.label, { color: theme.textSecondary }]}>💡 Recomendaciones de llegada</Text>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>{t("newTrip.recommendationsLabel")}</Text>
                 <TextInput
                   style={[styles.input, styles.inputMultiline, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
-                  placeholder="Ej: Tomar la vía principal, la casa es la segunda a la derecha..."
+                  placeholder={t("newTrip.recommendationsPlaceholder")}
                   placeholderTextColor={theme.inputPlaceholder}
                   value={recomendaciones}
                   onChangeText={setRecomendaciones}
@@ -352,10 +355,7 @@ export default function NewTripScreen() {
 
           {/* ── Info box ── */}
           <View style={styles.infoBox}>
-            <Text style={styles.infoText}>
-              🔑 Se generará un código de invitación automáticamente para
-              compartir con tu grupo.
-            </Text>
+            <Text style={styles.infoText}>{t("newTrip.inviteCodeInfo")}</Text>
           </View>
 
           {/* ── Botón crear ── */}
@@ -370,7 +370,7 @@ export default function NewTripScreen() {
             {saving ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.createButtonText}>✓ Crear paseo</Text>
+              <Text style={styles.createButtonText}>{t("newTrip.createBtn")}</Text>
             )}
           </TouchableOpacity>
         </ScrollView>
@@ -387,18 +387,18 @@ export default function NewTripScreen() {
       >
         <View style={styles.overlay}>
           <View style={styles.sheetBox}>
-            <Text style={styles.sheetTitle}>Foto del paseo</Text>
+            <Text style={styles.sheetTitle}>{t("newTrip.photoTitle")}</Text>
             <TouchableOpacity
               style={styles.sheetOption}
               onPress={() => pickPhoto("camera")}
             >
-              <Text style={styles.sheetOptionText}>📷 Tomar foto</Text>
+              <Text style={styles.sheetOptionText}>{t("newTrip.takePhoto")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.sheetOption}
               onPress={() => pickPhoto("gallery")}
             >
-              <Text style={styles.sheetOptionText}>🖼️ Elegir de galería</Text>
+              <Text style={styles.sheetOptionText}>{t("newTrip.chooseGallery")}</Text>
             </TouchableOpacity>
             {fotoUrl ? (
               <TouchableOpacity
@@ -409,7 +409,7 @@ export default function NewTripScreen() {
                 }}
               >
                 <Text style={[styles.sheetOptionText, { color: "#DC2626" }]}>
-                  🗑️ Quitar foto
+                  {t("newTrip.removePhoto")}
                 </Text>
               </TouchableOpacity>
             ) : null}
@@ -417,7 +417,7 @@ export default function NewTripScreen() {
               style={styles.sheetCancel}
               onPress={() => setShowPhotoModal(false)}
             >
-              <Text style={styles.sheetCancelText}>Cancelar</Text>
+              <Text style={styles.sheetCancelText}>{t("common.cancel")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -433,10 +433,10 @@ export default function NewTripScreen() {
         <View style={styles.overlay}>
           <View style={styles.successBox}>
             <Text style={styles.successEmoji}>🎉</Text>
-            <Text style={styles.successTitle}>¡Paseo creado!</Text>
+            <Text style={styles.successTitle}>{t("newTrip.successTitle")}</Text>
             <Text style={styles.successMsg}>
-              {createdPaseo?.nombre} está listo.{"\n"}
-              Código de invitación:{" "}
+              {createdPaseo?.nombre}{"\n"}
+              {t("newTrip.inviteCodeInfo").split("🔑 ")[0]}
               <Text style={styles.successCode}>
                 {createdPaseo?.codigo_invitacion}
               </Text>
@@ -451,7 +451,7 @@ export default function NewTripScreen() {
                 });
               }}
             >
-              <Text style={styles.successBtnText}>Ir al paseo →</Text>
+              <Text style={styles.successBtnText}>{t("newTrip.goToTrip")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.successSecondary}

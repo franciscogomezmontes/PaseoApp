@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { Platform, AppState } from "react-native";
+import { Platform } from "react-native";
 import "react-native-url-polyfill/auto";
 import type { Database } from "./database.types";
 
@@ -134,10 +134,5 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-AppState.addEventListener("change", (state) => {
-  if (state === "active") {
-    supabase.auth.startAutoRefresh();
-  } else {
-    supabase.auth.stopAutoRefresh();
-  }
-});
+// AppState management is handled centrally in useAuthStore.initialize()
+// to avoid duplicate listeners and allow proper cleanup.

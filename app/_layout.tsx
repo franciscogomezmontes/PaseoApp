@@ -4,6 +4,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, View } from "react-native";
 import Toast from "react-native-toast-message";
+import { useTranslation } from "react-i18next";
 import "../src/i18n";
 import { ONBOARDING_KEY } from "../src/constants";
 import { useAuthStore } from "../src/store/useAuthStore";
@@ -13,6 +14,7 @@ import { useThemeStore } from "../src/store/useThemeStore";
 const PENDING_JOIN_KEY = "paseoapp_pending_join_code";
 
 export default function RootLayout() {
+  const { t } = useTranslation();
   const { session, loading, initialize } = useAuthStore();
   const { hydrate } = useThemeStore();
   const { hydrate: hydrateLanguage } = useLanguageStore();
@@ -35,11 +37,11 @@ export default function RootLayout() {
     checkOnboarding();
   }, []);
 
-  // Re-check AsyncStorage every time segments change —
-  // catches the moment onboarding writes "true" and the layout needs to redirect
+  // Re-check only while onboarding hasn't been confirmed yet —
+  // catches the moment onboarding writes "true" without running on every tab switch
   useEffect(() => {
-    checkOnboarding();
-  }, [segments]);
+    if (!onboardingDone) checkOnboarding();
+  }, [segments, onboardingDone]);
 
   const checkOnboarding = async () => {
     const done = await AsyncStorage.getItem(ONBOARDING_KEY);
@@ -116,7 +118,7 @@ export default function RootLayout() {
               options={{
                 presentation: "modal",
                 headerShown: true,
-                headerTitle: "Nuevo Paseo",
+                headerTitle: t("newTrip.title"),
                 headerStyle: { backgroundColor: "#1B4F72" },
                 headerTintColor: "#fff",
                 headerTitleStyle: { fontWeight: "800" },
@@ -128,7 +130,7 @@ export default function RootLayout() {
               options={{
                 presentation: "modal",
                 headerShown: true,
-                headerTitle: "Unirse a un paseo",
+                headerTitle: t("joinTrip.title"),
                 headerStyle: { backgroundColor: "#1B4F72" },
                 headerTintColor: "#fff",
                 headerTitleStyle: { fontWeight: "800" },
@@ -139,6 +141,7 @@ export default function RootLayout() {
             <Stack.Screen name="recipeDetail" options={{ headerShown: false }} />
             <Stack.Screen name="newRecipe" options={{ headerShown: false }} />
             <Stack.Screen name="adminUpload" options={{ headerShown: false }} />
+            <Stack.Screen name="directorio" options={{ headerShown: false }} />
           </Stack>
         </View>
       </View>
