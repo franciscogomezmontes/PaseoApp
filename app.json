@@ -20,7 +20,7 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.frangx1.paseoapp",
       "compileSdkVersion": 35,
-      "privacyPolicyUrl": "https://franciscogomezmontes.notion.site/Politica-de-Privacidad-PaseoApp",
+      "privacyPolicyUrl": "https://franciscogomezmontes.github.io/PaseoApp/privacy-policy.html",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",
