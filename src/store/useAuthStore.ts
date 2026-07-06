@@ -104,8 +104,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         }
       }
     });
-
-    set({ loading: false });
   },
 
   signUp: async (email, password, nombre) => {

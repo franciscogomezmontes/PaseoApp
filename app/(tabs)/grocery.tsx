@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import TabTooltip from "../../src/components/TabTooltip";
 import { TOOLTIP_KEYS } from "../../src/constants";
@@ -48,6 +49,7 @@ const getCategoriaConfig = (cat: string) =>
 export default function GroceryScreen() {
   const { paseos, fetchPaseos } = useTripStore();
   const theme = useTheme();
+  const { t } = useTranslation();
 
   // ── Data ──
   const [itemsPorPaseo, setItemsPorPaseo] = useState<Record<string, any[]>>({});
@@ -170,7 +172,7 @@ export default function GroceryScreen() {
       .not("receta_id", "is", null);
 
     if (!momentos || momentos.length === 0) {
-      showError("Agrega recetas al menú del paseo primero.");
+      showError(t("grocery.errors.noMenu"));
       setGeneratingPaseoId(null);
       return;
     }
@@ -208,20 +210,37 @@ export default function GroceryScreen() {
       }
     }
 
-    await supabase
-      .from("lista_mercado")
-      .delete()
-      .eq("paseo_id", paseoId)
-      .eq("es_extra", false);
     const rows = Object.values(consolidated).map((item) => ({
       ...item,
       paseo_id: paseoId,
       cantidad: Math.round(item.cantidad * 100) / 100,
     }));
-    if (rows.length > 0) await supabase.from("lista_mercado").insert(rows);
+
+    // Capture old IDs before touching anything
+    const { data: oldItems } = await supabase
+      .from("lista_mercado")
+      .select("id")
+      .eq("paseo_id", paseoId)
+      .eq("es_extra", false);
+    const oldIds = (oldItems ?? []).map((i: any) => i.id);
+
+    // Insert new rows first; if this fails, old data is untouched
+    if (rows.length > 0) {
+      const { error: insertError } = await supabase.from("lista_mercado").insert(rows);
+      if (insertError) {
+        showError(insertError.message);
+        setGeneratingPaseoId(null);
+        return;
+      }
+    }
+
+    // Only wipe old rows after insert succeeded
+    if (oldIds.length > 0) {
+      await supabase.from("lista_mercado").delete().in("id", oldIds);
+    }
 
     await loadAllItems();
-    showSuccess("Lista generada ✓", `${rows.length} ingredientes del menú`);
+    showSuccess(t("grocery.generatedSuccess"), t("grocery.generatedItems", { count: rows.length }));
     setGeneratingPaseoId(null);
   };
 
@@ -241,7 +260,7 @@ export default function GroceryScreen() {
 
   const handleAddExtra = async () => {
     if (!extraNombre.trim()) {
-      showError("El nombre es obligatorio.");
+      showError(t("grocery.errors.nameRequired"));
       return;
     }
     setSavingExtra(true);
@@ -266,7 +285,7 @@ export default function GroceryScreen() {
       setExtraRecomendaciones("");
       setExtraCategoria("Extras");
       await loadAllItems();
-      showSuccess("Item agregado ✓");
+      showSuccess(t("grocery.itemAdded"));
     }
     setSavingExtra(false);
   };
@@ -283,7 +302,7 @@ export default function GroceryScreen() {
     const paseo = paseos.find((p) => p.id === paseoId);
     const items = itemsPorPaseo[paseoId] ?? [];
     const categorias = [...new Set(items.map((i) => i.categoria))];
-    let text = `🛒 Lista de mercado — ${paseo?.nombre}\n\n`;
+    let text = `${t("grocery.shareHeader", { name: paseo?.nombre })}\n\n`;
     for (const cat of categorias) {
       const catItems = items.filter((i) => i.categoria === cat);
       const config = getCategoriaConfig(cat);
@@ -308,13 +327,13 @@ export default function GroceryScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["bottom", "left", "right"]}>
       <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
-        <Text style={[styles.headerTitle, { color: theme.headerText }]}>🛒 Mercado</Text>
+        <Text style={[styles.headerTitle, { color: theme.headerText }]}>{t("grocery.title")}</Text>
       </View>
       <TabTooltip
         storageKey={TOOLTIP_KEYS.grocery}
         emoji="🛒"
-        titulo="Mercado"
-        descripcion="Genera la lista de mercado automáticamente desde el menú del paseo. Toca cada item para marcarlo como comprado."
+        titulo={t("grocery.tooltip.title")}
+        descripcion={t("grocery.tooltip.desc")}
         color="#065F46"
         bgColor="#F0FDF4"
       />
@@ -335,10 +354,8 @@ export default function GroceryScreen() {
       ) : paseos.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.emptyIcon}>🛒</Text>
-          <Text style={styles.emptyTitle}>Sin paseos aún</Text>
-          <Text style={styles.emptySub}>
-            Crea un paseo para generar tu lista de mercado
-          </Text>
+          <Text style={styles.emptyTitle}>{t("grocery.noTripsTitle")}</Text>
+          <Text style={styles.emptySub}>{t("grocery.noTripsSub")}</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
@@ -363,8 +380,8 @@ export default function GroceryScreen() {
                     <Text style={styles.paseoNombre}>{paseo.nombre}</Text>
                     <Text style={styles.paseoSub}>
                       {items.length === 0
-                        ? "Sin items"
-                        : `${comprados} de ${items.length} comprados`}
+                        ? t("grocery.itemsNone")
+                        : t("grocery.itemsProgress", { bought: comprados, total: items.length })}
                     </Text>
                   </View>
                   {items.length > 0 && (
@@ -407,7 +424,7 @@ export default function GroceryScreen() {
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
                           <Text style={styles.actionBtnPrimaryText}>
-                            ⚡ Generar desde menú
+                            {t("grocery.generateFromMenu")}
                           </Text>
                         )}
                       </TouchableOpacity>
@@ -418,7 +435,7 @@ export default function GroceryScreen() {
                           setShowAddModal(true);
                         }}
                       >
-                        <Text style={styles.actionBtnText}>+ Extra</Text>
+                        <Text style={styles.actionBtnText}>{t("grocery.addExtraBtn")}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.actionBtn}
@@ -432,9 +449,9 @@ export default function GroceryScreen() {
                     {items.length === 0 ? (
                       <View style={styles.emptyItems}>
                         <Text style={styles.emptyItemsIcon}>🛒</Text>
-                        <Text style={styles.emptyItemsTitle}>Lista vacía</Text>
+                        <Text style={styles.emptyItemsTitle}>{t("grocery.emptyItemsTitle")}</Text>
                         <Text style={styles.emptyItemsText}>
-                          Usa "⚡ Generar desde menú" para crear la lista automáticamente, o agrega items con "+ Extra".
+                          {t("grocery.emptyItemsText")}
                         </Text>
                       </View>
                     ) : (
@@ -465,11 +482,7 @@ export default function GroceryScreen() {
                                 </Text>
                               </View>
                               <Text style={styles.categoryCount}>
-                                {
-                                  catItems.filter((i: any) => !i.comprado)
-                                    .length
-                                }{" "}
-                                pendientes
+                                {t("grocery.pendingCount", { count: catItems.filter((i: any) => !i.comprado).length })}
                               </Text>
                             </View>
 
@@ -582,7 +595,7 @@ export default function GroceryScreen() {
               style={[styles.confirmBtn, { backgroundColor: "#1B4F72" }]}
               onPress={() => setShowErrorModal(false)}
             >
-              <Text style={styles.confirmBtnText}>Entendido</Text>
+              <Text style={styles.confirmBtnText}>{t("common.ok")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -597,16 +610,13 @@ export default function GroceryScreen() {
       >
         <View style={styles.overlay}>
           <View style={styles.confirmBox}>
-            <Text style={styles.confirmTitle}>⚡ Generar lista</Text>
-            <Text style={styles.confirmMsg}>
-              Esto generará la lista basada en el menú actual. Los items del
-              menú existentes serán reemplazados.
-            </Text>
+            <Text style={styles.confirmTitle}>{t("grocery.generateConfirmTitle")}</Text>
+            <Text style={styles.confirmMsg}>{t("grocery.generateConfirmMsg")}</Text>
             <TouchableOpacity
               style={[styles.confirmBtn, { backgroundColor: "#1B4F72" }]}
               onPress={() => handleGenerate(confirmGenerarPaseoId)}
             >
-              <Text style={styles.confirmBtnText}>Generar</Text>
+              <Text style={styles.confirmBtnText}>{t("grocery.generateConfirmBtn")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -616,7 +626,7 @@ export default function GroceryScreen() {
               onPress={() => setShowConfirmGenerar(false)}
             >
               <Text style={[styles.confirmBtnText, { color: "#1e293b" }]}>
-                Cancelar
+                {t("common.cancel")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -645,7 +655,7 @@ export default function GroceryScreen() {
               }}
             >
               <Text style={[styles.confirmBtnText, { color: "#1B4F72" }]}>
-                💡 Ver recomendaciones
+                {t("grocery.optionsViewRecom")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -660,7 +670,7 @@ export default function GroceryScreen() {
               }}
             >
               <Text style={[styles.confirmBtnText, { color: "#DC2626" }]}>
-                🗑️ Eliminar
+                {t("grocery.optionsDelete")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -668,7 +678,7 @@ export default function GroceryScreen() {
               onPress={() => setShowOptionsModal(false)}
             >
               <Text style={[styles.confirmBtnText, { color: "#1e293b" }]}>
-                Cancelar
+                {t("common.cancel")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -684,15 +694,15 @@ export default function GroceryScreen() {
       >
         <View style={styles.overlay}>
           <View style={styles.confirmBox}>
-            <Text style={styles.confirmTitle}>¿Eliminar item?</Text>
+            <Text style={styles.confirmTitle}>{t("grocery.deleteItemTitle")}</Text>
             <Text style={styles.confirmMsg}>
-              "{deleteTarget?.nombre}" será eliminado de la lista.
+              {t("grocery.deleteItemMsg", { name: deleteTarget?.nombre })}
             </Text>
             <TouchableOpacity
               style={[styles.confirmBtn, { backgroundColor: "#DC2626" }]}
               onPress={confirmDeleteItem}
             >
-              <Text style={styles.confirmBtnText}>Eliminar</Text>
+              <Text style={styles.confirmBtnText}>{t("common.delete")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -702,7 +712,7 @@ export default function GroceryScreen() {
               onPress={() => setShowDeleteModal(false)}
             >
               <Text style={[styles.confirmBtnText, { color: "#1e293b" }]}>
-                Cancelar
+                {t("common.cancel")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -720,13 +730,12 @@ export default function GroceryScreen() {
           <View style={styles.recomBox}>
             <Text style={styles.recomTitle}>💡 {selectedItem?.nombre}</Text>
             <Text style={styles.recomText}>
-              {selectedItem?.recomendaciones ||
-                "Sin recomendaciones disponibles."}
+              {selectedItem?.recomendaciones || t("grocery.recomNoRecom")}
             </Text>
             {selectedItem?.cantidad && (
               <View style={styles.recomCantidad}>
                 <Text style={styles.recomCantidadText}>
-                  Cantidad: {selectedItem.cantidad} {selectedItem.unidad}
+                  {t("grocery.recomQuantity", { cantidad: selectedItem.cantidad, unidad: selectedItem.unidad })}
                 </Text>
               </View>
             )}
@@ -734,7 +743,7 @@ export default function GroceryScreen() {
               style={styles.recomClose}
               onPress={() => setShowRecomModal(false)}
             >
-              <Text style={styles.recomCloseText}>Cerrar</Text>
+              <Text style={styles.recomCloseText}>{t("common.close")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -750,12 +759,12 @@ export default function GroceryScreen() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowAddModal(false)}>
-              <Text style={styles.modalCancel}>Cancelar</Text>
+              <Text style={styles.modalCancel}>{t("common.cancel")}</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Agregar item extra</Text>
+            <Text style={styles.modalTitle}>{t("grocery.extraTitle")}</Text>
             <TouchableOpacity onPress={handleAddExtra} disabled={savingExtra}>
               <Text style={styles.modalSave}>
-                {savingExtra ? "..." : "Agregar"}
+                {savingExtra ? "..." : t("grocery.extraAddBtn")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -764,17 +773,17 @@ export default function GroceryScreen() {
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Nombre *</Text>
+              <Text style={styles.fieldLabel}>{t("grocery.extraNameLabel")}</Text>
               <TextInput
                 style={styles.input}
                 value={busquedaExtra}
-                onChangeText={(t) => {
-                  setBusquedaExtra(t);
-                  setExtraNombre(t);
+                onChangeText={(val) => {
+                  setBusquedaExtra(val);
+                  setExtraNombre(val);
                   setShowIngCatalogo(true);
                 }}
                 onFocus={() => setShowIngCatalogo(true)}
-                placeholder="Buscar o escribir item..."
+                placeholder={t("grocery.extraSearchPlaceholder")}
                 placeholderTextColor="#94a3b8"
               />
               {showIngCatalogo &&
@@ -805,29 +814,29 @@ export default function GroceryScreen() {
             </View>
             <View style={{ flexDirection: "row", gap: 8 }}>
               <View style={[styles.field, { flex: 1 }]}>
-                <Text style={styles.fieldLabel}>Cantidad</Text>
+                <Text style={styles.fieldLabel}>{t("grocery.extraQtyLabel")}</Text>
                 <TextInput
                   style={styles.input}
                   value={extraCantidad}
                   onChangeText={setExtraCantidad}
-                  placeholder="0"
+                  placeholder={t("grocery.extraQtyPlaceholder")}
                   placeholderTextColor="#94a3b8"
                   keyboardType="numeric"
                 />
               </View>
               <View style={[styles.field, { flex: 1 }]}>
-                <Text style={styles.fieldLabel}>Unidad</Text>
+                <Text style={styles.fieldLabel}>{t("grocery.extraUnitLabel")}</Text>
                 <TextInput
                   style={styles.input}
                   value={extraUnidad}
                   onChangeText={setExtraUnidad}
-                  placeholder="Ej: rollos"
+                  placeholder={t("grocery.extraUnitPlaceholder")}
                   placeholderTextColor="#94a3b8"
                 />
               </View>
             </View>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Categoría</Text>
+              <Text style={styles.fieldLabel}>{t("grocery.extraCategoryLabel")}</Text>
               <View style={styles.chipRow}>
                 {Object.keys(CATEGORIA_CONFIG).map((cat) => (
                   <TouchableOpacity
@@ -851,12 +860,12 @@ export default function GroceryScreen() {
               </View>
             </View>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Recomendaciones</Text>
+              <Text style={styles.fieldLabel}>{t("grocery.extraNotesLabel")}</Text>
               <TextInput
                 style={[styles.input, { height: 80 }]}
                 value={extraRecomendaciones}
                 onChangeText={setExtraRecomendaciones}
-                placeholder="Marca, tamaño, frescura..."
+                placeholder={t("grocery.extraNotesPlaceholder")}
                 placeholderTextColor="#94a3b8"
                 multiline
               />

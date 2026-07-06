@@ -10,6 +10,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../src/hooks/useTheme";
 import { supabase } from "../src/lib/supabase";
@@ -18,6 +19,7 @@ import { useAuthStore } from "../src/store/useAuthStore";
 export default function JoinTripScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { t } = useTranslation();
   const { code } = useLocalSearchParams<{ code?: string }>();
   const { persona } = useAuthStore();
   const [codigo, setCodigo] = useState(code ?? "");
@@ -25,13 +27,17 @@ export default function JoinTripScreen() {
 
   const handleJoin = async () => {
     if (codigo.trim().length < 6) {
-      Alert.alert("Error", "Por favor ingresa un código válido.");
+      Alert.alert(t("common.error"), t("joinTrip.errors.noCode"));
       return;
     }
 
     setLoading(true);
 
-    // Find trip by invite code
+    if (!persona) {
+      setLoading(false);
+      return;
+    }
+
     const { data: paseo, error: paseoError } = await supabase
       .from("paseos")
       .select("id, nombre, lugar, fecha_inicio, fecha_fin")
@@ -39,26 +45,22 @@ export default function JoinTripScreen() {
       .single();
 
     if (paseoError || !paseo) {
-      Alert.alert(
-        "Error",
-        "Código no encontrado. Verifica e intenta de nuevo.",
-      );
+      Alert.alert(t("common.error"), t("joinTrip.errors.notFound"));
       setLoading(false);
       return;
     }
 
-    // Check if already a participant
     const { data: existing } = await supabase
       .from("participaciones")
       .select("id")
       .eq("paseo_id", paseo.id)
-      .eq("persona_id", persona!.id)
-      .single();
+      .eq("persona_id", persona.id)
+      .maybeSingle();
 
     if (existing) {
-      Alert.alert("Ya eres participante", `Ya estás unido a ${paseo.nombre}.`, [
+      Alert.alert(t("joinTrip.alreadyJoinedTitle"), t("joinTrip.alreadyJoinedMsg", { name: paseo.nombre }), [
         {
-          text: "Ver paseo",
+          text: t("joinTrip.viewTrip"),
           onPress: () => {
             router.replace("/(tabs)");
             router.push({ pathname: "/tripDetail", params: { id: paseo.id } });
@@ -69,35 +71,30 @@ export default function JoinTripScreen() {
       return;
     }
 
-    // Add as participant (family 0 = unassigned, organizer can move them)
     const { error: joinError } = await supabase.from("participaciones").insert({
       paseo_id: paseo.id,
-      persona_id: persona!.id,
+      persona_id: persona.id,
       unidad_familiar: 99,
       factor: 1.0,
       puso: 0,
     });
 
     if (joinError) {
-      Alert.alert("Error", "No se pudo unir al paseo. Intenta de nuevo.");
+      Alert.alert(t("common.error"), t("joinTrip.errors.joinFailed"));
       setLoading(false);
       return;
     }
 
     setLoading(false);
-    Alert.alert(
-      "¡Te uniste! 🎉",
-      `Ahora eres participante de ${paseo.nombre}.`,
-      [
-        {
-          text: "Ver paseo",
-          onPress: () => {
-            router.replace("/(tabs)");
-            router.push({ pathname: "/tripDetail", params: { id: paseo.id } });
-          },
+    Alert.alert(t("joinTrip.joined"), t("joinTrip.joinedMsg", { name: paseo.nombre }), [
+      {
+        text: t("joinTrip.viewTrip"),
+        onPress: () => {
+          router.replace("/(tabs)");
+          router.push({ pathname: "/tripDetail", params: { id: paseo.id } });
         },
-      ],
-    );
+      },
+    ]);
   };
 
   return (
@@ -107,42 +104,34 @@ export default function JoinTripScreen() {
         style={{ flex: 1 }}
       >
         <View style={styles.content}>
-          {/* ICON */}
           <View style={styles.iconArea}>
             <Text style={styles.icon}>🗺️</Text>
-            <Text style={[styles.title, { color: theme.text }]}>Unirse a un paseo</Text>
-            <Text style={[styles.sub, { color: theme.textSecondary }]}>
-              Pídele el código de invitación al organizador del paseo
-            </Text>
+            <Text style={[styles.title, { color: theme.text }]}>{t("joinTrip.title")}</Text>
+            <Text style={[styles.sub, { color: theme.textSecondary }]}>{t("joinTrip.hint")}</Text>
           </View>
 
-          {/* CODE INPUT */}
           <View style={styles.inputArea}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>Código de invitación</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t("joinTrip.label")}</Text>
             <TextInput
               style={[styles.codeInput, { backgroundColor: theme.surface, borderColor: theme.primary, color: theme.text }]}
-              placeholder="ej: a1b2c3d4"
+              placeholder={t("joinTrip.placeholder")}
               placeholderTextColor={theme.textTertiary}
               value={codigo}
-              onChangeText={(t) => setCodigo(t.toLowerCase())}
+              onChangeText={(v) => setCodigo(v.toLowerCase())}
               autoCapitalize="none"
               autoCorrect={false}
               maxLength={8}
             />
-            <Text style={[styles.hint, { color: theme.textTertiary }]}>El código tiene 8 caracteres</Text>
+            <Text style={[styles.hint, { color: theme.textTertiary }]}>{t("joinTrip.codeHint")}</Text>
           </View>
 
-          {/* JOIN BUTTON */}
           <TouchableOpacity
-            style={[
-              styles.joinButton,
-              (!codigo || loading) && styles.joinButtonDisabled,
-            ]}
+            style={[styles.joinButton, (!codigo || loading) && styles.joinButtonDisabled]}
             onPress={handleJoin}
             disabled={!codigo || loading}
           >
             <Text style={styles.joinButtonText}>
-              {loading ? "Buscando..." : "Unirse al paseo"}
+              {loading ? t("joinTrip.joining") : t("joinTrip.joinBtn")}
             </Text>
           </TouchableOpacity>
         </View>

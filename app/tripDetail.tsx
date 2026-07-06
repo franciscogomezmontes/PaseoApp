@@ -3,6 +3,7 @@ import * as Print from "expo-print";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Image,
@@ -81,7 +82,8 @@ const formatCOP = (n: number) => "$" + Math.round(n).toLocaleString("es-CO");
 // Component
 // ─────────────────────────────────────────────
 export default function TripDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: _rawId } = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = Array.isArray(_rawId) ? _rawId[0] : (_rawId ?? "");
   const router = useRouter();
   const theme = useTheme();
   const {
@@ -92,6 +94,7 @@ export default function TripDetailScreen() {
     fetchPaseos,
   } = useTripStore();
   const { recetas, fetchRecetas } = useRecipeStore();
+  const { t } = useTranslation();
 
   // ── Core data ──
   const [activeTab, setActiveTab] = useState<
@@ -276,6 +279,7 @@ export default function TripDetailScreen() {
     fetchPersonas();
     fetchRecetas();
     loadTripData();
+    loadGastos();
   }, [id]);
   useEffect(() => {
     if (activeTab === "gastos") {
@@ -549,7 +553,7 @@ export default function TripDetailScreen() {
       setEditingFamilia((prev: any) => ({ ...prev, foto_url: publicUrl }));
       loadTripData();
     } catch (e) {
-      showError("No se pudo procesar la imagen.");
+      showError(t("tripDetail.errors.imageError"));
     }
     setUploadingFamiliaPhoto(false);
   };
@@ -577,7 +581,7 @@ export default function TripDetailScreen() {
 
   const handleAddParticipant = async () => {
     if (!newPersonaNombre.trim()) {
-      showError("Ingresa el nombre de la persona.");
+      showError(t("tripDetail.errors.noName"));
       return;
     }
 
@@ -590,7 +594,7 @@ export default function TripDetailScreen() {
     } else {
       const nueva = await crearPersona(newPersonaNombre.trim());
       if (!nueva) {
-        showError("No se pudo crear la persona.");
+        showError(t("tripDetail.errors.noPersona"));
         setSavingParticipant(false);
         return;
       }
@@ -614,14 +618,14 @@ export default function TripDetailScreen() {
         .select()
         .single();
       if (famErr || !newFam) {
-        showError("No se pudo crear la familia.");
+        showError(t("tripDetail.errors.noFamilia"));
         setSavingParticipant(false);
         return;
       }
       familiaId = newFam.id;
     }
     if (!familiaId) {
-      showError("Selecciona o crea una familia.");
+      showError(t("tripDetail.errors.selectFamilia"));
       setSavingParticipant(false);
       return;
     }
@@ -804,17 +808,17 @@ export default function TripDetailScreen() {
     const hasta = fechaHastaInput.trim();
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(desde) || !dateRegex.test(hasta)) {
-      showError("Usa formato YYYY-MM-DD para las fechas.");
+      showError(t("tripDetail.errors.dateFormat"));
       return;
     }
     if (desde < paseo.fecha_inicio || hasta > paseo.fecha_fin) {
       showError(
-        `Las fechas deben estar dentro del paseo: ${paseo.fecha_inicio} → ${paseo.fecha_fin}.`,
+        t("tripDetail.errors.dateRange", { inicio: paseo.fecha_inicio, fin: paseo.fecha_fin }),
       );
       return;
     }
     if (desde > hasta) {
-      showError("La fecha de llegada no puede ser después de la salida.");
+      showError(t("tripDetail.errors.dateOrder"));
       return;
     }
     setSavingFechas(true);
@@ -897,24 +901,34 @@ export default function TripDetailScreen() {
     const remainingParts = participaciones.filter(
       (p) => p.id !== deletePartTarget.id,
     );
-    for (const momento of momentos) {
-      const { data: pc } = await supabase
+    if (momentos.length > 0) {
+      // Fetch all attendance rows in one query instead of N queries
+      const momentoIds = momentos.map((m) => m.id);
+      const { data: allPc } = await supabase
         .from("participantes_comida")
-        .select("participacion_id, activo")
-        .eq("momento_id", momento.id);
-      const existingMap: Record<string, boolean> = {};
-      (pc ?? []).forEach((r: any) => {
-        existingMap[r.participacion_id] = r.activo;
+        .select("momento_id, participacion_id, activo")
+        .in("momento_id", momentoIds);
+      const pcByMomento: Record<string, Record<string, boolean>> = {};
+      (allPc ?? []).forEach((r: any) => {
+        if (!pcByMomento[r.momento_id]) pcByMomento[r.momento_id] = {};
+        pcByMomento[r.momento_id][r.participacion_id] = r.activo;
       });
-      const activePorciones = remainingParts
-        .filter((p) => existingMap[p.id] !== false)
-        .reduce((sum, p) => sum + (p.factor ?? 1), 0);
-      const porciones =
-        parseFloat((Math.round(activePorciones * 10) / 10).toFixed(1)) || 1;
-      await supabase
-        .from("momentos_comida")
-        .update({ porciones })
-        .eq("id", momento.id);
+
+      // Run all porciones updates in parallel (replaces N serial round-trips)
+      await Promise.all(
+        momentos.map((momento) => {
+          const existingMap = pcByMomento[momento.id] ?? {};
+          const activePorciones = remainingParts
+            .filter((p) => existingMap[p.id] !== false)
+            .reduce((sum: number, p: any) => sum + (p.factor ?? 1), 0);
+          const porciones =
+            parseFloat((Math.round(activePorciones * 10) / 10).toFixed(1)) || 1;
+          return supabase
+            .from("momentos_comida")
+            .update({ porciones })
+            .eq("id", momento.id);
+        }),
+      );
     }
     loadTripData();
   };
@@ -1045,7 +1059,7 @@ export default function TripDetailScreen() {
     setShowDeleteTripModal(false);
     const { error } = await supabase.from("paseos").delete().eq("id", id);
     if (error) {
-      showError("No se pudo eliminar el paseo: " + error.message);
+      showError(t("tripDetail.errors.deleteTripFailed", { msg: error.message }));
       return;
     }
     await fetchPaseos();
@@ -1104,7 +1118,7 @@ export default function TripDetailScreen() {
         .eq("id", id);
       loadTripData();
     } catch (e) {
-      showError("No se pudo procesar la imagen.");
+      showError(t("tripDetail.errors.imageError"));
     }
     setUploadingPhoto(false);
   };
@@ -1159,15 +1173,15 @@ export default function TripDetailScreen() {
   const handleSaveGasto = async () => {
     const monto = parseFloat(gastoMonto.replace(/\./g, "").replace(",", "."));
     if (!gastoNombre.trim()) {
-      showError("Ingresa un nombre para el gasto.");
+      showError(t("tripDetail.gastos.errors.noNombre"));
       return;
     }
     if (isNaN(monto) || monto <= 0) {
-      showError("Ingresa un monto válido.");
+      showError(t("tripDetail.gastos.errors.noMonto"));
       return;
     }
     if (!gastoPagadoPor) {
-      showError("Selecciona quién pagó.");
+      showError(t("tripDetail.gastos.errors.noPagador"));
       return;
     }
     setSavingGasto(true);
@@ -1349,7 +1363,7 @@ export default function TripDetailScreen() {
     if (sinFam.length > 0)
       famIds.push({
         id: "__sin_familia__",
-        nombre: "Sin familia",
+        nombre: t("tripDetail.gastos.sinFamilia"),
         factorTotal: sinFam.reduce((s, p) => s + (p.factor ?? 1), 0),
       });
 
@@ -1489,8 +1503,8 @@ export default function TripDetailScreen() {
       return {
         id: p.id,
         persona_id: p.persona_id,
-        nombre: p.personas.nombre,
-        foto_url: p.personas.foto_url,
+        nombre: p.personas?.nombre ?? "",
+        foto_url: p.personas?.foto_url ?? null,
         familia_id: famId,
         factor: p.factor ?? 1,
         puso,
@@ -1519,12 +1533,12 @@ export default function TripDetailScreen() {
     lines.push("");
 
     // Balance por familia
-    lines.push("═══ BALANCE POR FAMILIA ═══");
+    lines.push(`═══ ${t("tripDetail.gastos.balancePorFamilia").toUpperCase()} ═══`);
     bxf.forEach((b) => {
       const signo = b.balance >= 0 ? "+" : "";
-      lines.push(`${b.nombre} (factor ${b.factorTotal.toFixed(1)})`);
+      lines.push(`${b.nombre} (${t("tripDetail.gastos.factor", { factor: b.factorTotal.toFixed(1) })})`);
       lines.push(
-        `  Puso: ${formatCOP(b.puso)}  |  Le corresponde: ${formatCOP(b.leCorresponde)}  |  Balance: ${signo}${formatCOP(b.balance)}`,
+        `  ${t("tripDetail.gastos.puso")}: ${formatCOP(b.puso)}  |  ${t("tripDetail.gastos.leCorresponde")}: ${formatCOP(b.leCorresponde)}  |  Balance: ${signo}${formatCOP(b.balance)}`,
       );
       b.porCategoria.forEach((cat) => {
         lines.push(`    ${cat.label}: ${formatCOP(cat.leCorresponde)}`);
@@ -1533,16 +1547,16 @@ export default function TripDetailScreen() {
     lines.push("");
 
     // Resumen por persona
-    lines.push("═══ RESUMEN POR PERSONA ═══");
+    lines.push(`═══ ${t("tripDetail.gastos.resumenPorPersona").toUpperCase()} ═══`);
     familiasList.forEach((fam) => {
       const miembros = bxp.filter((p) => p.familia_id === fam.id);
       if (miembros.length === 0) return;
       lines.push(`▸ ${fam.nombre}`);
       miembros.forEach((p) => {
         const signo = p.balance >= 0 ? "+" : "";
-        lines.push(`  ${p.nombre} (factor ${p.factor})`);
+        lines.push(`  ${p.nombre} (${t("tripDetail.gastos.factor", { factor: p.factor })})`);
         lines.push(
-          `    Puso: ${formatCOP(p.puso)}  |  Le corresponde: ${formatCOP(p.leCorresponde)}  |  Balance: ${signo}${formatCOP(p.balance)}`,
+          `    ${t("tripDetail.gastos.puso")}: ${formatCOP(p.puso)}  |  ${t("tripDetail.gastos.leCorresponde")}: ${formatCOP(p.leCorresponde)}  |  Balance: ${signo}${formatCOP(p.balance)}`,
         );
         p.porCategoria.forEach((cat) => {
           lines.push(`      ${cat.label}: ${formatCOP(cat.leCorresponde)}`);
@@ -1552,12 +1566,12 @@ export default function TripDetailScreen() {
     lines.push("");
 
     // Liquidaciones
-    lines.push("═══ LIQUIDACIONES ═══");
+    lines.push(`═══ ${t("tripDetail.gastos.liquidacionesTitle").toUpperCase()} ═══`);
     if (liq.length === 0) {
-      lines.push("¡Todo cuadrado! No hay deudas pendientes.");
+      lines.push(t("tripDetail.gastos.todoCuadrado") + " " + t("tripDetail.gastos.sinDeudas"));
     } else {
-      liq.forEach((t) => {
-        lines.push(`${t.de} → ${t.para}: ${formatCOP(t.monto)}`);
+      liq.forEach((liqItem) => {
+        lines.push(`${liqItem.de} → ${liqItem.para}: ${formatCOP(liqItem.monto)}`);
       });
     }
 
@@ -1719,16 +1733,14 @@ export default function TripDetailScreen() {
     try {
       const { Share } = await import("react-native");
       await Share.share({
-        message: `🏕️ Te invito al paseo *${paseo?.nombre}* en PaseoApp!
-
-📍 ${paseo?.lugar}
-📅 ${paseo?.fecha_inicio} → ${paseo?.fecha_fin}
-
-🔗 Únete directamente: paseoapp://join?code=${paseo?.codigo_invitacion}
-🔑 O usa el código: *${paseo?.codigo_invitacion}*
-
-Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
-        title: `Invitación — ${paseo?.nombre}`,
+        message: t("trips.shareMessage", {
+          name: paseo?.nombre ?? "",
+          place: paseo?.lugar ?? "",
+          start: paseo?.fecha_inicio ?? "",
+          end: paseo?.fecha_fin ?? "",
+          code: paseo?.codigo_invitacion ?? "",
+        }),
+        title: t("trips.shareTitle", { name: paseo?.nombre ?? "" }),
       });
     } catch {
       /* user cancelled */
@@ -1754,7 +1766,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         dialogTitle: `Liquidación — ${paseo?.nombre}`,
       });
     } catch (e) {
-      showError("No se pudo generar el PDF.");
+      showError(t("tripDetail.errors.noPdfError"));
     }
     setExportando(false);
   };
@@ -1800,7 +1812,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         {/* HEADER */}
         <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.backText}>← Volver</Text>
+            <Text style={styles.backText}>{t("tripDetail.back")}</Text>
           </TouchableOpacity>
           <View style={styles.headerTitleRow}>
             <Text style={styles.headerTitle} numberOfLines={1}>
@@ -1824,28 +1836,20 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
           style={[styles.tabsScroll, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}
           contentContainerStyle={styles.tabs}
         >
-          {(["resumen", "gente", "menu", "gastos", "info"] as const).map((tab) => (
+          {(["resumen", "gente", "menu", "gastos", "info"] as const).map((tabKey) => (
             <TouchableOpacity
-              key={tab}
-              style={[styles.tab, activeTab === tab && [styles.tabActive, { borderBottomColor: theme.tabActive }]]}
-              onPress={() => setActiveTab(tab)}
+              key={tabKey}
+              style={[styles.tab, activeTab === tabKey && [styles.tabActive, { borderBottomColor: theme.tabActive }]]}
+              onPress={() => setActiveTab(tabKey)}
             >
               <Text
                 style={[
                   styles.tabText,
                   { color: theme.tabInactive },
-                  activeTab === tab && [styles.tabTextActive, { color: theme.tabActive }],
+                  activeTab === tabKey && [styles.tabTextActive, { color: theme.tabActive }],
                 ]}
               >
-                {tab === "resumen"
-                  ? "🏕️ Resumen"
-                  : tab === "gente"
-                    ? "👥 Gente"
-                    : tab === "menu"
-                      ? "🍽️ Menú"
-                      : tab === "gastos"
-                        ? "💸 Gastos"
-                        : "📋 Info"}
+                {t(`tripDetail.tabs.${tabKey}`)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -1855,14 +1859,14 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         {paseo?.estado === "planificacion" && (
           <View style={styles.estadoBanner}>
             <Text style={styles.estadoBannerText}>
-              📋 En planificación — agrega participantes y el menú del paseo
+              {t("tripDetail.planificacionBanner")}
             </Text>
           </View>
         )}
         {paseo?.estado === "liquidado" && (
           <View style={[styles.estadoBanner, styles.estadoBannerLiquidado]}>
             <Text style={[styles.estadoBannerText, styles.estadoBannerLiquidadoText]}>
-              ✅ Paseo liquidado — los gastos están cerrados
+              {t("tripDetail.liquidadoBanner")}
             </Text>
           </View>
         )}
@@ -1871,7 +1875,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
             RESUMEN TAB
         ══════════════════════════════════════ */}
         {activeTab === "resumen" && (
-          <ScrollView contentContainerStyle={styles.content}>
+          <ScrollView style={styles.flex1} contentContainerStyle={styles.content}>
             {/* Photo banner */}
             <TouchableOpacity
               style={styles.tripPhotoContainer}
@@ -1886,7 +1890,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               ) : (
                 <View style={styles.tripPhotoPlaceholder}>
                   <Text style={styles.tripPhotoIcon}>📸</Text>
-                  <Text style={styles.tripPhotoText}>Toca para agregar foto</Text>
+                  <Text style={styles.tripPhotoText}>{t("tripDetail.addPhotoHint")}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -1895,57 +1899,57 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
             <View style={styles.statsRow}>
               <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
                 <Text style={[styles.statNumber, { color: theme.primary }]}>{participaciones.length}</Text>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Asistentes</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t("tripDetail.stats.attendees")}</Text>
               </View>
               <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
                 <Text style={[styles.statNumber, { color: theme.primary }]}>{momentos.length}</Text>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Comidas</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t("tripDetail.stats.meals")}</Text>
               </View>
               <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
                 <Text style={[styles.statNumber, { color: theme.primary }]}>{familiasList.length}</Text>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Familias</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t("tripDetail.stats.families")}</Text>
               </View>
               <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
                 <Text style={[styles.statNumber, { color: theme.primary }]}>{formatCOP(totalGastado)}</Text>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Gastado</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t("tripDetail.stats.spent")}</Text>
               </View>
             </View>
 
             {/* Quick info */}
             <View style={[styles.section, { backgroundColor: theme.surface }]}>
               <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>📍 Lugar</Text>
+                <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>{t("tripDetail.info.lugar")}</Text>
                 <Text style={[styles.infoValue, { color: theme.text }]}>{paseo?.lugar}</Text>
               </View>
               <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>📅 Fechas</Text>
+                <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>{t("tripDetail.info.fechas")}</Text>
                 <Text style={[styles.infoValue, { color: theme.text }]}>
                   {paseo?.fecha_inicio} → {paseo?.fecha_fin}
                 </Text>
               </View>
               {organizadorNombre ? (
                 <View style={styles.infoRow}>
-                  <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>👤 Organizador</Text>
+                  <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>{t("tripDetail.info.organizador")}</Text>
                   <Text style={[styles.infoValue, { color: theme.text }]}>{organizadorNombre}</Text>
                 </View>
               ) : null}
               {fechas.length > 0 && (
                 <View style={styles.infoRow}>
-                  <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>⏱️ Duración</Text>
-                  <Text style={[styles.infoValue, { color: theme.text }]}>{fechas.length} {fechas.length === 1 ? "día" : "días"}</Text>
+                  <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>{t("tripDetail.info.duracion")}</Text>
+                  <Text style={[styles.infoValue, { color: theme.text }]}>{t("tripDetail.info.dia", { count: fechas.length })}</Text>
                 </View>
               )}
             </View>
 
             {/* Invite card */}
             <View style={styles.inviteCard}>
-              <Text style={styles.inviteLabel}>🔑 Código de invitación</Text>
+              <Text style={styles.inviteLabel}>{t("tripDetail.invite.label")}</Text>
               <Text style={styles.inviteCode}>{paseo?.codigo_invitacion}</Text>
               <TouchableOpacity
                 style={styles.inviteShareBtn}
                 onPress={compartirInvitacion}
               >
-                <Text style={styles.inviteShareBtnText}>📤 Compartir invitación</Text>
+                <Text style={styles.inviteShareBtnText}>{t("tripDetail.invite.shareBtn")}</Text>
               </TouchableOpacity>
             </View>
 
@@ -1958,7 +1962,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               if (proximas.length === 0) return null;
               return (
                 <View style={[styles.section, { backgroundColor: theme.surface }]}>
-                  <Text style={[styles.sectionTitle, { color: theme.text }]}>🍽️ Próximas comidas</Text>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("tripDetail.proximasComidas")}</Text>
                   {proximas.map((m) => {
                     const cfg = TIPO_CONFIG[m.tipo_comida] ?? TIPO_CONFIG["almuerzo"];
                     return (
@@ -1986,7 +1990,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 style={styles.deleteTripBtn}
                 onPress={() => setShowDeleteTripModal(true)}
               >
-                <Text style={styles.deleteTripText}>🗑️ Eliminar paseo</Text>
+                <Text style={styles.deleteTripText}>{t("tripDetail.deleteTripBtn")}</Text>
               </TouchableOpacity>
             )}
           </ScrollView>
@@ -1996,7 +2000,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
             INFO TAB
         ══════════════════════════════════════ */}
         {activeTab === "info" && (
-          <ScrollView contentContainerStyle={styles.content}>
+          <ScrollView style={styles.flex1} contentContainerStyle={styles.content}>
             <TouchableOpacity
               style={styles.tripPhotoContainer}
               onPress={() => setShowPhotoModal(true)}
@@ -2011,18 +2015,18 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 <View style={styles.tripPhotoPlaceholder}>
                   <Text style={styles.tripPhotoIcon}>📸</Text>
                   <Text style={styles.tripPhotoText}>
-                    Toca para agregar foto del paseo
+                    {t("tripDetail.addTripPhotoHint")}
                   </Text>
                 </View>
               )}
             </TouchableOpacity>
             <View style={[styles.section, { backgroundColor: theme.surface }]}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>📋 Información</Text>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("tripDetail.info.titulo")}</Text>
                 {editing ? (
                   <View style={styles.editActions}>
                     <TouchableOpacity onPress={() => setEditing(false)}>
-                      <Text style={styles.cancelText}>Cancelar</Text>
+                      <Text style={styles.cancelText}>{t("common.cancel")}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.saveBtn}
@@ -2030,20 +2034,20 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                       disabled={saving}
                     >
                       <Text style={styles.saveBtnText}>
-                        {saving ? "..." : "Guardar"}
+                        {saving ? "..." : t("common.save")}
                       </Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
                   <TouchableOpacity onPress={() => setEditing(true)}>
-                    <Text style={styles.editText}>✏️ Editar</Text>
+                    <Text style={styles.editText}>{t("tripDetail.info.editar")}</Text>
                   </TouchableOpacity>
                 )}
               </View>
               {editing ? (
                 <>
                   <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Nombre</Text>
+                    <Text style={styles.fieldLabel}>{t("tripDetail.info.nombre")}</Text>
                     <TextInput
                       style={styles.input}
                       value={editNombre}
@@ -2051,7 +2055,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                     />
                   </View>
                   <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Lugar</Text>
+                    <Text style={styles.fieldLabel}>{t("tripDetail.info.lugar_label")}</Text>
                     <TextInput
                       style={styles.input}
                       value={editLugar}
@@ -2060,7 +2064,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   </View>
                   <View style={styles.row}>
                     <View style={[styles.field, { flex: 1 }]}>
-                      <Text style={styles.fieldLabel}>Fecha inicio</Text>
+                      <Text style={styles.fieldLabel}>{t("tripDetail.info.fechaInicio")}</Text>
                       <TextInput
                         style={styles.input}
                         value={editFechaInicio}
@@ -2070,7 +2074,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                     </View>
                     <View style={{ width: 8 }} />
                     <View style={[styles.field, { flex: 1 }]}>
-                      <Text style={styles.fieldLabel}>Fecha fin</Text>
+                      <Text style={styles.fieldLabel}>{t("tripDetail.info.fechaFin")}</Text>
                       <TextInput
                         style={styles.input}
                         value={editFechaFin}
@@ -2080,7 +2084,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                     </View>
                   </View>
                   <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Link de alojamiento</Text>
+                    <Text style={styles.fieldLabel}>{t("tripDetail.info.linkAlojamiento")}</Text>
                     <TextInput
                       style={styles.input}
                       value={editLink}
@@ -2091,7 +2095,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   </View>
                   <View style={styles.field}>
                     <Text style={styles.fieldLabel}>
-                      Recomendaciones de llegada
+                      {t("tripDetail.info.recomendaciones")}
                     </Text>
                     <TextInput
                       style={[styles.input, { height: 80 }]}
@@ -2101,7 +2105,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                     />
                   </View>
                   <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Link de ubicación</Text>
+                    <Text style={styles.fieldLabel}>{t("tripDetail.info.linkMapa")}</Text>
                     <TextInput
                       style={styles.input}
                       value={editLinkMapa}
@@ -2114,11 +2118,11 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               ) : (
                 <>
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>📍 Lugar</Text>
+                    <Text style={styles.infoLabel}>{t("tripDetail.info.lugar")}</Text>
                     <Text style={styles.infoValue}>{paseo?.lugar}</Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>📅 Fechas</Text>
+                    <Text style={styles.infoLabel}>{t("tripDetail.info.fechas")}</Text>
                     <Text style={styles.infoValue}>
                       {paseo?.fecha_inicio} → {paseo?.fecha_fin}
                     </Text>
@@ -2128,15 +2132,15 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                       style={styles.infoRow}
                       onPress={() => Linking.openURL(paseo.link_alojamiento)}
                     >
-                      <Text style={styles.infoLabel}>🏠 Alojamiento</Text>
+                      <Text style={styles.infoLabel}>{t("tripDetail.info.alojamiento")}</Text>
                       <Text style={[styles.infoValue, styles.link]}>
-                        Ver enlace →
+                        {t("tripDetail.info.verEnlace")}
                       </Text>
                     </TouchableOpacity>
                   )}
                   {paseo?.recomendaciones && (
                     <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>💡 Llegada</Text>
+                      <Text style={styles.infoLabel}>{t("tripDetail.info.llegada")}</Text>
                       <Text style={styles.infoValue}>
                         {paseo.recomendaciones}
                       </Text>
@@ -2144,7 +2148,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   )}
                   {organizadorNombre ? (
                     <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>👤 Organizador</Text>
+                      <Text style={styles.infoLabel}>{t("tripDetail.info.organizador")}</Text>
                       <Text style={styles.infoValue}>{organizadorNombre}</Text>
                     </View>
                   ) : null}
@@ -2152,17 +2156,17 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               )}
             </View>
             <View style={styles.inviteCard}>
-              <Text style={styles.inviteLabel}>🔑 Código de invitación</Text>
+              <Text style={styles.inviteLabel}>{t("tripDetail.invite.label")}</Text>
               <Text style={styles.inviteCode}>{paseo?.codigo_invitacion}</Text>
               <Text style={styles.inviteHint}>
-                Comparte este código para que otros se unan
+                {t("tripDetail.invite.hint")}
               </Text>
               <TouchableOpacity
                 style={styles.inviteShareBtn}
                 onPress={compartirInvitacion}
               >
                 <Text style={styles.inviteShareBtnText}>
-                  📤 Compartir invitación
+                  {t("tripDetail.invite.shareBtn")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -2172,11 +2176,11 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 return (
                   <View style={[styles.section, { backgroundColor: theme.surface }]}>
                     <View style={styles.sectionHeaderRow}>
-                      <Text style={[styles.sectionTitle, { color: theme.text }]}>🗺️ Ubicación</Text>
+                      <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("tripDetail.info.ubicacion")}</Text>
                       <TouchableOpacity
                         onPress={() => Linking.openURL(paseo.link_mapa)}
                       >
-                        <Text style={styles.editText}>Abrir en Maps →</Text>
+                        <Text style={styles.editText}>{t("tripDetail.info.abrirEnMaps")}</Text>
                       </TouchableOpacity>
                     </View>
                     {coords ? (
@@ -2205,9 +2209,9 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                       >
                         <Text style={styles.mapLinkIcon}>🗺️</Text>
                         <View style={styles.mapLinkInfo}>
-                          <Text style={styles.mapLinkTitle}>Ver ubicación</Text>
+                          <Text style={styles.mapLinkTitle}>{t("tripDetail.info.verUbicacion")}</Text>
                           <Text style={styles.mapLinkSub}>
-                            Toca para abrir en Maps
+                            {t("tripDetail.info.tocaParaAbrir")}
                           </Text>
                         </View>
                         <Text style={styles.mapLinkArrow}>→</Text>
@@ -2221,7 +2225,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 style={styles.deleteButton}
                 onPress={() => setShowDeleteTripModal(true)}
               >
-                <Text style={styles.deleteButtonText}>🗑️ Eliminar paseo</Text>
+                <Text style={styles.deleteButtonText}>{t("tripDetail.deleteTripBtn")}</Text>
               </TouchableOpacity>
             )}
           </ScrollView>
@@ -2231,11 +2235,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
             PARTICIPANTES TAB
         ══════════════════════════════════════ */}
         {activeTab === "gente" && (
-          <ScrollView contentContainerStyle={styles.content}>
+          <ScrollView style={styles.flex1} contentContainerStyle={styles.content}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>
-                👥 {participaciones.length} participante
-                {participaciones.length !== 1 ? "s" : ""}
+                {t("tripDetail.gente.title", { count: participaciones.length })}
               </Text>
               <TouchableOpacity
                 style={styles.addBtn}
@@ -2244,16 +2247,16 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   loadDirectorio();
                 }}
               >
-                <Text style={styles.addBtnText}>+ Agregar</Text>
+                <Text style={styles.addBtnText}>{t("tripDetail.gente.addBtn")}</Text>
               </TouchableOpacity>
             </View>
 
             {familiasList.length === 0 && participaciones.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyIcon}>👥</Text>
-                <Text style={styles.emptyText}>Aún no hay participantes</Text>
+                <Text style={styles.emptyText}>{t("tripDetail.gente.empty")}</Text>
                 <Text style={styles.emptySub}>
-                  Agrega el primero para comenzar
+                  {t("tripDetail.gente.emptySub")}
                 </Text>
               </View>
             ) : (
@@ -2290,8 +2293,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.familiaTitulo, { color: theme.text }]}>{fam.nombre}</Text>
                         <Text style={[styles.familiaCount, { color: theme.textTertiary }]}>
-                          {miembros.length} persona
-                          {miembros.length !== 1 ? "s" : ""} · toca para editar
+                          {t("tripDetail.gente.personaCount", { count: miembros.length })} {t("tripDetail.gente.tocaEditar")}
                         </Text>
                       </View>
                       <Text style={{ fontSize: 18, color: theme.border }}>›</Text>
@@ -2337,7 +2339,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                             {m.personas.nombre}
                           </Text>
                           <Text style={styles.participanteSub}>
-                            Factor {m.factor ?? 1}
+                            {t("tripDetail.gente.factor", { factor: m.factor ?? 1 })}
                           </Text>
                         </View>
                         <Text style={styles.chevron}>›</Text>
@@ -2354,7 +2356,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
             MENU TAB
         ══════════════════════════════════════ */}
         {activeTab === "menu" && (
-          <>
+          <View style={styles.flex1}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -2388,12 +2390,12 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 );
               })}
             </ScrollView>
-            <ScrollView contentContainerStyle={styles.content}>
+            <ScrollView style={styles.flex1} contentContainerStyle={styles.content}>
               {momentosDelDia.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyIcon}>🍴</Text>
                   <Text style={styles.emptyText}>
-                    Sin comidas para este día
+                    {t("tripDetail.menu.sinComidas")}
                   </Text>
                 </View>
               ) : (
@@ -2429,14 +2431,14 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                           </Text>
                         </View>
                         <Text style={styles.longPressHint}>
-                          toca · mantén para opciones
+                          {t("tripDetail.menu.tapAndHold")}
                         </Text>
                       </View>
                       <Text style={styles.mealNombre}>
-                        {m.recetas?.nombre ?? "Sin receta"}
+                        {m.recetas?.nombre ?? t("tripDetail.menu.sinReceta")}
                       </Text>
                       <Text style={styles.mealPorciones}>
-                        👥 {m.porciones ?? participaciones.length} porciones
+                        {t("tripDetail.menu.porciones", { count: m.porciones ?? participaciones.length })}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -2446,38 +2448,38 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 style={styles.addMealButton}
                 onPress={() => setShowAddMealModal(true)}
               >
-                <Text style={styles.addMealButtonText}>+ Agregar comida</Text>
+                <Text style={styles.addMealButtonText}>{t("tripDetail.menu.addMealBtn")}</Text>
               </TouchableOpacity>
             </ScrollView>
-          </>
+          </View>
         )}
 
         {/* ══════════════════════════════════════
             GASTOS TAB
         ══════════════════════════════════════ */}
         {activeTab === "gastos" && (
-          <>
+          <View style={styles.flex1}>
             <View style={styles.gastosSubTabs}>
-              {(["gastos", "balances", "liquidar"] as const).map((t) => (
+              {(["gastos", "balances", "liquidar"] as const).map((subTab) => (
                 <TouchableOpacity
-                  key={t}
+                  key={subTab}
                   style={[
                     styles.gastosSubTab,
-                    gastosTab === t && styles.gastosSubTabActive,
+                    gastosTab === subTab && styles.gastosSubTabActive,
                   ]}
-                  onPress={() => setGastosTab(t)}
+                  onPress={() => setGastosTab(subTab)}
                 >
                   <Text
                     style={[
                       styles.gastosSubTabText,
-                      gastosTab === t && styles.gastosSubTabTextActive,
+                      gastosTab === subTab && styles.gastosSubTabTextActive,
                     ]}
                   >
-                    {t === "gastos"
-                      ? "💰 Gastos"
-                      : t === "balances"
-                        ? "⚖️ Balances"
-                        : "💸 Liquidar"}
+                    {subTab === "gastos"
+                      ? t("tripDetail.gastos.tabGastos")
+                      : subTab === "balances"
+                        ? t("tripDetail.gastos.tabBalances")
+                        : t("tripDetail.gastos.tabLiquidar")}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -2487,9 +2489,9 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.sectionHeaderRow}>
                   <View>
-                    <Text style={styles.sectionTitle}>Gastos del paseo</Text>
+                    <Text style={styles.sectionTitle}>{t("tripDetail.gastos.title")}</Text>
                     <Text style={styles.gastosTotalLabel}>
-                      Total: {formatCOP(totalGastado)}
+                      {t("tripDetail.gastos.total", { amount: formatCOP(totalGastado) })}
                     </Text>
                   </View>
                   {paseo?.estado !== "liquidado" && (
@@ -2497,16 +2499,16 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                       style={styles.addBtn}
                       onPress={() => setShowAddGastoModal(true)}
                     >
-                      <Text style={styles.addBtnText}>+ Agregar</Text>
+                      <Text style={styles.addBtnText}>{t("tripDetail.gastos.addBtn")}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
                 {gastos.length === 0 ? (
                   <View style={styles.emptyState}>
                     <Text style={styles.emptyIcon}>🧾</Text>
-                    <Text style={styles.emptyText}>Sin gastos registrados</Text>
+                    <Text style={styles.emptyText}>{t("tripDetail.gastos.sinGastos")}</Text>
                     <Text style={styles.emptySub}>
-                      Agrega el primer gasto del paseo
+                      {t("tripDetail.gastos.sinGastosSub")}
                     </Text>
                   </View>
                 ) : (
@@ -2522,7 +2524,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                       <View style={styles.gastoCardLeft}>
                         <Text style={styles.gastoNombre}>{g.nombre}</Text>
                         <Text style={styles.gastoPagadoPorText}>
-                          Pagó: {g.personas?.nombre ?? "—"}
+                          {t("tripDetail.gastos.pagadoPor", { name: g.personas?.nombre ?? "—" })}
                         </Text>
                         <Text style={styles.gastoCategoriaLabel}>
                           {GASTO_CATEGORIAS.find(
@@ -2535,7 +2537,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                           {formatCOP(g.monto)}
                         </Text>
                         <Text style={styles.gastoHint}>
-                          mantén para opciones
+                          {t("tripDetail.gastos.mantenerOpciones")}
                         </Text>
                       </View>
                     </TouchableOpacity>
@@ -2547,11 +2549,12 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
             {gastosTab === "balances" && (
               <ScrollView contentContainerStyle={styles.content}>
                 <Text style={[styles.sectionTitle, { marginBottom: 4 }]}>
-                  Balance por familia
+                  {t("tripDetail.gastos.balancePorFamilia")}
                 </Text>
                 <Text style={[styles.gastosSubHint, { marginBottom: 16 }]}>
-                  Total: {formatCOP(totalGastado)} · {momentos.length} comida
-                  {momentos.length !== 1 ? "s" : ""}
+                  {momentos.length !== 1
+                    ? t("tripDetail.gastos.totalYComidasPlural", { total: formatCOP(totalGastado), count: momentos.length })
+                    : t("tripDetail.gastos.totalYComidas", { total: formatCOP(totalGastado), count: momentos.length })}
                 </Text>
                 {balancesPorFamilia.map((b) => {
                   const isPos = b.balance >= 0;
@@ -2561,7 +2564,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                         <View style={{ flex: 1 }}>
                           <Text style={styles.balanceNombre}>{b.nombre}</Text>
                           <Text style={styles.balanceMiembros}>
-                            Factor {b.factorTotal.toFixed(1)}
+                            {t("tripDetail.gastos.factor", { factor: b.factorTotal.toFixed(1) })}
                           </Text>
                         </View>
                         <Text
@@ -2576,7 +2579,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                       </View>
                       <View style={styles.balanceRow}>
                         <View style={styles.balanceItem}>
-                          <Text style={styles.balanceItemLabel}>Puso</Text>
+                          <Text style={styles.balanceItemLabel}>{t("tripDetail.gastos.puso")}</Text>
                           <Text style={styles.balanceItemValue}>
                             {formatCOP(b.puso)}
                           </Text>
@@ -2584,7 +2587,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                         <View style={styles.balanceDivider} />
                         <View style={styles.balanceItem}>
                           <Text style={styles.balanceItemLabel}>
-                            Le corresponde
+                            {t("tripDetail.gastos.leCorresponde")}
                           </Text>
                           <Text style={styles.balanceItemValue}>
                             {formatCOP(b.leCorresponde)}
@@ -2625,10 +2628,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                         { marginTop: 24, marginBottom: 4 },
                       ]}
                     >
-                      Resumen por persona
+                      {t("tripDetail.gastos.resumenPorPersona")}
                     </Text>
                     <Text style={[styles.gastosSubHint, { marginBottom: 16 }]}>
-                      Cuánto le corresponde a cada uno individualmente
+                      {t("tripDetail.gastos.resumenPorPersonaSub")}
                     </Text>
                     {familiasList.map((fam, fidx) => {
                       const miembros = balancesPorPersona.filter(
@@ -2690,7 +2693,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                                       {p.nombre}
                                     </Text>
                                     <Text style={styles.personaBalanceFactor}>
-                                      Factor {p.factor}
+                                      {t("tripDetail.gastos.factor", { factor: p.factor })}
                                     </Text>
                                   </View>
                                   <Text
@@ -2709,7 +2712,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                                 <View style={styles.balanceRow}>
                                   <View style={styles.balanceItem}>
                                     <Text style={styles.balanceItemLabel}>
-                                      Puso
+                                      {t("tripDetail.gastos.puso")}
                                     </Text>
                                     <Text style={styles.balanceItemValue}>
                                       {formatCOP(p.puso)}
@@ -2718,7 +2721,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                                   <View style={styles.balanceDivider} />
                                   <View style={styles.balanceItem}>
                                     <Text style={styles.balanceItemLabel}>
-                                      Le corresponde
+                                      {t("tripDetail.gastos.leCorresponde")}
                                     </Text>
                                     <Text style={styles.balanceItemValue}>
                                       {formatCOP(p.leCorresponde)}
@@ -2754,10 +2757,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 <View style={styles.sectionHeaderRow}>
                   <View>
                     <Text style={[styles.sectionTitle, { marginBottom: 2 }]}>
-                      Liquidaciones
+                      {t("tripDetail.gastos.liquidacionesTitle")}
                     </Text>
                     <Text style={styles.gastosSubHint}>
-                      Transferencias mínimas para cuadrar cuentas
+                      {t("tripDetail.gastos.liquidacionesSub")}
                     </Text>
                   </View>
                 </View>
@@ -2770,7 +2773,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                       onPress={compartirTexto}
                     >
                       <Text style={styles.exportBtnText}>
-                        💬 WhatsApp / Copiar
+                        {t("tripDetail.gastos.exportWhatsapp")}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -2782,7 +2785,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                         <ActivityIndicator size="small" color="#fff" />
                       ) : (
                         <Text style={[styles.exportBtnText, { color: "#fff" }]}>
-                          📄 Exportar PDF
+                          {t("tripDetail.gastos.exportPDF")}
                         </Text>
                       )}
                     </TouchableOpacity>
@@ -2796,13 +2799,13 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                     </Text>
                     <Text style={styles.emptyText}>
                       {gastos.length === 0
-                        ? "Sin gastos aún"
-                        : "¡Todo cuadrado!"}
+                        ? t("tripDetail.gastos.sinGastosTodavia")
+                        : t("tripDetail.gastos.todoCuadrado")}
                     </Text>
                     <Text style={styles.emptySub}>
                       {gastos.length === 0
-                        ? "Registra gastos para ver las liquidaciones"
-                        : "No hay deudas pendientes"}
+                        ? t("tripDetail.gastos.sinGastosRegistra")
+                        : t("tripDetail.gastos.sinDeudas")}
                     </Text>
                   </View>
                 ) : (
@@ -2876,14 +2879,14 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                       paseo?.estado !== "liquidado" && (
                         <View style={styles.liquidadoPrompt}>
                           <Text style={styles.liquidadoPromptText}>
-                            ✅ Todos los pagos están realizados
+                            {t("tripDetail.gastos.todosPagosRealizados")}
                           </Text>
                           <TouchableOpacity
                             style={styles.liquidadoBtn}
                             onPress={handleMarcarLiquidado}
                           >
                             <Text style={styles.liquidadoBtnText}>
-                              Marcar paseo como Liquidado
+                              {t("tripDetail.gastos.marcarLiquidado")}
                             </Text>
                           </TouchableOpacity>
                         </View>
@@ -2902,7 +2905,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                             { color: "#1D4ED8" },
                           ]}
                         >
-                          💸 Este paseo está liquidado
+                          {t("tripDetail.gastos.estaLiquidado")}
                         </Text>
                       </View>
                     )}
@@ -2910,7 +2913,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 )}
               </ScrollView>
             )}
-          </>
+          </View>
         )}
 
         {/* ══════════════════════════════════════
@@ -2926,13 +2929,13 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         >
           <View style={styles.modalOverlay}>
             <View style={styles.confirmBox}>
-              <Text style={styles.confirmTitle}>⚠️ Error</Text>
+              <Text style={styles.confirmTitle}>⚠️ {t("common.error")}</Text>
               <Text style={styles.confirmMessage}>{errorMessage}</Text>
               <TouchableOpacity
                 style={[styles.confirmBtn, { backgroundColor: "#1B4F72" }]}
                 onPress={() => setShowErrorModal(false)}
               >
-                <Text style={styles.confirmBtnText}>Entendido</Text>
+                <Text style={styles.confirmBtnText}>{t("common.ok")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2947,13 +2950,13 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         >
           <View style={styles.modalOverlay}>
             <View style={styles.estadoModalBox}>
-              <Text style={styles.estadoModalTitle}>Foto del paseo</Text>
+              <Text style={styles.estadoModalTitle}>{t("tripDetail.photo.title")}</Text>
               <TouchableOpacity
                 style={[styles.estadoOption, { backgroundColor: "#EFF6FF" }]}
                 onPress={() => pickTripPhoto("camera")}
               >
                 <Text style={[styles.estadoOptionText, { color: "#1B4F72" }]}>
-                  📷 Tomar foto
+                  {t("tripDetail.photo.takePhoto")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -2961,14 +2964,14 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 onPress={() => pickTripPhoto("gallery")}
               >
                 <Text style={[styles.estadoOptionText, { color: "#1B4F72" }]}>
-                  🖼️ Elegir de galería
+                  {t("tripDetail.photo.chooseGallery")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.estadoCancel}
                 onPress={() => setShowPhotoModal(false)}
               >
-                <Text style={styles.estadoCancelText}>Cancelar</Text>
+                <Text style={styles.estadoCancelText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2983,21 +2986,21 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         >
           <View style={styles.modalOverlay}>
             <View style={styles.confirmBox}>
-              <Text style={styles.confirmTitle}>🗑️ Eliminar paseo</Text>
+              <Text style={styles.confirmTitle}>{t("tripDetail.deleteTrip.title")}</Text>
               <Text style={styles.confirmMessage}>
-                ¿Eliminar "{paseo?.nombre}"? Esta acción no se puede deshacer.
+                {t("tripDetail.deleteTrip.message", { name: paseo?.nombre ?? "" })}
               </Text>
               <TouchableOpacity
                 style={[styles.confirmBtn, { backgroundColor: "#DC2626" }]}
                 onPress={handleDeleteTrip}
               >
-                <Text style={styles.confirmBtnText}>Eliminar</Text>
+                <Text style={styles.confirmBtnText}>{t("tripDetail.deleteTrip.btn")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.estadoCancel}
                 onPress={() => setShowDeleteTripModal(false)}
               >
-                <Text style={styles.estadoCancelText}>Cancelar</Text>
+                <Text style={styles.estadoCancelText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -3013,7 +3016,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
           <View style={styles.modalOverlay}>
             <View style={styles.estadoModalBox}>
               <Text style={styles.estadoModalTitle}>
-                Cambiar estado del paseo
+                {t("tripDetail.changeEstado")}
               </Text>
               {ESTADOS.map((estado) => {
                 const config = ESTADO_CONFIG[estado];
@@ -3038,7 +3041,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 style={styles.estadoCancel}
                 onPress={() => setShowEstadoModal(false)}
               >
-                <Text style={styles.estadoCancelText}>Cancelar</Text>
+                <Text style={styles.estadoCancelText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -3054,11 +3057,11 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowEditFamiliaModal(false)}>
-                <Text style={styles.modalCancel}>Cancelar</Text>
+                <Text style={styles.modalCancel}>{t("common.cancel")}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>Editar familia</Text>
+              <Text style={styles.modalTitle}>{t("tripDetail.gente.editFamiliaTitle")}</Text>
               <TouchableOpacity onPress={saveEditFamilia}>
-                <Text style={styles.modalSave}>Guardar</Text>
+                <Text style={styles.modalSave}>{t("common.save")}</Text>
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalContent}>
@@ -3080,18 +3083,18 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   <View style={styles.familiaPhotoBtnPlaceholder}>
                     <Text style={{ fontSize: 32 }}>📸</Text>
                     <Text style={styles.familiaPhotoBtnText}>
-                      Foto de familia
+                      {t("tripDetail.gente.familiaFoto")}
                     </Text>
                   </View>
                 )}
               </TouchableOpacity>
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Nombre de la familia</Text>
+                <Text style={styles.fieldLabel}>{t("tripDetail.gente.editFamiliaNombreLabel")}</Text>
                 <TextInput
                   style={styles.input}
                   value={editFamiliaNombre}
                   onChangeText={setEditFamiliaNombre}
-                  placeholder="Ej: Familia García, Los Rodríguez..."
+                  placeholder={t("tripDetail.gente.editFamiliaNombrePlaceholder")}
                 />
               </View>
             </ScrollView>
@@ -3119,7 +3122,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 {familiasList.find(
                   (f) => f.id === optionsParticipante?.familia_id,
                 )?.nombre ?? ""}{" "}
-                · Factor {optionsParticipante?.factor ?? 1}
+                · {t("tripDetail.gente.factor", { factor: optionsParticipante?.factor ?? 1 })}
               </Text>
               <TouchableOpacity
                 style={[styles.estadoOption, { backgroundColor: "#EFF6FF" }]}
@@ -3132,7 +3135,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 }}
               >
                 <Text style={[styles.estadoOptionText, { color: "#1B4F72" }]}>
-                  Ver perfil
+                  {t("tripDetail.gente.optionsVerPerfil")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -3144,7 +3147,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 }}
               >
                 <Text style={[styles.estadoOptionText, { color: "#1B4F72" }]}>
-                  Cambiar factor
+                  {t("tripDetail.gente.optionsCambiarFactor")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -3156,7 +3159,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 }}
               >
                 <Text style={[styles.estadoOptionText, { color: "#1B4F72" }]}>
-                  Mover a otra familia
+                  {t("tripDetail.gente.optionsMoverFamilia")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -3168,7 +3171,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 }}
               >
                 <Text style={[styles.estadoOptionText, { color: "#1B4F72" }]}>
-                  Fechas de asistencia
+                  {t("tripDetail.gente.optionsFechasAsistencia")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -3180,14 +3183,14 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 }}
               >
                 <Text style={[styles.estadoOptionText, { color: "#DC2626" }]}>
-                  Eliminar del paseo
+                  {t("tripDetail.gente.optionsEliminar")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.estadoCancel}
                 onPress={() => setShowOptionsModal(false)}
               >
-                <Text style={styles.estadoCancelText}>Cancelar</Text>
+                <Text style={styles.estadoCancelText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -3203,7 +3206,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
           <View style={styles.modalOverlay}>
             <View style={styles.familiaModalBox}>
               <Text style={styles.familiaModalTitle}>
-                Factor de participación
+                {t("tripDetail.gente.factorModalTitle")}
               </Text>
               <Text style={styles.familiaModalSub}>
                 {factorParticipante?.personas?.nombre}
@@ -3214,7 +3217,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   { textAlign: "center", marginBottom: 12 },
                 ]}
               >
-                Valor entre 0 y 1 · adulto=1.0, niño=0.5
+                {t("tripDetail.gente.factorModalHint")}
               </Text>
               <TextInput
                 style={styles.familiaInput}
@@ -3228,13 +3231,13 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   style={styles.familiaModalCancel}
                   onPress={() => setShowFactorModal(false)}
                 >
-                  <Text style={styles.familiaModalCancelText}>Cancelar</Text>
+                  <Text style={styles.familiaModalCancelText}>{t("common.cancel")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.familiaModalSave}
                   onPress={applyFactor}
                 >
-                  <Text style={styles.familiaModalSaveText}>Guardar</Text>
+                  <Text style={styles.familiaModalSaveText}>{t("common.save")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -3251,7 +3254,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
           <View style={styles.modalOverlay}>
             <View style={styles.familiaModalBox}>
               <Text style={styles.familiaModalTitle}>
-                Fechas de asistencia
+                {t("tripDetail.gente.fechasModalTitle")}
               </Text>
               <Text style={styles.familiaModalSub}>
                 {fechasParticipante?.personas?.nombre}
@@ -3262,9 +3265,9 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   { textAlign: "center", marginBottom: 16 },
                 ]}
               >
-                Rango del paseo: {paseo?.fecha_inicio} → {paseo?.fecha_fin}
+                {t("tripDetail.gente.fechasModalRango", { inicio: paseo?.fecha_inicio, fin: paseo?.fecha_fin })}
               </Text>
-              <Text style={styles.fieldLabel}>Fecha llegada</Text>
+              <Text style={styles.fieldLabel}>{t("tripDetail.gente.fechasModalLlegada")}</Text>
               <TextInput
                 style={[
                   styles.familiaInput,
@@ -3276,7 +3279,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 keyboardType="numbers-and-punctuation"
               />
               <Text style={[styles.fieldLabel, { marginTop: 12 }]}>
-                Fecha salida
+                {t("tripDetail.gente.fechasModalSalida")}
               </Text>
               <TextInput
                 style={[
@@ -3294,7 +3297,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   onPress={() => setShowFechasModal(false)}
                   disabled={savingFechas}
                 >
-                  <Text style={styles.familiaModalCancelText}>Cancelar</Text>
+                  <Text style={styles.familiaModalCancelText}>{t("common.cancel")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -3305,7 +3308,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   disabled={savingFechas}
                 >
                   <Text style={styles.familiaModalSaveText}>
-                    {savingFechas ? "Guardando..." : "Guardar"}
+                    {savingFechas ? t("common.saving") : t("common.save")}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -3322,7 +3325,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         >
           <View style={styles.modalOverlay}>
             <View style={styles.estadoModalBox}>
-              <Text style={styles.estadoModalTitle}>Mover a familia</Text>
+              <Text style={styles.estadoModalTitle}>{t("tripDetail.gente.moveFamiliaTitle")}</Text>
               {familiasList.map((fam, fidx) => (
                 <TouchableOpacity
                   key={fam.id}
@@ -3349,7 +3352,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 style={styles.estadoCancel}
                 onPress={() => setShowMoveFamiliaModal(false)}
               >
-                <Text style={styles.estadoCancelText}>Cancelar</Text>
+                <Text style={styles.estadoCancelText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -3364,21 +3367,21 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         >
           <View style={styles.modalOverlay}>
             <View style={styles.confirmBox}>
-              <Text style={styles.confirmTitle}>Eliminar participante</Text>
+              <Text style={styles.confirmTitle}>{t("tripDetail.gente.deletePartTitle")}</Text>
               <Text style={styles.confirmMessage}>
-                ¿Eliminar a {deletePartTarget?.personas?.nombre} del paseo?
+                {t("tripDetail.gente.deletePartMessage", { name: deletePartTarget?.personas?.nombre })}
               </Text>
               <TouchableOpacity
                 style={[styles.confirmBtn, { backgroundColor: "#DC2626" }]}
                 onPress={confirmDeleteParticipante}
               >
-                <Text style={styles.confirmBtnText}>Eliminar</Text>
+                <Text style={styles.confirmBtnText}>{t("common.delete")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.estadoCancel}
                 onPress={() => setShowDeletePartModal(false)}
               >
-                <Text style={styles.estadoCancelText}>Cancelar</Text>
+                <Text style={styles.estadoCancelText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -3398,15 +3401,15 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
             >
               <View style={styles.modalHeader}>
                 <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                  <Text style={styles.modalCancel}>Cancelar</Text>
+                  <Text style={styles.modalCancel}>{t("common.cancel")}</Text>
                 </TouchableOpacity>
-                <Text style={styles.modalTitle}>Agregar participante</Text>
+                <Text style={styles.modalTitle}>{t("tripDetail.gente.addModalTitle")}</Text>
                 <TouchableOpacity
                   onPress={handleAddParticipant}
                   disabled={savingParticipant || enviandoInvitacion}
                 >
                   <Text style={styles.modalSave}>
-                    {savingParticipant ? "..." : "Agregar"}
+                    {savingParticipant ? "..." : t("tripDetail.gente.addModalBtn")}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -3416,17 +3419,17 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 keyboardShouldPersistTaps="handled"
               >
                 {/* ── Persona — búsqueda en directorio inline ── */}
-                <Text style={styles.modalSectionLabel}>👤 Persona</Text>
+                <Text style={styles.modalSectionLabel}>{t("tripDetail.gente.addPersonaLabel")}</Text>
                 <View style={styles.field}>
                   <Text style={styles.fieldLabel}>
-                    Buscar en directorio o escribir nombre *
+                    {t("tripDetail.gente.addSearchLabel")}
                   </Text>
                   <View style={styles.nombreRow}>
                     <View style={[styles.searchBar, { flex: 1 }]}>
                       <Text style={styles.searchIcon}>🔍</Text>
                       <TextInput
                         style={styles.searchInput}
-                        placeholder="Buscar contacto o escribir nombre..."
+                        placeholder={t("tripDetail.gente.addSearchPlaceholder")}
                         placeholderTextColor="#94a3b8"
                         value={newPersonaNombre}
                         onChangeText={(text) => {
@@ -3526,7 +3529,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                                     fontWeight: "700",
                                   }}
                                 >
-                                  ✓ Mi cuenta
+                                  {t("tripDetail.gente.miCuenta")}
                                 </Text>
                               </View>
                             </TouchableOpacity>
@@ -3622,8 +3625,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                               fontWeight: "600",
                             }}
                           >
-                            Se agregará "{newPersonaNombre.trim()}" como nuevo
-                            participante
+                            {t("tripDetail.gente.seAgregara", { nombre: newPersonaNombre.trim() })}
                           </Text>
                         </View>
                       );
@@ -3634,10 +3636,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 <View style={styles.switchRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.switchLabel}>
-                      📬 Enviar invitación por correo
+                      {t("tripDetail.gente.inviteEmailLabel")}
                     </Text>
                     <Text style={styles.switchSub}>
-                      Le llegará el código del paseo
+                      {t("tripDetail.gente.inviteEmailSub")}
                     </Text>
                   </View>
                   <Switch
@@ -3652,7 +3654,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 </View>
                 {enviarInvitacion && (
                   <View style={[styles.field, { marginTop: 8 }]}>
-                    <Text style={styles.fieldLabel}>Correo electrónico *</Text>
+                    <Text style={styles.fieldLabel}>{t("tripDetail.gente.emailLabel")}</Text>
                     <TextInput
                       style={styles.input}
                       placeholder="correo@ejemplo.com"
@@ -3669,10 +3671,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 <View style={[styles.switchRow, { marginBottom: 20 }]}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.switchLabel}>
-                      💾 Guardar en mi directorio
+                      {t("tripDetail.gente.saveDirectoryLabel")}
                     </Text>
                     <Text style={styles.switchSub}>
-                      Para invitarla rápido en futuros paseos
+                      {t("tripDetail.gente.saveDirectorySub")}
                     </Text>
                   </View>
                   <Switch
@@ -3685,7 +3687,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
 
                 {/* ── Familia ── */}
                 <Text style={[styles.modalSectionLabel, { marginTop: 4 }]}>
-                  🏠 Familia
+                  {t("tripDetail.gente.familiaLabel")}
                 </Text>
                 <View style={styles.toggleRow}>
                   <TouchableOpacity
@@ -3701,7 +3703,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                         !creatingNewFamilia && styles.toggleTextActive,
                       ]}
                     >
-                      Existente
+                      {t("tripDetail.gente.familiaExistente")}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -3717,18 +3719,18 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                         creatingNewFamilia && styles.toggleTextActive,
                       ]}
                     >
-                      Nueva familia
+                      {t("tripDetail.gente.familiaNueva")}
                     </Text>
                   </TouchableOpacity>
                 </View>
                 {creatingNewFamilia ? (
                   <View style={styles.field}>
                     <Text style={styles.fieldLabel}>
-                      Nombre de la familia *
+                      {t("tripDetail.gente.familiaNombreLabel")}
                     </Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Ej: Familia García"
+                      placeholder={t("tripDetail.gente.familiaNombrePlaceholder")}
                       placeholderTextColor="#94a3b8"
                       value={newFamiliaNombre}
                       onChangeText={setNewFamiliaNombre}
@@ -3738,7 +3740,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   <View style={styles.field}>
                     {familiasList.length === 0 ? (
                       <Text style={styles.noPersonas}>
-                        No hay familias. Crea la primera.
+                        {t("tripDetail.gente.noFamilias")}
                       </Text>
                     ) : (
                       familiasList.map((fam, fidx) => (
@@ -3777,11 +3779,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
 
                 {/* ── Factor ── */}
                 <Text style={[styles.modalSectionLabel, { marginTop: 8 }]}>
-                  ⚖️ Factor de participación
+                  {t("tripDetail.gente.factorLabel")}
                 </Text>
                 <Text style={[styles.fieldHint, { marginBottom: 8 }]}>
-                  Valor entre 0 y 1 — adulto completo = 1.0, niño pequeño = 0.3,
-                  etc.
+                  {t("tripDetail.gente.factorHint")}
                 </Text>
                 <View style={styles.factorSliderRow}>
                   {["0.25", "0.5", "0.75", "1.0"].map((f) => (
@@ -3823,12 +3824,12 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
 
                 {/* ── Fechas de asistencia ── */}
                 <Text style={[styles.modalSectionLabel, { marginTop: 16 }]}>
-                  📅 Fechas de asistencia
+                  {t("tripDetail.gente.fechasLabel")}
                 </Text>
                 <View style={styles.switchRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.switchLabel}>
-                      Asistirá a todo el paseo
+                      {t("tripDetail.gente.fechasTodoPaseo")}
                     </Text>
                     <Text style={styles.switchSub}>
                       {paseo?.fecha_inicio} → {paseo?.fecha_fin}
@@ -3852,7 +3853,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 </View>
                 {!nuevaFechaTodoPaseo && (
                   <View style={{ marginTop: 8, marginBottom: 12 }}>
-                    <Text style={styles.fieldLabel}>Fecha llegada</Text>
+                    <Text style={styles.fieldLabel}>{t("tripDetail.gente.fechaLlegada")}</Text>
                     <TextInput
                       style={styles.input}
                       value={nuevoFechaDesde}
@@ -3861,7 +3862,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                       keyboardType="numbers-and-punctuation"
                     />
                     <Text style={[styles.fieldLabel, { marginTop: 10 }]}>
-                      Fecha salida
+                      {t("tripDetail.gente.fechaSalida")}
                     </Text>
                     <TextInput
                       style={styles.input}
@@ -3887,7 +3888,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowMealDetailModal(false)}>
-                <Text style={styles.modalCancel}>Cerrar</Text>
+                <Text style={styles.modalCancel}>{t("common.close")}</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>
                 {mealDetailTarget?.recetas?.nombre ?? "Comida"}
@@ -3930,7 +3931,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                           {mealDetailTarget.porciones ?? participaciones.length}
                         </Text>
                         <Text style={styles.mealDetailPorcionesSub}>
-                          porciones
+                          {t("tripDetail.menu.porciones", { count: mealDetailTarget?.porciones ?? participaciones.length })}
                         </Text>
                       </View>
                     </View>
@@ -3943,17 +3944,17 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   { marginTop: 20, marginBottom: 8 },
                 ]}
               >
-                👥 Participantes en esta comida
+                {t("tripDetail.menu.mealDetailParticipantes")}
               </Text>
               <Text style={[styles.fieldHint, { marginBottom: 12 }]}>
-                Desactiva quien no participa — afecta porciones y costos
+                {t("tripDetail.menu.mealDetailHint")}
               </Text>
 
               {loadingParticipantes ? (
                 <ActivityIndicator color="#1B4F72" style={{ marginTop: 20 }} />
               ) : participaciones.length === 0 ? (
                 <Text style={styles.noPersonas}>
-                  No hay participantes en el paseo.
+                  {t("tripDetail.menu.noParticipantes")}
                 </Text>
               ) : (
                 familiasList.map((fam, fidx) => {
@@ -4023,7 +4024,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                                   {m.personas.nombre}
                                 </Text>
                                 <Text style={styles.mealPartFactor}>
-                                  Factor {m.factor ?? 1}
+                                  {t("tripDetail.gente.factor", { factor: m.factor ?? 1 })}
                                 </Text>
                               </View>
                             </View>
@@ -4071,7 +4072,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 }}
               >
                 <Text style={[styles.estadoOptionText, { color: "#1B4F72" }]}>
-                  ✏️ Editar tipo
+                  {t("tripDetail.menu.mealOptionsEditar")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -4082,14 +4083,14 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 }}
               >
                 <Text style={[styles.estadoOptionText, { color: "#DC2626" }]}>
-                  🗑️ Eliminar
+                  {t("tripDetail.menu.mealOptionsEliminar")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.estadoCancel}
                 onPress={() => setShowMealOptionsModal(false)}
               >
-                <Text style={styles.estadoCancelText}>Cancelar</Text>
+                <Text style={styles.estadoCancelText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -4104,21 +4105,21 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         >
           <View style={styles.modalOverlay}>
             <View style={styles.confirmBox}>
-              <Text style={styles.confirmTitle}>Eliminar comida</Text>
+              <Text style={styles.confirmTitle}>{t("tripDetail.menu.deleteMealTitle")}</Text>
               <Text style={styles.confirmMessage}>
-                ¿Eliminar esta comida del menú?
+                {t("tripDetail.menu.deleteMealMessage")}
               </Text>
               <TouchableOpacity
                 style={[styles.confirmBtn, { backgroundColor: "#DC2626" }]}
                 onPress={confirmDeleteMeal}
               >
-                <Text style={styles.confirmBtnText}>Eliminar</Text>
+                <Text style={styles.confirmBtnText}>{t("common.delete")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.estadoCancel}
                 onPress={() => setShowDeleteMealModal(false)}
               >
-                <Text style={styles.estadoCancelText}>Cancelar</Text>
+                <Text style={styles.estadoCancelText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -4134,15 +4135,15 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowEditMealModal(false)}>
-                <Text style={styles.modalCancel}>Cancelar</Text>
+                <Text style={styles.modalCancel}>{t("common.cancel")}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>Editar comida</Text>
+              <Text style={styles.modalTitle}>{t("tripDetail.menu.editMealTitle")}</Text>
               <TouchableOpacity onPress={handleSaveEditMeal}>
-                <Text style={styles.modalSave}>Guardar</Text>
+                <Text style={styles.modalSave}>{t("common.save")}</Text>
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalContent}>
-              <Text style={styles.fieldLabel}>Momento del día</Text>
+              <Text style={styles.fieldLabel}>{t("tripDetail.menu.momentoDelDia")}</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -4204,12 +4205,12 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   setMealFilterDieta(null);
                 }}
               >
-                <Text style={styles.modalCancel}>Cancelar</Text>
+                <Text style={styles.modalCancel}>{t("common.cancel")}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>Agregar comida</Text>
+              <Text style={styles.modalTitle}>{t("tripDetail.menu.addMealTitle")}</Text>
               <TouchableOpacity onPress={handleAddMeal} disabled={savingMeal}>
                 <Text style={styles.modalSave}>
-                  {savingMeal ? "..." : "Agregar"}
+                  {savingMeal ? "..." : t("tripDetail.menu.addMealBtn")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -4219,7 +4220,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               keyboardShouldPersistTaps="handled"
             >
               {/* ── Momento del día ── */}
-              <Text style={styles.fieldLabel}>Momento del día</Text>
+              <Text style={styles.fieldLabel}>{t("tripDetail.menu.momentoDelDia")}</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -4256,12 +4257,12 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               </ScrollView>
 
               {/* ── Buscar receta ── */}
-              <Text style={styles.fieldLabel}>Receta (opcional)</Text>
+              <Text style={styles.fieldLabel}>{t("tripDetail.menu.recetaLabel")}</Text>
               <View style={styles.searchBar}>
                 <Text style={styles.searchIcon}>🔍</Text>
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Buscar por nombre o palabra clave..."
+                  placeholder={t("tripDetail.menu.recetaSearchPlaceholder")}
                   placeholderTextColor="#94a3b8"
                   value={mealSearch}
                   onChangeText={setMealSearch}
@@ -4290,7 +4291,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 return (
                   <View style={{ marginTop: 12 }}>
                     <Text style={[styles.fieldLabel, { marginBottom: 6 }]}>
-                      Categoría
+                      {t("tripDetail.menu.categoriaLabel")}
                     </Text>
                     <ScrollView
                       horizontal
@@ -4310,7 +4311,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                             !mealFilterCategoria && styles.filterChipTextActive,
                           ]}
                         >
-                          Todas
+                          {t("tripDetail.menu.categoriaAll")}
                         </Text>
                       </TouchableOpacity>
                       {cats.map((cat) => (
@@ -4352,7 +4353,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 return (
                   <View style={{ marginTop: 12 }}>
                     <Text style={[styles.fieldLabel, { marginBottom: 6 }]}>
-                      Palabras clave
+                      {t("tripDetail.menu.palabrasClaveLabel")}
                     </Text>
                     <ScrollView
                       horizontal
@@ -4401,7 +4402,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 return (
                   <View style={{ marginTop: 12, marginBottom: 16 }}>
                     <Text style={[styles.fieldLabel, { marginBottom: 6 }]}>
-                      Especificaciones dietarias
+                      {t("tripDetail.menu.dietaLabel")}
                     </Text>
                     <ScrollView
                       horizontal
@@ -4478,10 +4479,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                               !selectedRecetaId && { color: "#1B4F72" },
                             ]}
                           >
-                            Sin receta específica
+                            {t("tripDetail.menu.sinRecetaEspecifica")}
                           </Text>
                           <Text style={styles.recetaCardSub}>
-                            Solo registrar el momento
+                            {t("tripDetail.menu.soloRegistrar")}
                           </Text>
                         </View>
                       </View>
@@ -4494,7 +4495,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                       <View style={styles.emptySearch}>
                         <Text style={styles.emptySearchIcon}>🔍</Text>
                         <Text style={styles.emptySearchText}>
-                          Sin resultados para "{mealSearch}"
+                          {t("tripDetail.menu.sinResultados", { query: mealSearch })}
                         </Text>
                       </View>
                     )}
@@ -4654,36 +4655,36 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowAddGastoModal(false)}>
-                <Text style={styles.modalCancel}>Cancelar</Text>
+                <Text style={styles.modalCancel}>{t("common.cancel")}</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>
-                {editingGasto ? "Editar gasto" : "Agregar gasto"}
+                {editingGasto ? t("tripDetail.gastos.editGastoTitle") : t("tripDetail.gastos.addGastoTitle")}
               </Text>
               <TouchableOpacity
                 onPress={handleSaveGasto}
                 disabled={savingGasto}
               >
                 <Text style={styles.modalSave}>
-                  {savingGasto ? "..." : "Guardar"}
+                  {savingGasto ? "..." : t("common.save")}
                 </Text>
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalContent}>
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Nombre del gasto *</Text>
+                <Text style={styles.fieldLabel}>{t("tripDetail.gastos.gastoNombreLabel")}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ej: Mercado, Gasolina, Restaurante..."
+                  placeholder={t("tripDetail.gastos.gastoNombrePlaceholder")}
                   placeholderTextColor="#94a3b8"
                   value={gastoNombre}
                   onChangeText={setGastoNombre}
                 />
               </View>
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Monto (COP) *</Text>
+                <Text style={styles.fieldLabel}>{t("tripDetail.gastos.gastoMontoLabel")}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ej: 150000"
+                  placeholder={t("tripDetail.gastos.gastoMontoPlaceholder")}
                   placeholderTextColor="#94a3b8"
                   value={gastoMonto}
                   onChangeText={setGastoMonto}
@@ -4691,7 +4692,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 />
               </View>
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Categoría *</Text>
+                <Text style={styles.fieldLabel}>{t("tripDetail.gastos.gastoCategoriaLabel")}</Text>
                 <View style={styles.categoriasGrid}>
                   {GASTO_CATEGORIAS.map((cat) => (
                     <TouchableOpacity
@@ -4722,10 +4723,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               {gastoCategoria !== "comida" && participaciones.length > 0 && (
                 <View style={styles.field}>
                   <Text style={styles.fieldLabel}>
-                    ¿Quién participa en este gasto?
+                    {t("tripDetail.gastos.quienParticipa")}
                   </Text>
                   <Text style={[styles.fieldHint, { marginBottom: 10 }]}>
-                    Desactiva quien no participa — afecta el cálculo de su cuota
+                    {t("tripDetail.gastos.desactivaHint")}
                   </Text>
                   {familiasList.map((fam, fidx) => {
                     const miembros = participaciones.filter(
@@ -4759,7 +4760,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                                 {p.personas.nombre}
                                 <Text style={styles.gastoPartFactor}>
                                   {" "}
-                                  · Factor {p.factor ?? 1}
+                                  · {t("tripDetail.gente.factor", { factor: p.factor ?? 1 })}
                                 </Text>
                               </Text>
                               <Switch
@@ -4786,10 +4787,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               )}
 
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>¿Quién pagó? *</Text>
+                <Text style={styles.fieldLabel}>{t("tripDetail.gastos.quienPago")}</Text>
                 {participaciones.length === 0 ? (
                   <Text style={styles.noPersonas}>
-                    No hay participantes en el paseo.
+                    {t("tripDetail.gastos.noParticipantes")}
                   </Text>
                 ) : (
                   participaciones.map((p) => (
@@ -4850,7 +4851,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 }}
               >
                 <Text style={[styles.estadoOptionText, { color: "#1B4F72" }]}>
-                  ✏️ Editar gasto
+                  {t("tripDetail.gastos.optionsEditar")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -4862,14 +4863,14 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 }}
               >
                 <Text style={[styles.estadoOptionText, { color: "#DC2626" }]}>
-                  🗑️ Eliminar
+                  {t("tripDetail.gastos.optionsEliminar")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.estadoCancel}
                 onPress={() => setShowGastoOptionsModal(false)}
               >
-                <Text style={styles.estadoCancelText}>Cancelar</Text>
+                <Text style={styles.estadoCancelText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -4893,9 +4894,9 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   setDirectorioSearch("");
                 }}
               >
-                <Text style={styles.modalCancel}>Cerrar</Text>
+                <Text style={styles.modalCancel}>{t("common.close")}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>📋 Directorio</Text>
+              <Text style={styles.modalTitle}>{t("tripDetail.gastos.directorioTitle")}</Text>
               <TouchableOpacity
                 onPress={() => {
                   setShowDirectorioModal(false);
@@ -4915,7 +4916,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                     textAlign: "right",
                   }}
                 >
-                  + Nuevo
+                  {t("tripDetail.gastos.directorioNuevo")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -4931,7 +4932,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 <Text style={styles.searchIcon}>🔍</Text>
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Buscar contacto..."
+                  placeholder={t("tripDetail.gastos.directorioBuscar")}
                   placeholderTextColor="#94a3b8"
                   value={directorioSearch}
                   onChangeText={setDirectorioSearch}
@@ -4968,7 +4969,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                         },
                       ]}
                     >
-                      👤 Yo
+                      {t("tripDetail.gastos.directorioYo")}
                     </Text>
                     <TouchableOpacity
                       style={[
@@ -4996,7 +4997,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                         <Text style={styles.directorioNombre}>
                           {miPersonaNombre}
                         </Text>
-                        <Text style={styles.directorioSub}>Mi cuenta</Text>
+                        <Text style={styles.directorioSub}>{t("tripDetail.gastos.directorioMiCuenta")}</Text>
                       </View>
                       <View
                         style={{
@@ -5013,7 +5014,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                             fontWeight: "700",
                           }}
                         >
-                          Agregar
+                          {t("tripDetail.gastos.directorioAgregar")}
                         </Text>
                       </View>
                     </TouchableOpacity>
@@ -5043,9 +5044,9 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                     return (
                       <View style={[styles.emptyState, { paddingTop: 40 }]}>
                         <Text style={styles.emptyIcon}>📋</Text>
-                        <Text style={styles.emptyText}>Directorio vacío</Text>
+                        <Text style={styles.emptyText}>{t("tripDetail.gastos.directorioVacio")}</Text>
                         <Text style={styles.emptySub}>
-                          Los contactos que guardes aparecerán aquí
+                          {t("tripDetail.gastos.directorioVacioSub")}
                         </Text>
                       </View>
                     );
@@ -5068,7 +5069,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                             },
                           ]}
                         >
-                          Mis contactos
+                          {t("tripDetail.gastos.directorioMisContactos")}
                         </Text>
                       )}
                       {Object.keys(grouped)
@@ -5130,7 +5131,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                                     fontWeight: "600",
                                   }}
                                 >
-                                  Usar
+                                  {t("tripDetail.gastos.directorioUsar")}
                                 </Text>
                               </TouchableOpacity>
                             ))}
@@ -5177,7 +5178,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 }}
               >
                 <Text style={[styles.estadoOptionText, { color: "#1B4F72" }]}>
-                  ✏️ Editar contacto
+                  {t("tripDetail.gastos.dirOptionsEditar")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -5188,14 +5189,14 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                 }}
               >
                 <Text style={[styles.estadoOptionText, { color: "#DC2626" }]}>
-                  🗑️ Eliminar del directorio
+                  {t("tripDetail.gastos.dirOptionsEliminar")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.estadoCancel}
                 onPress={() => setShowDirOptionsModal(false)}
               >
-                <Text style={styles.estadoCancelText}>Cancelar</Text>
+                <Text style={styles.estadoCancelText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -5210,9 +5211,9 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
         >
           <View style={styles.modalOverlay}>
             <View style={styles.confirmBox}>
-              <Text style={styles.confirmTitle}>Eliminar contacto</Text>
+              <Text style={styles.confirmTitle}>{t("tripDetail.gastos.dirDeleteTitle")}</Text>
               <Text style={styles.confirmMessage}>
-                ¿Eliminar "{dirOptionsTarget?.nombre}" del directorio?
+                {t("tripDetail.gastos.dirDeleteMessage", { name: dirOptionsTarget?.nombre })}
               </Text>
               <TouchableOpacity
                 style={[styles.confirmBtn, { backgroundColor: "#DC2626" }]}
@@ -5225,13 +5226,13 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   await loadDirectorio();
                 }}
               >
-                <Text style={styles.confirmBtnText}>Eliminar</Text>
+                <Text style={styles.confirmBtnText}>{t("common.delete")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.estadoCancel}
                 onPress={() => setShowDirDeleteModal(false)}
               >
-                <Text style={styles.estadoCancelText}>Cancelar</Text>
+                <Text style={styles.estadoCancelText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -5247,10 +5248,10 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowDirEditModal(false)}>
-                <Text style={styles.modalCancel}>Cancelar</Text>
+                <Text style={styles.modalCancel}>{t("common.cancel")}</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>
-                {dirOptionsTarget?.id ? "Editar contacto" : "Nuevo contacto"}
+                {dirOptionsTarget?.id ? t("tripDetail.gastos.dirEditTitle") : t("tripDetail.gastos.dirNewTitle")}
               </Text>
               <TouchableOpacity
                 onPress={async () => {
@@ -5280,7 +5281,7 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
                   await loadDirectorio();
                 }}
               >
-                <Text style={styles.modalSave}>Guardar</Text>
+                <Text style={styles.modalSave}>{t("common.save")}</Text>
               </TouchableOpacity>
             </View>
             <ScrollView
@@ -5288,35 +5289,35 @@ Descarga PaseoApp, crea tu cuenta y úsalo para unirte.`,
               keyboardShouldPersistTaps="handled"
             >
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Nombre *</Text>
+                <Text style={styles.fieldLabel}>{t("tripDetail.gastos.dirNombreLabel")}</Text>
                 <TextInput
                   style={styles.input}
                   value={dirEditNombre}
                   onChangeText={setDirEditNombre}
-                  placeholder="Nombre completo"
+                  placeholder={t("tripDetail.gastos.dirNombrePlaceholder")}
                   placeholderTextColor="#94a3b8"
                   autoCapitalize="words"
                 />
               </View>
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Correo electrónico</Text>
+                <Text style={styles.fieldLabel}>{t("tripDetail.gastos.dirEmailLabel")}</Text>
                 <TextInput
                   style={styles.input}
                   value={dirEditEmail}
                   onChangeText={setDirEditEmail}
-                  placeholder="correo@ejemplo.com"
+                  placeholder={t("tripDetail.gastos.dirEmailPlaceholder")}
                   placeholderTextColor="#94a3b8"
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
               </View>
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Familia habitual</Text>
+                <Text style={styles.fieldLabel}>{t("tripDetail.gastos.dirFamiliaLabel")}</Text>
                 <TextInput
                   style={styles.input}
                   value={dirEditFamilia}
                   onChangeText={setDirEditFamilia}
-                  placeholder="Ej: Familia García"
+                  placeholder={t("tripDetail.gastos.dirFamiliaPlaceholder")}
                   placeholderTextColor="#94a3b8"
                   autoCapitalize="words"
                 />
@@ -5390,11 +5391,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 4,
   },
-  tab: { flex: 1, paddingVertical: 12, alignItems: "center" },
+  tab: { paddingVertical: 12, paddingHorizontal: 18, alignItems: "center" },
   tabActive: { borderBottomWidth: 2, borderBottomColor: "#1B4F72" },
   tabText: { fontSize: 11, fontWeight: "600", color: "#94a3b8" },
   tabTextActive: { color: "#1B4F72" },
 
+  flex1: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
   map: { width: "100%", height: 200, borderRadius: 12, marginTop: 8 },
   mapLinkCard: {
