@@ -11,6 +11,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import WebModalWrapper from "../src/components/WebModalWrapper";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../src/lib/supabase";
 
@@ -316,6 +317,7 @@ export default function AdminUploadScreen() {
           animationType="slide"
           presentationStyle="pageSheet"
         >
+          <WebModalWrapper>
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowPreview(false)}>
@@ -417,6 +419,7 @@ export default function AdminUploadScreen() {
               </TouchableOpacity>
             </View>
           </SafeAreaView>
+          </WebModalWrapper>
         </Modal>
       </ScrollView>
     </SafeAreaView>

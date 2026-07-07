@@ -643,6 +643,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     width: "84%",
+    maxWidth: 440,
   },
   sheetTitle: {
     fontSize: 16,
@@ -667,6 +668,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 28,
     width: "84%",
+    maxWidth: 440,
     alignItems: "center",
   },
   successEmoji: { fontSize: 52, marginBottom: 12 },
@@ -702,6 +704,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     width: "84%",
+    maxWidth: 440,
   },
   errorTitle: {
     fontSize: 17,

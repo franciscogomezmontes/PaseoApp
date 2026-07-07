@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import WebModalWrapper from "../src/components/WebModalWrapper";
 import { TIPO_CONFIG } from "../src/constants";
 import { useTheme } from "../src/hooks/useTheme";
 import { supabase } from "../src/lib/supabase";
@@ -407,6 +408,7 @@ export default function RecipeDetailScreen() {
           presentationStyle="pageSheet"
           onRequestClose={() => setShowAddToTripModal(false)}
         >
+          <WebModalWrapper>
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowAddToTripModal(false)}>
@@ -523,6 +525,7 @@ export default function RecipeDetailScreen() {
               )}
             </ScrollView>
           </SafeAreaView>
+          </WebModalWrapper>
         </Modal>
       </SafeAreaView>
     </KeyboardAvoidingView>

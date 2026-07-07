@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SkeletonBox from "../../src/components/SkeletonBox";
+import WebModalWrapper from "../../src/components/WebModalWrapper";
 import { ESTADO_CONFIG, NOTIFICACIONES_KEY, ONBOARDING_KEY } from "../../src/constants";
 import { useTheme } from "../../src/hooks/useTheme";
 import { supabase } from "../../src/lib/supabase";
@@ -710,6 +711,7 @@ export default function HomeScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowInviteModal(false)}
       >
+        <WebModalWrapper>
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowInviteModal(false)}>
@@ -811,6 +813,7 @@ export default function HomeScreen() {
             )}
           </ScrollView>
         </SafeAreaView>
+        </WebModalWrapper>
       </Modal>
 
       {/* Perfil */}
@@ -820,6 +823,7 @@ export default function HomeScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowProfileModal(false)}
       >
+        <WebModalWrapper>
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowProfileModal(false)}>
@@ -897,6 +901,7 @@ export default function HomeScreen() {
             </View>
           </ScrollView>
         </SafeAreaView>
+        </WebModalWrapper>
       </Modal>
 
       {/* Foto source */}
@@ -938,6 +943,7 @@ export default function HomeScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowPasswordModal(false)}
       >
+        <WebModalWrapper>
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowPasswordModal(false)}>
@@ -1031,6 +1037,7 @@ export default function HomeScreen() {
             )}
           </ScrollView>
         </SafeAreaView>
+        </WebModalWrapper>
       </Modal>
 
       {/* Cerrar sesión */}
@@ -1341,6 +1348,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     width: "84%",
+    maxWidth: 440,
   },
   confirmTitle: {
     fontSize: 17,
@@ -1371,6 +1379,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     width: "84%",
+    maxWidth: 440,
   },
   sheetTitle: {
     fontSize: 16,

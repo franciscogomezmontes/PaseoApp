@@ -14,6 +14,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SkeletonBox from "../../src/components/SkeletonBox";
+import WebModalWrapper from "../../src/components/WebModalWrapper";
 import TabTooltip from "../../src/components/TabTooltip";
 import { ESTADO_CONFIG, GASTO_CATEGORIAS, TOOLTIP_KEYS } from "../../src/constants";
 import { useTheme } from "../../src/hooks/useTheme";
@@ -851,6 +852,7 @@ export default function GastosScreen() {
         presentationStyle="pageSheet"
         onRequestClose={closeGastoModal}
       >
+        <WebModalWrapper>
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={closeGastoModal}>
@@ -990,6 +992,7 @@ export default function GastosScreen() {
               )}
           </ScrollView>
         </SafeAreaView>
+        </WebModalWrapper>
       </Modal>
 
       {/* Balances modal */}
@@ -999,6 +1002,7 @@ export default function GastosScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowBalancesModal(false)}
       >
+        <WebModalWrapper>
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowBalancesModal(false)}>
@@ -1128,6 +1132,7 @@ export default function GastosScreen() {
             })()}
           </ScrollView>
         </SafeAreaView>
+        </WebModalWrapper>
       </Modal>
     </SafeAreaView>
   );
@@ -1288,6 +1293,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     width: "100%",
+    maxWidth: 440,
   },
   confirmTitle: {
     fontSize: 17,
@@ -1310,6 +1316,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     width: "100%",
+    maxWidth: 440,
   },
   optionsTitle: {
     fontSize: 16,

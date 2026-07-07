@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
+import WebModalWrapper from "../../src/components/WebModalWrapper";
 import SkeletonBox from "../../src/components/SkeletonBox";
 import TabTooltip from "../../src/components/TabTooltip";
 import { TIPO_CONFIG, TOOLTIP_KEYS } from "../../src/constants";
@@ -738,6 +739,7 @@ export default function RecipesScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowIngModal(false)}
       >
+        <WebModalWrapper>
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowIngModal(false)}>
@@ -838,6 +840,7 @@ export default function RecipesScreen() {
             )}
           </ScrollView>
         </SafeAreaView>
+        </WebModalWrapper>
       </Modal>
     </SafeAreaView>
   );
@@ -1164,6 +1167,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     width: "100%",
+    maxWidth: 440,
   },
   confirmTitle: {
     fontSize: 17,

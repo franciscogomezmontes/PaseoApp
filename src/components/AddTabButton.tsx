@@ -9,7 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Plus, MapPin, BookOpen } from "lucide-react-native";
+import { Plus, MapPin, BookOpen, Users } from "lucide-react-native";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 
 export default function AddTabButton({ style }: BottomTabBarButtonProps) {
@@ -66,6 +66,16 @@ export default function AddTabButton({ style }: BottomTabBarButtonProps) {
                   </View>
                 </TouchableOpacity>
 
+                <TouchableOpacity style={styles.option} onPress={() => go("/directorio?new=1")}>
+                  <View style={[styles.optionIcon, { backgroundColor: "#EDE9FE" }]}>
+                    <Users color="#6D28D9" size={22} />
+                  </View>
+                  <View>
+                    <Text style={styles.optionTitle}>Nuevo Contacto</Text>
+                    <Text style={styles.optionSub}>Agrega una persona al directorio</Text>
+                  </View>
+                </TouchableOpacity>
+
                 <TouchableOpacity style={styles.cancel} onPress={() => setOpen(false)}>
                   <Text style={styles.cancelText}>Cancelar</Text>
                 </TouchableOpacity>
@@ -111,6 +121,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: Platform.OS === "ios" ? 36 : 24,
     paddingTop: 12,
+    width: "100%",
+    maxWidth: 520,
+    alignSelf: "center",
   },
   handle: {
     width: 40,

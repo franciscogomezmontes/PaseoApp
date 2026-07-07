@@ -22,6 +22,7 @@ import {
 import { MapView, Marker } from "../src/lib/maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ESTADO_CONFIG, GASTO_CATEGORIAS, TIPO_CONFIG } from "../src/constants";
+import WebModalWrapper from "../src/components/WebModalWrapper";
 import { useTheme } from "../src/hooks/useTheme";
 import { calcularTransferenciasMinimas } from "../src/lib/liquidacion";
 import { supabase } from "../src/lib/supabase";
@@ -3070,6 +3071,7 @@ export default function TripDetailScreen() {
           presentationStyle="pageSheet"
           onRequestClose={() => setShowEditFamiliaModal(false)}
         >
+          <WebModalWrapper>
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowEditFamiliaModal(false)}>
@@ -3115,6 +3117,7 @@ export default function TripDetailScreen() {
               </View>
             </ScrollView>
           </SafeAreaView>
+          </WebModalWrapper>
         </Modal>
 
         {/* Participant options */}
@@ -3412,6 +3415,7 @@ export default function TripDetailScreen() {
           presentationStyle="pageSheet"
           onRequestClose={() => setShowAddModal(false)}
         >
+          <WebModalWrapper>
           <SafeAreaView style={styles.modalContainer}>
             <KeyboardAvoidingView
               behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -3896,6 +3900,7 @@ export default function TripDetailScreen() {
               </ScrollView>
             </KeyboardAvoidingView>
           </SafeAreaView>
+          </WebModalWrapper>
         </Modal>
 
         {/* Meal detail / participantes por comida */}
@@ -3905,6 +3910,7 @@ export default function TripDetailScreen() {
           presentationStyle="pageSheet"
           onRequestClose={() => setShowMealDetailModal(false)}
         >
+          <WebModalWrapper>
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowMealDetailModal(false)}>
@@ -4068,6 +4074,7 @@ export default function TripDetailScreen() {
               )}
             </ScrollView>
           </SafeAreaView>
+          </WebModalWrapper>
         </Modal>
 
         {/* Meal options */}
@@ -4152,6 +4159,7 @@ export default function TripDetailScreen() {
           presentationStyle="pageSheet"
           onRequestClose={() => setShowEditMealModal(false)}
         >
+          <WebModalWrapper>
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowEditMealModal(false)}>
@@ -4199,6 +4207,7 @@ export default function TripDetailScreen() {
               </ScrollView>
             </ScrollView>
           </SafeAreaView>
+          </WebModalWrapper>
         </Modal>
 
         {/* Add meal */}
@@ -4214,6 +4223,7 @@ export default function TripDetailScreen() {
             setMealFilterDieta(null);
           }}
         >
+          <WebModalWrapper>
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity
@@ -4652,6 +4662,7 @@ export default function TripDetailScreen() {
               })()}
             </ScrollView>
           </SafeAreaView>
+          </WebModalWrapper>
         </Modal>
 
         {/* Add gasto */}
@@ -4672,6 +4683,7 @@ export default function TripDetailScreen() {
             if (!editingGasto) initGastoParticipantes();
           }}
         >
+          <WebModalWrapper>
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowAddGastoModal(false)}>
@@ -4838,6 +4850,7 @@ export default function TripDetailScreen() {
               </View>
             </ScrollView>
           </SafeAreaView>
+          </WebModalWrapper>
         </Modal>
 
         {/* Gasto options */}
@@ -4906,6 +4919,7 @@ export default function TripDetailScreen() {
             setDirectorioSearch("");
           }}
         >
+          <WebModalWrapper>
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity
@@ -5163,6 +5177,7 @@ export default function TripDetailScreen() {
               )}
             </ScrollView>
           </SafeAreaView>
+          </WebModalWrapper>
         </Modal>
 
         {/* Directorio: options modal */}
@@ -5265,6 +5280,7 @@ export default function TripDetailScreen() {
           presentationStyle="pageSheet"
           onRequestClose={() => setShowDirEditModal(false)}
         >
+          <WebModalWrapper>
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowDirEditModal(false)}>
@@ -5344,6 +5360,7 @@ export default function TripDetailScreen() {
               </View>
             </ScrollView>
           </SafeAreaView>
+          </WebModalWrapper>
         </Modal>
 
         {/* Delete gasto */}
@@ -6000,6 +6017,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     width: "85%",
+    maxWidth: 440,
   },
   estadoModalTitle: {
     fontSize: 16,
@@ -6022,6 +6040,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     width: "85%",
+    maxWidth: 440,
   },
   confirmTitle: {
     fontSize: 16,
@@ -6049,6 +6068,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     width: "85%",
+    maxWidth: 440,
     alignItems: "center",
   },
   familiaModalTitle: {

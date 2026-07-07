@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  errorBox: { backgroundColor: "#fff", borderRadius: 20, padding: 24, width: "84%" },
+  errorBox: { backgroundColor: "#fff", borderRadius: 20, padding: 24, width: "84%", maxWidth: 440 },
   errorTitle: { fontSize: 17, fontWeight: "800", color: "#1e293b", textAlign: "center", marginBottom: 8 },
   errorMsg: { fontSize: 14, color: "#64748b", textAlign: "center", marginBottom: 20, lineHeight: 20 },
   errorBtn: { backgroundColor: "#1B4F72", borderRadius: 12, padding: 14, alignItems: "center" },
