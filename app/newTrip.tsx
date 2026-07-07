@@ -54,6 +54,13 @@ export default function NewTripScreen() {
     setShowErrorModal(true);
   };
 
+  const formatDateInput = (raw: string): string => {
+    const digits = raw.replace(/\D/g, "").slice(0, 8);
+    if (digits.length <= 4) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+  };
+
   const isValid =
     nombre.trim() && lugar.trim() && fechaInicio.trim() && fechaFin.trim();
 
@@ -276,8 +283,9 @@ export default function NewTripScreen() {
                 placeholder={t("newTrip.datePlaceholder")}
                 placeholderTextColor={theme.inputPlaceholder}
                 value={fechaInicio}
-                onChangeText={setFechaInicio}
-                keyboardType="numeric"
+                onChangeText={(v) => setFechaInicio(formatDateInput(v))}
+                keyboardType="number-pad"
+                maxLength={10}
               />
             </View>
             <View style={{ width: 12 }} />
@@ -288,8 +296,9 @@ export default function NewTripScreen() {
                 placeholder={t("newTrip.datePlaceholder")}
                 placeholderTextColor={theme.inputPlaceholder}
                 value={fechaFin}
-                onChangeText={setFechaFin}
-                keyboardType="numeric"
+                onChangeText={(v) => setFechaFin(formatDateInput(v))}
+                keyboardType="number-pad"
+                maxLength={10}
               />
             </View>
           </View>
@@ -428,7 +437,7 @@ export default function NewTripScreen() {
         visible={showSuccessModal}
         transparent
         animationType="fade"
-        onRequestClose={() => {}}
+        onRequestClose={() => { setShowSuccessModal(false); router.back(); }}
       >
         <View style={styles.overlay}>
           <View style={styles.successBox}>

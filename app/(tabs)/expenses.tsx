@@ -2,7 +2,6 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Modal,
   ScrollView,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
+import SkeletonBox from "../../src/components/SkeletonBox";
 import TabTooltip from "../../src/components/TabTooltip";
 import { ESTADO_CONFIG, GASTO_CATEGORIAS, TOOLTIP_KEYS } from "../../src/constants";
 import { useTheme } from "../../src/hooks/useTheme";
@@ -538,10 +538,27 @@ export default function GastosScreen() {
         bgColor="#FFFBEB"
       />
       {loadingData ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#1B4F72" />
-          <Text style={styles.loadingText}>{t("expenses.loadingText")}</Text>
-        </View>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }} pointerEvents="none">
+          {[1, 2].map((i) => (
+            <View key={i} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16, gap: 10 }}>
+              <SkeletonBox style={{ width: "55%", height: 16, borderRadius: 8 }} />
+              <SkeletonBox style={{ width: "35%", height: 12, borderRadius: 6 }} />
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
+                <SkeletonBox style={{ width: 80, height: 28, borderRadius: 14 }} />
+                <SkeletonBox style={{ width: 100, height: 28, borderRadius: 14 }} />
+              </View>
+              {[1, 2, 3].map((j) => (
+                <View key={j} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                  <View style={{ gap: 4 }}>
+                    <SkeletonBox style={{ width: 120, height: 13 }} />
+                    <SkeletonBox style={{ width: 80, height: 10 }} />
+                  </View>
+                  <SkeletonBox style={{ width: 60, height: 16 }} />
+                </View>
+              ))}
+            </View>
+          ))}
+        </ScrollView>
       ) : paseos.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.emptyIcon}>🗺️</Text>
@@ -684,14 +701,7 @@ export default function GastosScreen() {
                             (c) => c.key === (g.categoria ?? "otros"),
                           )?.label ?? "📦 Otros";
                         return (
-                          <TouchableOpacity
-                            key={g.id}
-                            style={styles.gastoCard}
-                            onLongPress={() => {
-                              setOptionsTarget(g);
-                              setShowOptionsModal(true);
-                            }}
-                          >
+                          <View key={g.id} style={styles.gastoCard}>
                             <View style={styles.gastoCardLeft}>
                               <Text style={styles.gastoNombre}>{g.nombre}</Text>
                               <Text style={styles.gastoPagadoPor}>
@@ -703,11 +713,18 @@ export default function GastosScreen() {
                               <Text style={styles.gastoMonto}>
                                 {formatCOP(g.monto)}
                               </Text>
-                              <Text style={styles.gastoHint}>
-                                {t("expenses.longPressHint")}
-                              </Text>
+                              <TouchableOpacity
+                                style={styles.rowMenuBtn}
+                                onPress={() => {
+                                  setOptionsTarget(g);
+                                  setShowOptionsModal(true);
+                                }}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              >
+                                <Text style={styles.rowMenuIcon}>⋯</Text>
+                              </TouchableOpacity>
                             </View>
-                          </TouchableOpacity>
+                          </View>
                         );
                       })
                     )}
@@ -1249,6 +1266,9 @@ const styles = StyleSheet.create({
   gastoCardRight: { alignItems: "flex-end" },
   gastoMonto: { fontSize: 15, fontWeight: "800", color: "#1B4F72" },
   gastoHint: { fontSize: 10, color: "#cbd5e1", marginTop: 2 },
+
+  rowMenuBtn: { paddingHorizontal: 6, paddingVertical: 4, minWidth: 28, alignItems: "center", justifyContent: "center", marginTop: 4 },
+  rowMenuIcon: { fontSize: 18, color: "#94a3b8", fontWeight: "700" },
 
   emptyGastos: { paddingVertical: 28, alignItems: "center", paddingHorizontal: 16 },
   emptyGastosIcon: { fontSize: 32, marginBottom: 8 },

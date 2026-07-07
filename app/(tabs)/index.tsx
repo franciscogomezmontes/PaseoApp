@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -18,7 +19,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ESTADO_CONFIG, ONBOARDING_KEY } from "../../src/constants";
+import SkeletonBox from "../../src/components/SkeletonBox";
+import { ESTADO_CONFIG, NOTIFICACIONES_KEY, ONBOARDING_KEY } from "../../src/constants";
 import { useTheme } from "../../src/hooks/useTheme";
 import { supabase } from "../../src/lib/supabase";
 import { useAuthStore } from "../../src/store/useAuthStore";
@@ -29,23 +31,11 @@ import { useTripStore } from "../../src/store/useTripStore";
 const VERSION = "0.1.0";
 
 
-const FAQ = [
-  {
-    q: "¿Cuántas personas puede tener un paseo?",
-    a: "No hay límite. Puedes tener tantos participantes como necesites, organizados por familias.",
-  },
-  {
-    q: "¿Qué pasa si alguien no come en una comida?",
-    a: "Puedes desactivarlo para ese momento específico y el costo se redistribuye automáticamente.",
-  },
-  {
-    q: "¿Puedo usar PaseoApp sin internet?",
-    a: "Necesitas conexión para sincronizar datos, pero la navegación básica funciona con caché.",
-  },
-  {
-    q: "¿Cómo se calculan las liquidaciones?",
-    a: "Usamos el algoritmo de transferencias mínimas para reducir al máximo el número de pagos.",
-  },
+const FAQ_KEYS = [
+  { q: "home.faq.q1", a: "home.faq.a1" },
+  { q: "home.faq.q2", a: "home.faq.a2" },
+  { q: "home.faq.q3", a: "home.faq.a3" },
+  { q: "home.faq.q4", a: "home.faq.a4" },
 ];
 
 
@@ -57,11 +47,11 @@ const initials = (name: string) =>
     .slice(0, 2)
     .toUpperCase() ?? "??";
 
-const getSaludo = () => {
+const getSaludoKey = () => {
   const h = new Date().getHours();
-  if (h < 12) return "Buenos días";
-  if (h < 18) return "Buenas tardes";
-  return "Buenas noches";
+  if (h < 12) return "home.greetings.morning";
+  if (h < 18) return "home.greetings.afternoon";
+  return "home.greetings.evening";
 };
 
 export default function HomeScreen() {
@@ -80,12 +70,19 @@ export default function HomeScreen() {
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
+  const { t } = useTranslation();
   const { followSystem, setFollowSystem } = useThemeStore();
   const { language, setLanguage } = useLanguageStore();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
 
   // ── UI ──
   const [notificaciones, setNotificaciones] = useState(true);
+
+  useEffect(() => {
+    AsyncStorage.getItem(NOTIFICACIONES_KEY).then((v) => {
+      if (v !== null) setNotificaciones(v === "true");
+    });
+  }, []);
   const [faqExpanded, setFaqExpanded] = useState(false);
   const [paseosExpanded, setPaseosExpanded] = useState(false);
   const [configExpanded, setConfigExpanded] = useState(false);
@@ -118,11 +115,11 @@ export default function HomeScreen() {
 
   const handleChangePassword = async () => {
     if (newPassword.length < 6) {
-      showError("La contraseña debe tener al menos 6 caracteres.");
+      showError(t("home.password.errors.tooShort"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      showError("Las contraseñas no coinciden.");
+      showError(t("home.password.errors.mismatch"));
       return;
     }
     setSavingPassword(true);
@@ -170,7 +167,7 @@ export default function HomeScreen() {
 
   const handleSave = async () => {
     if (!fullPersona?.id) {
-      showError("No se pudo identificar tu perfil.");
+      showError(t("home.profile.errors.noProfile"));
       return;
     }
     setSaving(true);
@@ -198,7 +195,7 @@ export default function HomeScreen() {
     if (source === "camera") {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== "granted") {
-        showError("Necesitamos acceso a tu cámara.");
+        showError(t("home.profile.errors.noCamera"));
         return;
       }
       result = await ImagePicker.launchCameraAsync({
@@ -210,7 +207,7 @@ export default function HomeScreen() {
       const { status } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
-        showError("Necesitamos acceso a tu galería.");
+        showError(t("home.profile.errors.noGallery"));
         return;
       }
       result = await ImagePicker.launchImageLibraryAsync({
@@ -249,14 +246,14 @@ export default function HomeScreen() {
         .update({ foto_url: publicUrl })
         .eq("id", persona!.id);
     } catch {
-      showError("No se pudo procesar la imagen.");
+      showError(t("home.profile.errors.imageError"));
     }
     setUploadingPhoto(false);
   };
 
   const handleInvitarPorEmail = async () => {
     if (!inviteEmail.trim()) {
-      showError("Ingresa un correo electrónico.");
+      showError(t("home.invite.errors.noEmail"));
       return;
     }
     setSendingInvite(true);
@@ -281,7 +278,7 @@ export default function HomeScreen() {
       );
       setInviteSent(true);
     } catch {
-      showError("No se pudo enviar la invitación. Intenta de nuevo.");
+      showError(t("home.invite.errors.sendFailed"));
     }
     setSendingInvite(false);
   };
@@ -289,8 +286,8 @@ export default function HomeScreen() {
   const handleCompartirNativo = async () => {
     try {
       await Share.share({
-        message: `🏕️ Te invito a usar *PaseoApp* — la app para organizar paseos en grupo sin dramas.\n\n✅ Menú del paseo\n✅ División de gastos automática\n✅ Liquidaciones mínimas\n\nDescárgala y organiza tu próximo paseo sin hojas de cálculo ni peleas.`,
-        title: "Invitación a PaseoApp",
+        message: t("home.invite.shareMessage"),
+        title: t("home.invite.shareTitle"),
       });
     } catch {
       /* cancelled */
@@ -314,11 +311,37 @@ export default function HomeScreen() {
   if (!persona) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["bottom", "left", "right"]}>
-        <View
-          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
-        >
-          <ActivityIndicator size="large" color="#1B4F72" />
-        </View>
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} pointerEvents="none">
+          {/* Header skeleton */}
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <View style={{ gap: 6 }}>
+              <SkeletonBox style={{ width: 160, height: 20, borderRadius: 8 }} />
+              <SkeletonBox style={{ width: 100, height: 14, borderRadius: 6 }} />
+            </View>
+            <SkeletonBox style={{ width: 48, height: 48, borderRadius: 24 }} />
+          </View>
+          {/* Active trips skeleton */}
+          <SkeletonBox style={{ width: 120, height: 14, borderRadius: 6, marginBottom: 4 }} />
+          {[1, 2].map((i) => (
+            <View key={i} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16, gap: 8 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <SkeletonBox style={{ width: 40, height: 40, borderRadius: 20 }} />
+                <View style={{ flex: 1, gap: 6 }}>
+                  <SkeletonBox style={{ width: "60%", height: 14 }} />
+                  <SkeletonBox style={{ width: "40%", height: 11 }} />
+                </View>
+                <SkeletonBox style={{ width: 60, height: 22, borderRadius: 11 }} />
+              </View>
+            </View>
+          ))}
+          {/* Quick access skeleton */}
+          <SkeletonBox style={{ width: 100, height: 14, borderRadius: 6, marginTop: 8 }} />
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+            {[1, 2, 3, 4].map((i) => (
+              <SkeletonBox key={i} style={{ width: 140, height: 64, borderRadius: 14 }} />
+            ))}
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -334,7 +357,7 @@ export default function HomeScreen() {
         {/* 1. BIENVENIDA */}
         <View style={styles.welcomeSection}>
           <View>
-            <Text style={styles.welcomeSaludo}>{getSaludo()} 👋</Text>
+            <Text style={styles.welcomeSaludo}>{t(getSaludoKey())} 👋</Text>
             <Text style={styles.welcomeNombre}>
               {nombre || persona?.nombre}
             </Text>
@@ -362,30 +385,43 @@ export default function HomeScreen() {
             onPress={() => router.push("/trips" as any)}
           >
             <Text style={styles.quickIcon}>🏕️</Text>
-            <Text style={styles.quickLabel}>Mis paseos</Text>
+            <Text style={styles.quickLabel}>{t("home.quickAccess.trips")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.quickCard}
             onPress={() => router.push("/recipes" as any)}
           >
             <Text style={styles.quickIcon}>📖</Text>
-            <Text style={styles.quickLabel}>Recetas</Text>
+            <Text style={styles.quickLabel}>{t("home.quickAccess.recipes")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.quickCard}
             onPress={() => router.push("/grocery" as any)}
           >
             <Text style={styles.quickIcon}>🛒</Text>
-            <Text style={styles.quickLabel}>Mercado</Text>
+            <Text style={styles.quickLabel}>{t("home.quickAccess.grocery")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.quickCard}
             onPress={() => router.push("/expenses" as any)}
           >
             <Text style={styles.quickIcon}>💸</Text>
-            <Text style={styles.quickLabel}>Gastos</Text>
+            <Text style={styles.quickLabel}>{t("home.quickAccess.expenses")}</Text>
           </TouchableOpacity>
         </View>
+
+        {/* 2b. DIRECTORIO */}
+        <TouchableOpacity
+          style={styles.dirCard}
+          onPress={() => router.push("/directorio" as any)}
+        >
+          <Text style={styles.dirCardIcon}>📋</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.dirCardLabel}>{t("home.quickAccess.directory")}</Text>
+            <Text style={styles.dirCardSub}>{t("home.quickAccess.directorySub")}</Text>
+          </View>
+          <Text style={styles.chevron}>›</Text>
+        </TouchableOpacity>
 
         {/* 3. PASEOS ACTIVOS */}
         <View style={styles.section}>
@@ -395,11 +431,11 @@ export default function HomeScreen() {
             activeOpacity={0.7}
           >
             <View>
-              <Text style={styles.sectionTitle}>Paseos activos</Text>
+              <Text style={styles.sectionTitle}>{t("home.activeTrips.title")}</Text>
               <Text style={styles.collapseHint}>
                 {paseosRecientes.length === 0
-                  ? "Sin paseos activos"
-                  : `${paseosRecientes.length} paseo${paseosRecientes.length !== 1 ? "s" : ""}`}
+                  ? t("home.activeTrips.empty")
+                  : t("home.activeTrips.count", { count: paseosRecientes.length })}
               </Text>
             </View>
             <Text style={styles.collapseIcon}>
@@ -410,10 +446,8 @@ export default function HomeScreen() {
             (paseosRecientes.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyIcon}>🏕️</Text>
-                <Text style={styles.emptyTitle}>Sin paseos aún</Text>
-                <Text style={styles.emptySub}>
-                  Ve a Mis Paseos para crear el primero
-                </Text>
+                <Text style={styles.emptyTitle}>{t("home.activeTrips.emptyTitle")}</Text>
+                <Text style={styles.emptySub}>{t("home.activeTrips.emptySub")}</Text>
               </View>
             ) : (
               paseosRecientes.map((p) => {
@@ -471,19 +505,19 @@ export default function HomeScreen() {
 
         {/* 4. RESUMEN */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Resumen</Text>
+          <Text style={styles.sectionTitle}>{t("home.summary.title")}</Text>
           <View style={styles.statsRow}>
             {[
-              { val: paseos.length, label: "Paseos", color: "#1B4F72" },
-              { val: paseosActivos.length, label: "Activos", color: "#065F46" },
+              { val: paseos.length, label: t("home.summary.trips"), color: "#1B4F72" },
+              { val: paseosActivos.length, label: t("home.summary.active"), color: "#065F46" },
               {
                 val: paseosPlanificacion.length,
-                label: "Planeando",
+                label: t("home.summary.planning"),
                 color: "#B45309",
               },
               {
                 val: paseos.filter((p) => p.estado === "liquidado").length,
-                label: "Liquidados",
+                label: t("home.summary.settled"),
                 color: "#6D28D9",
               },
             ].map((s, i) => (
@@ -513,10 +547,8 @@ export default function HomeScreen() {
           <View style={styles.inviteLeft}>
             <Text style={styles.inviteEmoji}>🤝</Text>
             <View style={{ flex: 1 }}>
-              <Text style={styles.inviteTitle}>Invita a tus amigos</Text>
-              <Text style={styles.inviteSub}>
-                Comparte PaseoApp con tu grupo
-              </Text>
+              <Text style={styles.inviteTitle}>{t("home.invite.title")}</Text>
+              <Text style={styles.inviteSub}>{t("home.invite.sub")}</Text>
             </View>
           </View>
           <Text style={styles.inviteArrow}>📤</Text>
@@ -530,10 +562,8 @@ export default function HomeScreen() {
             activeOpacity={0.7}
           >
             <View>
-              <Text style={styles.sectionTitle}>Configuración</Text>
-              <Text style={styles.collapseHint}>
-                Perfil, notificaciones, idioma
-              </Text>
+              <Text style={styles.sectionTitle}>{t("home.config.title")}</Text>
+              <Text style={styles.collapseHint}>{t("home.config.hint")}</Text>
             </View>
             <Text style={styles.collapseIcon}>
               {configExpanded ? "▲" : "▼"}
@@ -548,7 +578,7 @@ export default function HomeScreen() {
                 <View style={styles.settingLeft}>
                   <Text style={styles.settingIcon}>⚙️</Text>
                   <View>
-                    <Text style={styles.settingLabel}>Editar perfil</Text>
+                    <Text style={styles.settingLabel}>{t("home.config.editProfile")}</Text>
                     <Text style={styles.settingSub}>
                       {nombre || persona?.nombre}
                     </Text>
@@ -568,8 +598,8 @@ export default function HomeScreen() {
                 <View style={styles.settingLeft}>
                   <Text style={styles.settingIcon}>🔒</Text>
                   <View>
-                    <Text style={styles.settingLabel}>Cambiar contraseña</Text>
-                    <Text style={styles.settingSub}>Actualiza tu contraseña de acceso</Text>
+                    <Text style={styles.settingLabel}>{t("home.config.changePassword")}</Text>
+                    <Text style={styles.settingSub}>{t("home.config.changePasswordSub")}</Text>
                   </View>
                 </View>
                 <Text style={styles.settingArrow}>›</Text>
@@ -578,15 +608,16 @@ export default function HomeScreen() {
                 <View style={styles.settingLeft}>
                   <Text style={styles.settingIcon}>🔔</Text>
                   <View>
-                    <Text style={styles.settingLabel}>Notificaciones</Text>
-                    <Text style={styles.settingSub}>
-                      Gastos y cambios al menú
-                    </Text>
+                    <Text style={styles.settingLabel}>{t("home.config.notifications")}</Text>
+                    <Text style={styles.settingSub}>{t("home.config.notificationsSub")}</Text>
                   </View>
                 </View>
                 <Switch
                   value={notificaciones}
-                  onValueChange={setNotificaciones}
+                  onValueChange={(v) => {
+                    setNotificaciones(v);
+                    AsyncStorage.setItem(NOTIFICACIONES_KEY, String(v));
+                  }}
                   trackColor={{ false: "#e2e8f0", true: "#1B4F72" }}
                   thumbColor="#fff"
                 />
@@ -595,10 +626,8 @@ export default function HomeScreen() {
                 <View style={styles.settingLeft}>
                   <Text style={styles.settingIcon}>🌙</Text>
                   <View>
-                    <Text style={styles.settingLabel}>Modo oscuro automático</Text>
-                    <Text style={styles.settingSub}>
-                      Sigue la configuración del teléfono
-                    </Text>
+                    <Text style={styles.settingLabel}>{t("home.config.darkMode")}</Text>
+                    <Text style={styles.settingSub}>{t("home.config.darkModeSub")}</Text>
                   </View>
                 </View>
                 <Switch
@@ -612,8 +641,8 @@ export default function HomeScreen() {
                 <View style={styles.settingLeft}>
                   <Text style={styles.settingIcon}>🌍</Text>
                   <View>
-                    <Text style={styles.settingLabel}>Idioma / Language</Text>
-                    <Text style={styles.settingSub}>{language === "es" ? "Español" : "English"}</Text>
+                    <Text style={styles.settingLabel}>{t("home.config.language")}</Text>
+                    <Text style={styles.settingSub}>{language === "es" ? t("home.languageModal.spanish") : t("home.languageModal.english")}</Text>
                   </View>
                 </View>
                 <Text style={styles.settingArrow}>›</Text>
@@ -625,10 +654,8 @@ export default function HomeScreen() {
                 <View style={styles.settingLeft}>
                   <Text style={styles.settingIcon}>🎓</Text>
                   <View>
-                    <Text style={styles.settingLabel}>Ver tutorial</Text>
-                    <Text style={styles.settingSub}>
-                      Volver a ver las pantallas de introducción
-                    </Text>
+                    <Text style={styles.settingLabel}>{t("home.config.tutorial")}</Text>
+                    <Text style={styles.settingSub}>{t("home.config.tutorialSub")}</Text>
                   </View>
                 </View>
                 <Text style={styles.settingArrow}>›</Text>
@@ -645,21 +672,21 @@ export default function HomeScreen() {
             activeOpacity={0.7}
           >
             <View>
-              <Text style={styles.sectionTitle}>Preguntas frecuentes</Text>
-              <Text style={styles.collapseHint}>Dudas comunes sobre PaseoApp</Text>
+              <Text style={styles.sectionTitle}>{t("home.faq.title")}</Text>
+              <Text style={styles.collapseHint}>{t("home.faq.hint")}</Text>
             </View>
             <Text style={styles.collapseIcon}>{faqExpanded ? "▲" : "▼"}</Text>
           </TouchableOpacity>
-          {faqExpanded && FAQ.map((item, i) => (
+          {faqExpanded && FAQ_KEYS.map((item, i) => (
             <View
               key={i}
               style={[
                 styles.faqItem,
-                i === FAQ.length - 1 && { borderBottomWidth: 0 },
+                i === FAQ_KEYS.length - 1 && { borderBottomWidth: 0 },
               ]}
             >
-              <Text style={styles.faqQ}>{item.q}</Text>
-              <Text style={styles.faqA}>{item.a}</Text>
+              <Text style={styles.faqQ}>{t(item.q)}</Text>
+              <Text style={styles.faqA}>{t(item.a)}</Text>
             </View>
           ))}
         </View>
@@ -669,11 +696,9 @@ export default function HomeScreen() {
           style={styles.logoutBtn}
           onPress={() => setShowSignOutModal(true)}
         >
-          <Text style={styles.logoutText}>Cerrar sesión</Text>
+          <Text style={styles.logoutText}>{t("home.logout")}</Text>
         </TouchableOpacity>
-        <Text style={styles.footerText}>
-          PaseoApp v{VERSION} · Hecho con ❤️ en Colombia
-        </Text>
+        <Text style={styles.footerText}>{t("home.footer", { version: VERSION })}</Text>
       </Animated.ScrollView>
 
       {/* ══ MODALS ══ */}
@@ -688,9 +713,9 @@ export default function HomeScreen() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowInviteModal(false)}>
-              <Text style={styles.modalCancel}>Cerrar</Text>
+              <Text style={styles.modalCancel}>{t("common.close")}</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Invitar amigos</Text>
+            <Text style={styles.modalTitle}>{t("home.invite.modalTitle")}</Text>
             <View style={{ width: 70 }} />
           </View>
           <ScrollView
@@ -700,10 +725,9 @@ export default function HomeScreen() {
             {inviteSent ? (
               <View style={styles.inviteSentBox}>
                 <Text style={{ fontSize: 48, marginBottom: 16 }}>🎉</Text>
-                <Text style={styles.inviteSentTitle}>¡Invitación enviada!</Text>
+                <Text style={styles.inviteSentTitle}>{t("home.invite.sentTitle")}</Text>
                 <Text style={styles.inviteSentSub}>
-                  Le llegará un correo a {inviteEmail} con toda la información
-                  de PaseoApp.
+                  {t("home.invite.sentSub", { email: inviteEmail })}
                 </Text>
                 <TouchableOpacity
                   style={styles.inviteSentBtn}
@@ -714,7 +738,7 @@ export default function HomeScreen() {
                   }}
                 >
                   <Text style={styles.inviteSentBtnText}>
-                    Invitar a otra persona
+                    {t("home.invite.inviteAnother")}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -722,30 +746,26 @@ export default function HomeScreen() {
               <>
                 {/* Correo electrónico */}
                 <View style={styles.inviteSection}>
-                  <Text style={styles.inviteSectionTitle}>
-                    📧 Enviar por correo
-                  </Text>
-                  <Text style={styles.inviteSectionSub}>
-                    Le llegará un correo con el pitch completo de PaseoApp.
-                  </Text>
+                  <Text style={styles.inviteSectionTitle}>{t("home.invite.byEmail")}</Text>
+                  <Text style={styles.inviteSectionSub}>{t("home.invite.byEmailSub")}</Text>
                   <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Nombre (opcional)</Text>
+                    <Text style={styles.fieldLabel}>{t("home.invite.nameLabel")}</Text>
                     <TextInput
                       style={styles.input}
                       value={inviteNombre}
                       onChangeText={setInviteNombre}
-                      placeholder="Nombre de tu amigo"
+                      placeholder={t("home.invite.namePlaceholder")}
                       placeholderTextColor="#94a3b8"
                       autoCapitalize="words"
                     />
                   </View>
                   <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Correo electrónico *</Text>
+                    <Text style={styles.fieldLabel}>{t("home.invite.emailLabel")}</Text>
                     <TextInput
                       style={styles.input}
                       value={inviteEmail}
                       onChangeText={setInviteEmail}
-                      placeholder="amigo@ejemplo.com"
+                      placeholder={t("home.invite.emailPlaceholder")}
                       placeholderTextColor="#94a3b8"
                       keyboardType="email-address"
                       autoCapitalize="none"
@@ -763,7 +783,7 @@ export default function HomeScreen() {
                       <ActivityIndicator color="#fff" size="small" />
                     ) : (
                       <Text style={styles.inviteEmailBtnText}>
-                        📧 Enviar invitación por correo
+                        {t("home.invite.sendEmailBtn")}
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -778,19 +798,13 @@ export default function HomeScreen() {
 
                 {/* WhatsApp / SMS */}
                 <View style={styles.inviteSection}>
-                  <Text style={styles.inviteSectionTitle}>
-                    💬 Compartir por WhatsApp o SMS
-                  </Text>
-                  <Text style={styles.inviteSectionSub}>
-                    Abre el menú de compartir de tu teléfono.
-                  </Text>
+                  <Text style={styles.inviteSectionTitle}>{t("home.invite.byWhatsapp")}</Text>
+                  <Text style={styles.inviteSectionSub}>{t("home.invite.byWhatsappSub")}</Text>
                   <TouchableOpacity
                     style={styles.inviteShareBtn}
                     onPress={handleCompartirNativo}
                   >
-                    <Text style={styles.inviteShareBtnText}>
-                      📤 Compartir enlace
-                    </Text>
+                    <Text style={styles.inviteShareBtnText}>{t("home.invite.shareBtn")}</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -809,11 +823,11 @@ export default function HomeScreen() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowProfileModal(false)}>
-              <Text style={styles.modalCancel}>Cancelar</Text>
+              <Text style={styles.modalCancel}>{t("common.cancel")}</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Editar perfil</Text>
+            <Text style={styles.modalTitle}>{t("home.profile.title")}</Text>
             <TouchableOpacity onPress={handleSave} disabled={saving}>
-              <Text style={styles.modalSave}>{saving ? "..." : "Guardar"}</Text>
+              <Text style={styles.modalSave}>{saving ? "..." : t("common.save")}</Text>
             </TouchableOpacity>
           </View>
           <ScrollView
@@ -836,7 +850,7 @@ export default function HomeScreen() {
               ) : (
                 <View style={styles.profilePhotoBtnPlaceholder}>
                   <Text style={{ fontSize: 32 }}>📸</Text>
-                  <Text style={styles.profilePhotoBtnText}>Foto de perfil</Text>
+                  <Text style={styles.profilePhotoBtnText}>{t("home.profile.photo")}</Text>
                 </View>
               )}
               <View style={styles.profilePhotoEditBadge}>
@@ -844,44 +858,42 @@ export default function HomeScreen() {
               </View>
             </TouchableOpacity>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Nombre</Text>
+              <Text style={styles.fieldLabel}>{t("home.profile.nameLabel")}</Text>
               <TextInput
                 style={styles.input}
                 value={nombre}
                 onChangeText={setNombre}
-                placeholder="Tu nombre completo"
+                placeholder={t("home.profile.namePlaceholder")}
                 placeholderTextColor="#94a3b8"
                 autoCapitalize="words"
               />
             </View>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Teléfono</Text>
+              <Text style={styles.fieldLabel}>{t("home.profile.phoneLabel")}</Text>
               <TextInput
                 style={styles.input}
                 value={telefono}
                 onChangeText={setTelefono}
-                placeholder="Tu número de teléfono"
+                placeholder={t("home.profile.phonePlaceholder")}
                 placeholderTextColor="#94a3b8"
                 keyboardType="phone-pad"
               />
             </View>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Restricciones alimentarias</Text>
+              <Text style={styles.fieldLabel}>{t("home.profile.restrictionsLabel")}</Text>
               <TextInput
                 style={[styles.input, { height: 80 }]}
                 value={restricciones}
                 onChangeText={setRestricciones}
-                placeholder="Ej: vegetariano, sin gluten..."
+                placeholder={t("home.profile.restrictionsPlaceholder")}
                 placeholderTextColor="#94a3b8"
                 multiline
               />
             </View>
             <View style={styles.emailReadOnly}>
-              <Text style={styles.fieldLabel}>Correo electrónico</Text>
+              <Text style={styles.fieldLabel}>{t("home.profile.emailLabel")}</Text>
               <Text style={styles.emailValue}>{fullPersona?.email ?? ""}</Text>
-              <Text style={styles.emailHint}>
-                El correo no se puede cambiar
-              </Text>
+              <Text style={styles.emailHint}>{t("home.profile.emailReadOnly")}</Text>
             </View>
           </ScrollView>
         </SafeAreaView>
@@ -896,24 +908,24 @@ export default function HomeScreen() {
       >
         <View style={styles.overlay}>
           <View style={styles.sheetBox}>
-            <Text style={styles.sheetTitle}>Foto de perfil</Text>
+            <Text style={styles.sheetTitle}>{t("home.profile.photoTitle")}</Text>
             <TouchableOpacity
               style={styles.sheetOption}
               onPress={() => pickImage("camera")}
             >
-              <Text style={styles.sheetOptionText}>📷 Tomar foto</Text>
+              <Text style={styles.sheetOptionText}>{t("home.profile.takePhoto")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.sheetOption}
               onPress={() => pickImage("gallery")}
             >
-              <Text style={styles.sheetOptionText}>🖼️ Elegir de galería</Text>
+              <Text style={styles.sheetOptionText}>{t("home.profile.chooseGallery")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.sheetCancel}
               onPress={() => setShowPhotoModal(false)}
             >
-              <Text style={styles.sheetCancelText}>Cancelar</Text>
+              <Text style={styles.sheetCancelText}>{t("common.cancel")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -929,9 +941,9 @@ export default function HomeScreen() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowPasswordModal(false)}>
-              <Text style={styles.modalCancel}>Cancelar</Text>
+              <Text style={styles.modalCancel}>{t("common.cancel")}</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Cambiar contraseña</Text>
+            <Text style={styles.modalTitle}>{t("home.password.title")}</Text>
             <View style={{ width: 60 }} />
           </View>
           <ScrollView
@@ -941,7 +953,7 @@ export default function HomeScreen() {
             {passwordSuccess ? (
               <View style={{ alignItems: "center", paddingVertical: 48 }}>
                 <Text style={{ fontSize: 56, marginBottom: 16 }}>✅</Text>
-                <Text style={styles.modalTitle}>¡Contraseña actualizada!</Text>
+                <Text style={styles.modalTitle}>{t("home.password.successTitle")}</Text>
                 <Text
                   style={{
                     fontSize: 14,
@@ -951,25 +963,25 @@ export default function HomeScreen() {
                     lineHeight: 20,
                   }}
                 >
-                  Tu contraseña fue cambiada exitosamente.
+                  {t("home.password.successSub")}
                 </Text>
                 <TouchableOpacity
                   style={[styles.saveBtn, { marginTop: 32, width: "100%" }]}
                   onPress={() => setShowPasswordModal(false)}
                 >
-                  <Text style={styles.saveBtnText}>Listo</Text>
+                  <Text style={styles.saveBtnText}>{t("common.done")}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <>
                 <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Nueva contraseña</Text>
+                  <Text style={styles.fieldLabel}>{t("home.password.newLabel")}</Text>
                   <View style={styles.pwWrapper}>
                     <TextInput
                       style={styles.pwInput}
                       value={newPassword}
                       onChangeText={setNewPassword}
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder={t("home.password.newPlaceholder")}
                       placeholderTextColor="#94a3b8"
                       secureTextEntry={!showNewPw}
                       autoCapitalize="none"
@@ -983,13 +995,13 @@ export default function HomeScreen() {
                   </View>
                 </View>
                 <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Confirmar contraseña</Text>
+                  <Text style={styles.fieldLabel}>{t("home.password.confirmLabel")}</Text>
                   <View style={styles.pwWrapper}>
                     <TextInput
                       style={styles.pwInput}
                       value={confirmPassword}
                       onChangeText={setConfirmPassword}
-                      placeholder="Repite la nueva contraseña"
+                      placeholder={t("home.password.confirmPlaceholder")}
                       placeholderTextColor="#94a3b8"
                       secureTextEntry={!showConfirmPw}
                       autoCapitalize="none"
@@ -1012,7 +1024,7 @@ export default function HomeScreen() {
                   disabled={savingPassword}
                 >
                   <Text style={styles.saveBtnText}>
-                    {savingPassword ? "Guardando..." : "Guardar contraseña"}
+                    {savingPassword ? t("common.saving") : t("home.password.saveBtn")}
                   </Text>
                 </TouchableOpacity>
               </>
@@ -1030,10 +1042,8 @@ export default function HomeScreen() {
       >
         <View style={styles.overlay}>
           <View style={styles.confirmBox}>
-            <Text style={styles.confirmTitle}>Cerrar sesión</Text>
-            <Text style={styles.confirmMsg}>
-              ¿Estás seguro de que quieres salir?
-            </Text>
+            <Text style={styles.confirmTitle}>{t("home.signout.title")}</Text>
+            <Text style={styles.confirmMsg}>{t("home.signout.message")}</Text>
             <TouchableOpacity
               style={[styles.confirmBtn, { backgroundColor: "#DC2626" }]}
               onPress={() => {
@@ -1041,13 +1051,13 @@ export default function HomeScreen() {
                 signOut();
               }}
             >
-              <Text style={styles.confirmBtnText}>Salir</Text>
+              <Text style={styles.confirmBtnText}>{t("home.signout.confirm")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.confirmCancel}
               onPress={() => setShowSignOutModal(false)}
             >
-              <Text style={styles.confirmCancelText}>Cancelar</Text>
+              <Text style={styles.confirmCancelText}>{t("home.signout.cancel")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1062,24 +1072,24 @@ export default function HomeScreen() {
       >
         <View style={styles.overlay}>
           <View style={styles.confirmBox}>
-            <Text style={styles.confirmTitle}>🌍 Idioma / Language</Text>
+            <Text style={styles.confirmTitle}>🌍 {t("home.languageModal.title")}</Text>
             <TouchableOpacity
               style={[styles.confirmBtn, { backgroundColor: language === "es" ? "#1B4F72" : "#e2e8f0" }]}
               onPress={() => { setLanguage("es"); setShowLanguageModal(false); }}
             >
-              <Text style={[styles.confirmBtnText, { color: language === "es" ? "#fff" : "#1B4F72" }]}>🇨🇴 Español</Text>
+              <Text style={[styles.confirmBtnText, { color: language === "es" ? "#fff" : "#1B4F72" }]}>🇨🇴 {t("home.languageModal.spanish")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.confirmBtn, { backgroundColor: language === "en" ? "#1B4F72" : "#e2e8f0", marginTop: 8 }]}
               onPress={() => { setLanguage("en"); setShowLanguageModal(false); }}
             >
-              <Text style={[styles.confirmBtnText, { color: language === "en" ? "#fff" : "#1B4F72" }]}>🇺🇸 English</Text>
+              <Text style={[styles.confirmBtnText, { color: language === "en" ? "#fff" : "#1B4F72" }]}>🇺🇸 {t("home.languageModal.english")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.confirmCancel}
               onPress={() => setShowLanguageModal(false)}
             >
-              <Text style={styles.confirmCancelText}>Cancelar / Cancel</Text>
+              <Text style={styles.confirmCancelText}>{t("common.cancel")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1094,13 +1104,13 @@ export default function HomeScreen() {
       >
         <View style={styles.overlay}>
           <View style={styles.confirmBox}>
-            <Text style={styles.confirmTitle}>⚠️ Error</Text>
+            <Text style={styles.confirmTitle}>⚠️ {t("common.error")}</Text>
             <Text style={styles.confirmMsg}>{errorMsg}</Text>
             <TouchableOpacity
               style={[styles.confirmBtn, { backgroundColor: "#1B4F72" }]}
               onPress={() => setShowErrorModal(false)}
             >
-              <Text style={styles.confirmBtnText}>Entendido</Text>
+              <Text style={styles.confirmBtnText}>{t("common.ok")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1169,6 +1179,23 @@ const styles = StyleSheet.create({
     color: "#475569",
     textAlign: "center",
   },
+
+  dirCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  dirCardIcon: { fontSize: 22 },
+  dirCardLabel: { fontSize: 13, fontWeight: "700", color: "#1e293b" },
+  dirCardSub: { fontSize: 11, color: "#94a3b8", marginTop: 2 },
 
   section: {
     backgroundColor: "#fff",

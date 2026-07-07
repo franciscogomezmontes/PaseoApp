@@ -116,7 +116,7 @@ export default function RootLayout() {
             <Stack.Screen
               name="newTrip"
               options={{
-                presentation: "modal",
+                ...(isWeb ? {} : { presentation: "modal" }),
                 headerShown: true,
                 headerTitle: t("newTrip.title"),
                 headerStyle: { backgroundColor: "#1B4F72" },
@@ -128,7 +128,7 @@ export default function RootLayout() {
             <Stack.Screen
               name="joinTrip"
               options={{
-                presentation: "modal",
+                ...(isWeb ? {} : { presentation: "modal" }),
                 headerShown: true,
                 headerTitle: t("joinTrip.title"),
                 headerStyle: { backgroundColor: "#1B4F72" },
