@@ -74,7 +74,6 @@ export default function JoinTripScreen() {
     const { error: joinError } = await supabase.from("participaciones").insert({
       paseo_id: paseo.id,
       persona_id: persona.id,
-      unidad_familiar: 99,
       factor: 1.0,
       puso: 0,
     });

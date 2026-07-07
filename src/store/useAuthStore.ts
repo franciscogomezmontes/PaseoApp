@@ -94,6 +94,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     appStateSubscription?.remove();
     appStateSubscription = AppState.addEventListener("change", async (nextState) => {
       if (nextState === "active") {
+        supabase.auth.startAutoRefresh();
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -102,6 +103,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           const current = get();
           if (!current.persona) await loadPersona(session.user.id, set);
         }
+      } else {
+        supabase.auth.stopAutoRefresh();
       }
     });
   },

@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import TabTooltip from "../../src/components/TabTooltip";
 import { ESTADO_CONFIG, GASTO_CATEGORIAS, TOOLTIP_KEYS } from "../../src/constants";
@@ -30,6 +31,7 @@ export default function GastosScreen() {
   const router = useRouter();
   const { paseos, fetchPaseos } = useTripStore();
   const theme = useTheme();
+  const { t } = useTranslation();
 
   // ── Data ──
   const [gastosPorPaseo, setGastosPorPaseo] = useState<Record<string, any[]>>(
@@ -122,7 +124,7 @@ export default function GastosScreen() {
         .in("paseo_id", paseoIds),
       supabase
         .from("momentos_comida")
-        .select("id, paseo_id, fecha")
+        .select("id, paseo_id, fecha, porciones")
         .in("paseo_id", paseoIds)
         .order("fecha")
         .order("tipo_comida"),
@@ -210,9 +212,14 @@ export default function GastosScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchPaseos().then(() => loadAllData());
+      fetchPaseos();
     }, []),
   );
+
+  // Trigger load when paseos updates in the store (avoids stale closure over empty paseos)
+  useEffect(() => {
+    if (paseos.length > 0) loadAllData();
+  }, [paseos]);
 
   // ─────────────────────────────────────────────
   // Modal helpers
@@ -264,15 +271,15 @@ export default function GastosScreen() {
   const handleSaveGasto = async () => {
     const monto = parseFloat(gastoMonto.replace(/\./g, "").replace(",", "."));
     if (!gastoNombre.trim()) {
-      showError("Ingresa un nombre para el gasto.");
+      showError(t("expenses.gastoForm.errors.noName"));
       return;
     }
     if (isNaN(monto) || monto <= 0) {
-      showError("Ingresa un monto válido.");
+      showError(t("expenses.gastoForm.errors.noAmount"));
       return;
     }
     if (!gastoPagadoPor) {
-      showError("Selecciona quién pagó.");
+      showError(t("expenses.gastoForm.errors.noPayer"));
       return;
     }
     setSavingGasto(true);
@@ -342,7 +349,7 @@ export default function GastosScreen() {
     const wasEditing = !!editingGasto;
     closeGastoModal();
     await loadAllData();
-    showSuccess(wasEditing ? "Gasto actualizado ✓" : "Gasto registrado ✓");
+    showSuccess(wasEditing ? t("expenses.gastoUpdated") : t("expenses.gastoRegistered"));
     setSavingGasto(false);
   };
 
@@ -356,7 +363,7 @@ export default function GastosScreen() {
     if (error) showError(error.message);
     else {
       await loadAllData();
-      showSuccess("Gasto eliminado");
+      showSuccess(t("expenses.gastoDeleted"));
     }
     setDeleteTarget(null);
   };
@@ -395,7 +402,7 @@ export default function GastosScreen() {
     });
     famMap["__sin_familia__"] = {
       id: "__sin_familia__",
-      nombre: "Sin familia",
+      nombre: t("expenses.noFamily"),
       parts: [],
     };
     parts.forEach((p) => {
@@ -424,8 +431,9 @@ export default function GastosScreen() {
     if (comidaGastos.length > 0) {
       const totalComida = comidaGastos.reduce((s, g) => s + g.monto, 0);
       if (momentos.length > 0) {
-        const costoPorMomento = totalComida / momentos.length;
+        const totalPorciones = momentos.reduce((s, m) => s + (m.porciones ?? 1), 0) || 1;
         momentos.forEach((m) => {
+          const costoMomento = totalComida * ((m.porciones ?? 1) / totalPorciones);
           const registros = comidaMap[m.id] ?? {};
           const factorTotal = parts.reduce((sum, p) => {
             const activo =
@@ -440,7 +448,7 @@ export default function GastosScreen() {
             const fid = p.familia_id ?? "__sin_familia__";
             leCorresponde[fid] =
               (leCorresponde[fid] ?? 0) +
-              costoPorMomento * ((p.factor ?? 1) / factorTotal);
+              costoMomento * ((p.factor ?? 1) / factorTotal);
           });
         });
       } else {
@@ -519,33 +527,31 @@ export default function GastosScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["bottom", "left", "right"]}>
       {/* HEADER */}
       <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
-        <Text style={[styles.headerTitle, { color: theme.headerText }]}>💸 Gastos</Text>
+        <Text style={[styles.headerTitle, { color: theme.headerText }]}>{t("expenses.title")}</Text>
       </View>
       <TabTooltip
         storageKey={TOOLTIP_KEYS.expenses}
         emoji="💸"
-        titulo="Gastos"
-        descripcion="Registra los gastos de cada paseo y ve quién le debe a quién. Mantén presionado un gasto para editarlo o eliminarlo."
+        titulo={t("expenses.tooltip.title")}
+        descripcion={t("expenses.tooltip.desc")}
         color="#B45309"
         bgColor="#FFFBEB"
       />
       {loadingData ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#1B4F72" />
-          <Text style={styles.loadingText}>Cargando gastos...</Text>
+          <Text style={styles.loadingText}>{t("expenses.loadingText")}</Text>
         </View>
       ) : paseos.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.emptyIcon}>🗺️</Text>
-          <Text style={styles.emptyTitle}>Sin paseos aún</Text>
-          <Text style={styles.emptySub}>
-            Crea un paseo para empezar a registrar gastos
-          </Text>
+          <Text style={styles.emptyTitle}>{t("expenses.noTripsTitle")}</Text>
+          <Text style={styles.emptySub}>{t("expenses.noTripsSub")}</Text>
           <TouchableOpacity
             style={styles.ctaBtn}
             onPress={() => router.push("/newTrip")}
           >
-            <Text style={styles.ctaBtnText}>+ Crear paseo</Text>
+            <Text style={styles.ctaBtnText}>{t("expenses.createTripBtn")}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -583,8 +589,7 @@ export default function GastosScreen() {
                       </View>
                     </View>
                     <Text style={styles.paseoSub}>
-                      {gastos.length} gasto{gastos.length !== 1 ? "s" : ""} ·
-                      Total: {formatCOP(total)}
+                      {t("expenses.gastoCount", { count: gastos.length, total: formatCOP(total) })}
                     </Text>
                   </View>
                   <Text style={styles.collapseIcon}>
@@ -600,9 +605,7 @@ export default function GastosScreen() {
                         style={styles.actionBtn}
                         onPress={() => openAddGasto(pid)}
                       >
-                        <Text style={styles.actionBtnText}>
-                          + Agregar gasto
-                        </Text>
+                        <Text style={styles.actionBtnText}>{t("expenses.addGastoBtn")}</Text>
                       </TouchableOpacity>
                       {gastos.length > 0 && (
                         <TouchableOpacity
@@ -615,7 +618,7 @@ export default function GastosScreen() {
                           <Text
                             style={[styles.actionBtnText, { color: "#1B4F72" }]}
                           >
-                            ⚖️ Balances
+                            {t("expenses.balancesBtn")}
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -631,7 +634,7 @@ export default function GastosScreen() {
                         <Text
                           style={[styles.liqPreviewTitle, { color: "#1D4ED8" }]}
                         >
-                          💸 Paseo liquidado — todas las deudas saldadas
+                          {t("expenses.liquidadoMsg")}
                         </Text>
                       </View>
                     )}
@@ -640,13 +643,13 @@ export default function GastosScreen() {
                     {liq.length > 0 && paseo.estado !== "liquidado" && (
                       <View style={styles.liqPreview}>
                         <Text style={styles.liqPreviewTitle}>
-                          💸 Liquidaciones pendientes
+                          {t("expenses.pendingTitle")}
                         </Text>
-                        {liq.slice(0, 2).map((t, i) => (
+                        {liq.slice(0, 2).map((liqItem, i) => (
                           <Text key={i} style={styles.liqPreviewRow}>
-                            {t.de} → {t.para}:{" "}
+                            {liqItem.de} → {liqItem.para}:{" "}
                             <Text style={{ fontWeight: "700" }}>
-                              {formatCOP(t.monto)}
+                              {formatCOP(liqItem.monto)}
                             </Text>
                           </Text>
                         ))}
@@ -658,7 +661,7 @@ export default function GastosScreen() {
                             }}
                           >
                             <Text style={styles.liqPreviewMore}>
-                              Ver todas ({liq.length}) →
+                              {t("expenses.seeAll", { count: liq.length })}
                             </Text>
                           </TouchableOpacity>
                         )}
@@ -669,9 +672,9 @@ export default function GastosScreen() {
                     {gastos.length === 0 ? (
                       <View style={styles.emptyGastos}>
                         <Text style={styles.emptyGastosIcon}>💳</Text>
-                        <Text style={styles.emptyGastosTitle}>Sin gastos aún</Text>
+                        <Text style={styles.emptyGastosTitle}>{t("expenses.emptyGastosTitle")}</Text>
                         <Text style={styles.emptyGastosText}>
-                          Registra el primer gasto de este paseo con el botón de arriba.
+                          {t("expenses.emptyGastosText")}
                         </Text>
                       </View>
                     ) : (
@@ -692,7 +695,7 @@ export default function GastosScreen() {
                             <View style={styles.gastoCardLeft}>
                               <Text style={styles.gastoNombre}>{g.nombre}</Text>
                               <Text style={styles.gastoPagadoPor}>
-                                Pagó: {g.personas?.nombre ?? "—"}
+                                {t("expenses.paidBy", { name: g.personas?.nombre ?? "—" })}
                               </Text>
                               <Text style={styles.gastoCat}>{catLabel}</Text>
                             </View>
@@ -701,7 +704,7 @@ export default function GastosScreen() {
                                 {formatCOP(g.monto)}
                               </Text>
                               <Text style={styles.gastoHint}>
-                                mantén para opciones
+                                {t("expenses.longPressHint")}
                               </Text>
                             </View>
                           </TouchableOpacity>
@@ -735,7 +738,7 @@ export default function GastosScreen() {
               style={[styles.confirmBtn, { backgroundColor: "#1B4F72" }]}
               onPress={() => setShowErrorModal(false)}
             >
-              <Text style={styles.confirmBtnText}>Entendido</Text>
+              <Text style={styles.confirmBtnText}>{t("common.ok")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -765,7 +768,7 @@ export default function GastosScreen() {
               }}
             >
               <Text style={[styles.optionBtnText, { color: "#1B4F72" }]}>
-                ✏️ Editar gasto
+                {t("expenses.editGasto")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -777,14 +780,14 @@ export default function GastosScreen() {
               }}
             >
               <Text style={[styles.optionBtnText, { color: "#DC2626" }]}>
-                🗑️ Eliminar
+                {t("expenses.deleteGasto")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.optionCancel}
               onPress={() => setShowOptionsModal(false)}
             >
-              <Text style={styles.optionCancelText}>Cancelar</Text>
+              <Text style={styles.optionCancelText}>{t("common.cancel")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -799,15 +802,15 @@ export default function GastosScreen() {
       >
         <View style={styles.overlay}>
           <View style={styles.confirmBox}>
-            <Text style={styles.confirmTitle}>¿Eliminar gasto?</Text>
+            <Text style={styles.confirmTitle}>{t("expenses.deleteConfirmTitle")}</Text>
             <Text style={styles.confirmMsg}>
-              "{deleteTarget?.nombre}" será eliminado permanentemente.
+              {t("expenses.deleteConfirmMsg", { name: deleteTarget?.nombre })}
             </Text>
             <TouchableOpacity
               style={[styles.confirmBtn, { backgroundColor: "#DC2626" }]}
               onPress={confirmDeleteGasto}
             >
-              <Text style={styles.confirmBtnText}>Eliminar</Text>
+              <Text style={styles.confirmBtnText}>{t("common.delete")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -817,7 +820,7 @@ export default function GastosScreen() {
               onPress={() => setShowDeleteModal(false)}
             >
               <Text style={[styles.confirmBtnText, { color: "#1e293b" }]}>
-                Cancelar
+                {t("common.cancel")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -834,14 +837,14 @@ export default function GastosScreen() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={closeGastoModal}>
-              <Text style={styles.modalCancel}>Cancelar</Text>
+              <Text style={styles.modalCancel}>{t("common.cancel")}</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>
-              {editingGasto ? "Editar gasto" : "Agregar gasto"}
+              {editingGasto ? t("expenses.gastoForm.editTitle") : t("expenses.gastoForm.newTitle")}
             </Text>
             <TouchableOpacity onPress={handleSaveGasto} disabled={savingGasto}>
               <Text style={styles.modalSave}>
-                {savingGasto ? "..." : "Guardar"}
+                {savingGasto ? "..." : t("common.save")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -850,28 +853,28 @@ export default function GastosScreen() {
             keyboardShouldPersistTaps="handled"
           >
             {/* Nombre */}
-            <Text style={styles.fieldLabel}>Nombre del gasto</Text>
+            <Text style={styles.fieldLabel}>{t("expenses.gastoForm.nameLabel")}</Text>
             <TextInput
               style={styles.input}
               value={gastoNombre}
               onChangeText={setGastoNombre}
-              placeholder="ej. Supermercado, Gasolina..."
+              placeholder={t("expenses.gastoForm.namePlaceholder")}
               placeholderTextColor="#94a3b8"
             />
 
             {/* Monto */}
-            <Text style={styles.fieldLabel}>Monto (COP)</Text>
+            <Text style={styles.fieldLabel}>{t("expenses.gastoForm.amountLabel")}</Text>
             <TextInput
               style={styles.input}
               value={gastoMonto}
               onChangeText={setGastoMonto}
-              placeholder="0"
+              placeholder={t("expenses.gastoForm.amountPlaceholder")}
               placeholderTextColor="#94a3b8"
               keyboardType="numeric"
             />
 
             {/* Categoría */}
-            <Text style={styles.fieldLabel}>Categoría</Text>
+            <Text style={styles.fieldLabel}>{t("expenses.gastoForm.categoryLabel")}</Text>
             <View style={styles.categoriasGrid}>
               {GASTO_CATEGORIAS.map((cat) => (
                 <TouchableOpacity
@@ -896,10 +899,10 @@ export default function GastosScreen() {
             </View>
 
             {/* Quién pagó */}
-            <Text style={styles.fieldLabel}>¿Quién pagó?</Text>
+            <Text style={styles.fieldLabel}>{t("expenses.gastoForm.paidByLabel")}</Text>
             {(personasPorPaseo[modalPaseoId] ?? []).length === 0 ? (
               <Text style={styles.fieldHint}>
-                No hay participantes en este paseo.
+                {t("expenses.gastoForm.noParticipants")}
               </Text>
             ) : (
               <ScrollView
@@ -936,10 +939,10 @@ export default function GastosScreen() {
               (participacionesPorPaseo[modalPaseoId] ?? []).length > 0 && (
                 <>
                   <Text style={styles.fieldLabel}>
-                    ¿Quiénes participan en este gasto?
+                    {t("expenses.gastoForm.participantsLabel")}
                   </Text>
                   <Text style={styles.fieldHint}>
-                    Desactiva quien no participa
+                    {t("expenses.gastoForm.deactivateHint")}
                   </Text>
                   {(participacionesPorPaseo[modalPaseoId] ?? []).map((p) => (
                     <View key={p.id} style={styles.partRow}>
@@ -947,7 +950,7 @@ export default function GastosScreen() {
                         {p.personas?.nombre}
                       </Text>
                       <Text style={styles.partFactor}>
-                        factor {p.factor ?? 1}
+                        {t("expenses.gastoForm.factor", { n: p.factor ?? 1 })}
                       </Text>
                       <Switch
                         value={
@@ -982,11 +985,11 @@ export default function GastosScreen() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowBalancesModal(false)}>
-              <Text style={styles.modalCancel}>Cerrar</Text>
+              <Text style={styles.modalCancel}>{t("common.close")}</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>
               {paseos.find((p) => p.id === balancesPaseoId)?.nombre ??
-                "Balances"}
+                t("expenses.balancesTitle")}
             </Text>
             <View style={{ width: 60 }} />
           </View>
@@ -998,47 +1001,70 @@ export default function GastosScreen() {
               const { liquidaciones } =
                 calcularBalancesFamilia(balancesPaseoId);
 
-              // Balance por persona
+              // Balance por persona — same algorithm as tripDetail (proportional porciones + meal attendance)
+              const momentos = momentosPorPaseo[balancesPaseoId] ?? [];
+              const comidaMap = comidaMapPorPaseo[balancesPaseoId] ?? {};
+              const totalPorciones = momentos.reduce((s, m) => s + (m.porciones ?? 1), 0) || 1;
+
               const balance: Record<string, number> = {};
-              parts.forEach((p) => {
-                balance[p.id] = 0;
-              });
+              parts.forEach((p) => { balance[p.id] = 0; });
+
+              // puso: add amount paid
               gastos.forEach((g) => {
-                const pagador = parts.find(
-                  (p) => p.persona_id === g.pagado_por,
-                );
+                const pagador = parts.find((p) => p.persona_id === g.pagado_por);
                 if (pagador) balance[pagador.id] += g.monto;
               });
-              gastos.forEach((g) => {
+
+              // leCorresponde: subtract share for comida (per-meal proportional) and non-comida
+              const comidaGastos = gastos.filter((g) => g.categoria === "comida");
+              if (comidaGastos.length > 0 && momentos.length > 0) {
+                const totalComida = comidaGastos.reduce((s, g) => s + g.monto, 0);
+                momentos.forEach((m) => {
+                  const costoMomento = totalComida * ((m.porciones ?? 1) / totalPorciones);
+                  const registros = comidaMap[m.id] ?? {};
+                  const factorTotal = parts.reduce((sum, p) => {
+                    const activo = registros[p.id] !== undefined ? registros[p.id] : true;
+                    return sum + (activo ? (p.factor ?? 1) : 0);
+                  }, 0);
+                  if (factorTotal === 0) return;
+                  parts.forEach((p) => {
+                    const activo = registros[p.id] !== undefined ? registros[p.id] : true;
+                    if (!activo) return;
+                    balance[p.id] -= costoMomento * ((p.factor ?? 1) / factorTotal);
+                  });
+                });
+              } else if (comidaGastos.length > 0) {
+                // Fallback: no momentos yet — split by factor
+                const totalComida = comidaGastos.reduce((s, g) => s + g.monto, 0);
+                const factorTotal = parts.reduce((s, p) => s + (p.factor ?? 1), 0);
+                if (factorTotal > 0) {
+                  parts.forEach((p) => { balance[p.id] -= totalComida * ((p.factor ?? 1) / factorTotal); });
+                }
+              }
+
+              gastos.filter((g) => g.categoria !== "comida").forEach((g) => {
                 const registros = gastosPartMap[g.id] ?? {};
                 const noRegistros = Object.keys(registros).length === 0;
-                const activos = parts.filter((p) =>
-                  noRegistros
-                    ? true
-                    : registros[p.id] !== undefined
-                      ? registros[p.id]
-                      : true,
-                );
-                const factorTotal = activos.reduce(
-                  (s, p) => s + (p.factor ?? 1),
-                  0,
-                );
-                activos.forEach((p) => {
-                  balance[p.id] -=
-                    factorTotal > 0
-                      ? g.monto * ((p.factor ?? 1) / factorTotal)
-                      : 0;
+                const factorTotal = parts.reduce((sum, p) => {
+                  const activo = noRegistros ? true : registros[p.id] !== undefined ? registros[p.id] : true;
+                  return sum + (activo ? (p.factor ?? 1) : 0);
+                }, 0);
+                if (factorTotal === 0) return;
+                parts.forEach((p) => {
+                  const activo = noRegistros ? true : registros[p.id] !== undefined ? registros[p.id] : true;
+                  if (!activo) return;
+                  balance[p.id] -= g.monto * ((p.factor ?? 1) / factorTotal);
                 });
               });
 
               return (
                 <>
                   <Text style={styles.balancesTotal}>
-                    Total gastos: {formatCOP(total)}
+                    {t("expenses.totalExpenses", { total: formatCOP(total) })}
                   </Text>
 
                   <Text style={styles.balancesSectionTitle}>
-                    Balance por persona
+                    {t("expenses.balances.perPerson")}
                   </Text>
                   {parts.map((p) => {
                     const b = balance[p.id] ?? 0;
@@ -1064,18 +1090,18 @@ export default function GastosScreen() {
                   <Text
                     style={[styles.balancesSectionTitle, { marginTop: 24 }]}
                   >
-                    Liquidaciones
+                    {t("expenses.balances.settlements")}
                   </Text>
                   {liquidaciones.length === 0 ? (
-                    <Text style={styles.liqEmpty}>✅ ¡Todo cuadrado!</Text>
+                    <Text style={styles.liqEmpty}>{t("expenses.balances.allClear")}</Text>
                   ) : (
-                    liquidaciones.map((t, i) => (
+                    liquidaciones.map((liqItem, i) => (
                       <View key={i} style={styles.liqRow}>
-                        <Text style={styles.liqDe}>{t.de}</Text>
+                        <Text style={styles.liqDe}>{liqItem.de}</Text>
                         <Text style={styles.liqArrow}>→</Text>
-                        <Text style={styles.liqPara}>{t.para}</Text>
+                        <Text style={styles.liqPara}>{liqItem.para}</Text>
                         <Text style={styles.liqMonto}>
-                          {formatCOP(t.monto)}
+                          {formatCOP(liqItem.monto)}
                         </Text>
                       </View>
                     ))

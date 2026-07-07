@@ -2,7 +2,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Print from "expo-print";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -867,18 +867,20 @@ export default function TripDetailScreen() {
       if (!updatedComidaMap[r.momento_id]) updatedComidaMap[r.momento_id] = {};
       updatedComidaMap[r.momento_id][r.participacion_id] = r.activo;
     });
-    for (const momento of momentos) {
-      const registros = updatedComidaMap[momento.id] ?? {};
-      const activePorciones = participaciones
-        .filter((p) => registros[p.id] !== false)
-        .reduce((sum, p) => sum + (p.factor ?? 1), 0);
-      const porciones =
-        parseFloat((Math.round(activePorciones * 10) / 10).toFixed(1)) || 1;
-      await supabase
-        .from("momentos_comida")
-        .update({ porciones })
-        .eq("id", momento.id);
-    }
+    await Promise.all(
+      momentos.map((momento) => {
+        const registros = updatedComidaMap[momento.id] ?? {};
+        const activePorciones = participaciones
+          .filter((p) => registros[p.id] !== false)
+          .reduce((sum, p) => sum + (p.factor ?? 1), 0);
+        const porciones =
+          parseFloat((Math.round(activePorciones * 10) / 10).toFixed(1)) || 1;
+        return supabase
+          .from("momentos_comida")
+          .update({ porciones })
+          .eq("id", momento.id);
+      }),
+    );
     setSavingFechas(false);
     setShowFechasModal(false);
     loadTripData();
@@ -1282,11 +1284,12 @@ export default function TripDetailScreen() {
     if (gastosCat.length === 0) return 0;
 
     if (usaMomentos && momentos.length > 0) {
-      // COMIDA: per-meal split weighted by active factor per moment
+      // COMIDA: split proportional to porciones (weight of each meal), then by active factor
       const totalCat = gastosCat.reduce((sum, g) => sum + g.monto, 0);
-      const costoPorMomento = totalCat / momentos.length;
+      const totalPorciones = momentos.reduce((s, m) => s + (m.porciones ?? 1), 0) || 1;
       let total = 0;
       momentos.forEach((m) => {
+        const costoMomento = totalCat * ((m.porciones ?? 1) / totalPorciones);
         const registros = participantesComidaMap[m.id] ?? {};
         const factorActivoFamilia = miembros.reduce((sum, p) => {
           const activo = registros[p.id] !== undefined ? registros[p.id] : true;
@@ -1300,7 +1303,7 @@ export default function TripDetailScreen() {
           return sum + (activo ? (p.factor ?? 1) : 0);
         }, 0);
         if (factorActivoTotal > 0)
-          total += costoPorMomento * (factorActivoFamilia / factorActivoTotal);
+          total += costoMomento * (factorActivoFamilia / factorActivoTotal);
       });
       return total;
     }
@@ -1431,18 +1434,17 @@ export default function TripDetailScreen() {
         if (gastosCat.length === 0) return;
 
         if (cat.usaMomentos && momentos.length > 0) {
-          // COMIDA: per-moment, check if this person is active
+          // COMIDA: proportional by porciones, then weighted by active factor per moment
           const totalCat = gastosCat.reduce((s, g) => s + g.monto, 0);
-          const costoPorMomento = totalCat / momentos.length;
+          const totalPorciones = momentos.reduce((s, m) => s + (m.porciones ?? 1), 0) || 1;
           let total = 0;
           momentos.forEach((m) => {
+            const costoMomento = totalCat * ((m.porciones ?? 1) / totalPorciones);
             const registros = participantesComidaMap[m.id] ?? {};
             const personaActiva =
               registros[p.id] !== undefined ? registros[p.id] : true;
             if (!personaActiva) return;
-            // Active factor for this person in this moment
             const factorPersona = p.factor ?? 1;
-            // Total active factor across all participants for this moment
             const factorActivoTotal = participaciones.reduce((s, q) => {
               const activo =
                 (participantesComidaMap[m.id] ?? {})[q.id] !== undefined
@@ -1451,7 +1453,7 @@ export default function TripDetailScreen() {
               return s + (activo ? (q.factor ?? 1) : 0);
             }, 0);
             if (factorActivoTotal > 0)
-              total += costoPorMomento * (factorPersona / factorActivoTotal);
+              total += costoMomento * (factorPersona / factorActivoTotal);
           });
           acumuladoPorCat[cat.key] = total;
         } else {
@@ -1786,9 +1788,11 @@ export default function TripDetailScreen() {
 
   const estadoConfig =
     ESTADO_CONFIG[paseo?.estado] ?? ESTADO_CONFIG["planificacion"];
-  const balancesPorFamilia = calcularBalancesPorCategoria();
-  const liquidaciones = calcularLiquidaciones();
-  const balancesPorPersona = calcularBalancesPorPersona();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const balancesPorFamilia = useMemo(() => calcularBalancesPorCategoria(), [gastos, participaciones, momentos, participantesComidaMap, gastosPartMap, paseo, familiasList]);
+  const liquidaciones = useMemo(() => calcularTransferenciasMinimas(balancesPorFamilia), [balancesPorFamilia]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const balancesPorPersona = useMemo(() => calcularBalancesPorPersona(), [gastos, participaciones, momentos, participantesComidaMap, gastosPartMap]);
   const totalGastado = gastos.reduce((sum, g) => sum + g.monto, 0);
 
   if (loading) {
