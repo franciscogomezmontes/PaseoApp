@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../src/lib/supabase";
 
 const UF_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
@@ -29,6 +30,7 @@ const initials = (name: string) =>
 
 export default function ParticipantDetailScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { personaId } = useLocalSearchParams<{ personaId: string }>();
 
   const [persona, setPersona] = useState<any>(null);
@@ -95,7 +97,7 @@ export default function ParticipantDetailScreen() {
     console.log("Save result:", JSON.stringify(data), JSON.stringify(error));
 
     if (error) {
-      Alert.alert("Error", "No se pudo guardar: " + error.message);
+      Alert.alert(t("common.error"), t("participantDetail.errors.saveFailed", { msg: error.message }));
     } else {
       setEditing(false);
       loadData();
@@ -104,10 +106,10 @@ export default function ParticipantDetailScreen() {
   };
 
   const handlePhotoOptions = () => {
-    Alert.alert("Foto de perfil", "¿Cómo quieres agregar la foto?", [
-      { text: "📷 Tomar foto", onPress: () => pickImage("camera") },
-      { text: "🖼️ Elegir de galería", onPress: () => pickImage("gallery") },
-      { text: "Cancelar", style: "cancel" },
+    Alert.alert(t("participantDetail.photoTitle"), t("participantDetail.photoQuestion"), [
+      { text: t("participantDetail.photoCamera"), onPress: () => pickImage("camera") },
+      { text: t("participantDetail.photoGallery"), onPress: () => pickImage("gallery") },
+      { text: t("common.cancel"), style: "cancel" },
     ]);
   };
 
@@ -117,7 +119,7 @@ export default function ParticipantDetailScreen() {
     if (source === "camera") {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permiso requerido", "Necesitamos acceso a tu cámara.");
+        Alert.alert(t("participantDetail.permissionRequired"), t("participantDetail.errors.cameraPermission"));
         return;
       }
       result = await ImagePicker.launchCameraAsync({
@@ -129,7 +131,7 @@ export default function ParticipantDetailScreen() {
       const { status } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permiso requerido", "Necesitamos acceso a tu galería.");
+        Alert.alert(t("participantDetail.permissionRequired"), t("participantDetail.errors.galleryPermission"));
         return;
       }
       result = await ImagePicker.launchImageLibraryAsync({
@@ -160,10 +162,7 @@ export default function ParticipantDetailScreen() {
         });
 
       if (uploadError) {
-        Alert.alert(
-          "Error",
-          "No se pudo subir la foto: " + uploadError.message,
-        );
+        Alert.alert(t("common.error"), t("participantDetail.errors.uploadFailed", { msg: uploadError.message }));
         setUploadingPhoto(false);
         return;
       }
@@ -181,7 +180,7 @@ export default function ParticipantDetailScreen() {
         .update({ foto_url: publicUrl })
         .eq("id", personaId);
     } catch (e: any) {
-      Alert.alert("Error", "No se pudo procesar la imagen.");
+      Alert.alert(t("common.error"), t("participantDetail.errors.processImage"));
     }
     setUploadingPhoto(false);
   };
@@ -204,17 +203,17 @@ export default function ParticipantDetailScreen() {
         {/* HEADER */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.backText}>← Volver</Text>
+            <Text style={styles.backText}>← {t("common.back")}</Text>
           </TouchableOpacity>
           {editing ? (
             <TouchableOpacity onPress={handleSave}>
               <Text style={styles.editText}>
-                {saving ? "Guardando..." : "Guardar"}
+                {saving ? t("common.saving") : t("common.save")}
               </Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={() => setEditing(true)}>
-              <Text style={styles.editText}>Editar</Text>
+              <Text style={styles.editText}>{t("common.edit")}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -253,58 +252,58 @@ export default function ParticipantDetailScreen() {
                 style={styles.nameInput}
                 value={nombre}
                 onChangeText={setNombre}
-                placeholder="Nombre"
+                placeholder={t("participantDetail.namePlaceholder")}
                 placeholderTextColor="rgba(255,255,255,0.5)"
               />
             ) : (
               <Text style={styles.profileName}>{persona?.nombre}</Text>
             )}
             <Text style={styles.profileEmail}>
-              {persona?.email ?? "Sin email"}
+              {persona?.email ?? t("participantDetail.noEmail")}
             </Text>
             {!editing && (
-              <Text style={styles.photoHint}>Toca la foto para cambiarla</Text>
+              <Text style={styles.photoHint}>{t("participantDetail.photoHint")}</Text>
             )}
           </View>
 
           {/* DETAILS */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📋 Información</Text>
+            <Text style={styles.sectionTitle}>{t("participantDetail.infoTitle")}</Text>
 
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>📱 Teléfono</Text>
+              <Text style={styles.detailLabel}>{t("participantDetail.phoneLabel")}</Text>
               {editing ? (
                 <TextInput
                   style={styles.detailInput}
                   value={telefono}
                   onChangeText={setTelefono}
-                  placeholder="Ej: +57 300 000 0000"
+                  placeholder={t("participantDetail.phonePlaceholder")}
                   placeholderTextColor="#94a3b8"
                   keyboardType="phone-pad"
                 />
               ) : (
                 <Text style={styles.detailValue}>
-                  {persona?.telefono || "No registrado"}
+                  {persona?.telefono || t("participantDetail.notRegistered")}
                 </Text>
               )}
             </View>
 
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>
-                🚫 Restricciones alimentarias
+                {t("participantDetail.restrictionsLabel")}
               </Text>
               {editing ? (
                 <TextInput
                   style={[styles.detailInput, { height: 80 }]}
                   value={restricciones}
                   onChangeText={setRestricciones}
-                  placeholder="Ej: vegetariano, sin gluten..."
+                  placeholder={t("participantDetail.restrictionsPlaceholder")}
                   placeholderTextColor="#94a3b8"
                   multiline
                 />
               ) : (
                 <Text style={styles.detailValue}>
-                  {persona?.restricciones_alimentarias || "Ninguna"}
+                  {persona?.restricciones_alimentarias || t("participantDetail.noRestrictions")}
                 </Text>
               )}
             </View>
@@ -313,11 +312,11 @@ export default function ParticipantDetailScreen() {
           {/* TRIPS HISTORY */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              🗺️ Paseos ({participaciones.length})
+              {t("participantDetail.tripsTitle", { count: participaciones.length })}
             </Text>
             {participaciones.length === 0 ? (
               <Text style={styles.emptyText}>
-                Aún no ha participado en ningún paseo
+                {t("participantDetail.noTrips")}
               </Text>
             ) : (
               participaciones.map((p) => {
@@ -334,7 +333,7 @@ export default function ParticipantDetailScreen() {
                         📍 {p.paseos?.lugar} · {p.paseos?.fecha_inicio}
                       </Text>
                       <Text style={styles.tripSub}>
-                        Familia {p.unidad_familiar} · Factor {p.factor}
+                        {t("participantDetail.familyFactor", { n: p.unidad_familiar, f: p.factor })}
                       </Text>
                     </View>
                   </View>
@@ -351,7 +350,7 @@ export default function ParticipantDetailScreen() {
               disabled={saving}
             >
               <Text style={styles.saveButtonText}>
-                {saving ? "Guardando..." : "✓ Guardar cambios"}
+                {saving ? t("common.saving") : t("participantDetail.saveBtn")}
               </Text>
             </TouchableOpacity>
           )}

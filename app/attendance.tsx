@@ -9,6 +9,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TIPO_CONFIG } from "../src/constants";
 import { useTheme } from "../src/hooks/useTheme";
@@ -20,6 +21,7 @@ const ORDEN = ["desayuno", "almuerzo", "cena", "snack"];
 export default function AttendanceScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { t } = useTranslation();
   const { participacionId, nombre, paseoId } = useLocalSearchParams<{
     participacionId: string;
     nombre: string;
@@ -117,19 +119,17 @@ export default function AttendanceScreen() {
       {/* HEADER */}
       <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← Volver</Text>
+          <Text style={styles.backText}>{t("common.back")}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>🍽️ Asistencia</Text>
+        <Text style={styles.headerTitle}>{t("attendance.title")}</Text>
         <Text style={styles.headerSub}>{nombre}</Text>
       </View>
 
       {momentos.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.emptyIcon}>🍴</Text>
-          <Text style={[styles.emptyText, { color: theme.text }]}>No hay comidas en este paseo</Text>
-          <Text style={[styles.emptySub, { color: theme.textTertiary }]}>
-            Agrega comidas desde la pestaña Menú
-          </Text>
+          <Text style={[styles.emptyText, { color: theme.text }]}>{t("attendance.emptyTitle")}</Text>
+          <Text style={[styles.emptySub, { color: theme.textTertiary }]}>{t("attendance.emptySub")}</Text>
         </View>
       ) : (
         <>
@@ -189,7 +189,7 @@ export default function AttendanceScreen() {
                               !attending && styles.mealNombreInactive,
                             ]}
                           >
-                            {m.recetas?.nombre ?? "Sin receta"}
+                            {m.recetas?.nombre ?? t("attendance.noRecipe")}
                           </Text>
                         </View>
                         <Switch
@@ -214,7 +214,7 @@ export default function AttendanceScreen() {
               disabled={saving}
             >
               <Text style={styles.saveButtonText}>
-                {saving ? "Guardando..." : "✓ Guardar asistencia"}
+                {saving ? t("attendance.saving") : t("attendance.saveBtn")}
               </Text>
             </TouchableOpacity>
           </View>

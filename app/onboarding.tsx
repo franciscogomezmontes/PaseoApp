@@ -9,67 +9,28 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { ONBOARDING_KEY } from "../src/constants";
 
 const { width } = Dimensions.get("window");
 
-const SLIDES = [
-  {
-    id: "0",
-    emoji: "🏕️",
-    titulo: "Tu paseo, sin enredos",
-    descripcion:
-      "Organiza salidas con amigos o familia en un solo lugar: menú, mercado y cuentas claras. Tú solo disfruta el paseo.",
-    color: "#0f172a",
-    bgColor: "#f8fafc",
-    isHero: true,
-  },
-  {
-    id: "1",
-    emoji: "🎟️",
-    titulo: "Todos a bordo, fácil",
-    descripcion:
-      "Crea tu paseo y comparte el código. Cada quien se une desde su celular en segundos.",
-    color: "#1B4F72",
-    bgColor: "#EFF6FF",
-  },
-  {
-    id: "2",
-    emoji: "🍳",
-    titulo: "Qué comemos cada día",
-    descripcion:
-      "Asigna recetas a desayunos, almuerzos y cenas. Las porciones se ajustan solas según quién asiste a cada comida.",
-    color: "#065F46",
-    bgColor: "#F0FDF4",
-  },
-  {
-    id: "3",
-    emoji: "🛒",
-    titulo: "La lista se hace sola",
-    descripcion:
-      "Del menú sale tu lista de mercado completa, sin olvidos ni compras dobles.",
-    color: "#6D28D9",
-    bgColor: "#F5F3FF",
-  },
-  {
-    id: "4",
-    emoji: "💸",
-    titulo: "Cuentas claras, amistades largas",
-    descripcion:
-      "Registra los gastos del grupo y al final te decimos quién le transfiere a quién. Sin dramas.",
-    color: "#B45309",
-    bgColor: "#FFFBEB",
-  },
+const SLIDE_KEYS = [
+  { id: "0", titleKey: "onboarding.slides.0.title", descKey: "onboarding.slides.0.desc", emoji: "🏕️", color: "#0f172a", bgColor: "#f8fafc", isHero: true },
+  { id: "1", titleKey: "onboarding.slides.1.title", descKey: "onboarding.slides.1.desc", emoji: "🎟️", color: "#1B4F72", bgColor: "#EFF6FF" },
+  { id: "2", titleKey: "onboarding.slides.2.title", descKey: "onboarding.slides.2.desc", emoji: "🍳", color: "#065F46", bgColor: "#F0FDF4" },
+  { id: "3", titleKey: "onboarding.slides.3.title", descKey: "onboarding.slides.3.desc", emoji: "🛒", color: "#6D28D9", bgColor: "#F5F3FF" },
+  { id: "4", titleKey: "onboarding.slides.4.title", descKey: "onboarding.slides.4.desc", emoji: "💸", color: "#B45309", bgColor: "#FFFBEB" },
 ];
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const currentSlide = SLIDES[currentIndex];
+  const currentSlide = SLIDE_KEYS[currentIndex];
 
   const handleNext = () => {
-    if (currentIndex < SLIDES.length - 1) {
+    if (currentIndex < SLIDE_KEYS.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
       handleFinish();
@@ -92,7 +53,7 @@ export default function OnboardingScreen() {
       <View style={styles.topBar}>
         <TouchableOpacity onPress={handleSkip} style={styles.skipBtn}>
           <Text style={[styles.skipText, { color: currentSlide.color }]}>
-            Saltar
+            {t("common.skip")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -114,14 +75,14 @@ export default function OnboardingScreen() {
             (currentSlide as any).isHero && styles.tituloHero,
           ]}
         >
-          {currentSlide.titulo}
+          {t(currentSlide.titleKey)}
         </Text>
-        <Text style={styles.descripcion}>{currentSlide.descripcion}</Text>
+        <Text style={styles.descripcion}>{t(currentSlide.descKey)}</Text>
       </View>
 
       {/* Dots */}
       <View style={styles.dotsRow}>
-        {SLIDES.map((_, i) => (
+        {SLIDE_KEYS.map((_, i) => (
           <TouchableOpacity
             key={i}
             onPress={() => setCurrentIndex(i)}
@@ -149,9 +110,9 @@ export default function OnboardingScreen() {
           onPress={handleNext}
         >
           <Text style={styles.nextBtnText}>
-            {currentIndex === SLIDES.length - 1
-              ? "¡Comenzar! →"
-              : "Siguiente →"}
+            {currentIndex === SLIDE_KEYS.length - 1
+              ? t("common.begin")
+              : t("common.next")}
           </Text>
         </TouchableOpacity>
       </View>

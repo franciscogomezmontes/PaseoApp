@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Image,
@@ -19,32 +20,12 @@ import { supabase } from "../src/lib/supabase";
 import { useTripStore } from "../src/store/useTripStore";
 
 const TAGS = [
-  { key: "es_vegano", label: "🌱 Vegano", color: "#065F46", bg: "#D1FAE5" },
-  {
-    key: "es_vegetariano",
-    label: "🥦 Vegetariano",
-    color: "#15803D",
-    bg: "#DCFCE7",
-  },
-  { key: "es_picante", label: "🌶️ Picante", color: "#B91C1C", bg: "#FEE2E2" },
-  {
-    key: "contiene_nueces",
-    label: "🥜 Contiene nueces",
-    color: "#92400E",
-    bg: "#FEF3C7",
-  },
-  {
-    key: "sin_gluten",
-    label: "🌾 Sin gluten",
-    color: "#1D4ED8",
-    bg: "#DBEAFE",
-  },
-  {
-    key: "sin_lactosa",
-    label: "🥛 Sin lactosa",
-    color: "#6D28D9",
-    bg: "#EDE9FE",
-  },
+  { key: "es_vegano", tKey: "recipes.tags.vegan", color: "#065F46", bg: "#D1FAE5" },
+  { key: "es_vegetariano", tKey: "recipes.tags.vegetarian", color: "#15803D", bg: "#DCFCE7" },
+  { key: "es_picante", tKey: "recipes.tags.spicy", color: "#B91C1C", bg: "#FEE2E2" },
+  { key: "contiene_nueces", tKey: "recipes.tags.nuts", color: "#92400E", bg: "#FEF3C7" },
+  { key: "sin_gluten", tKey: "recipes.tags.glutenFree", color: "#1D4ED8", bg: "#DBEAFE" },
+  { key: "sin_lactosa", tKey: "recipes.tags.lactoseFree", color: "#6D28D9", bg: "#EDE9FE" },
 ];
 
 // ─────────────────────────────────────────────
@@ -73,6 +54,8 @@ export default function RecipeDetailScreen() {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  const { t } = useTranslation();
 
   const showError = (msg: string) => {
     setErrorMsg(msg);
@@ -121,7 +104,7 @@ export default function RecipeDetailScreen() {
 
   const handleAddToTrip = async () => {
     if (!selectedPaseoId || !selectedFecha) {
-      showError("Selecciona un paseo y una fecha.");
+      showError(t("recipeDetail.errors.selectTripDate"));
       return;
     }
     setAdding(true);
@@ -148,7 +131,7 @@ export default function RecipeDetailScreen() {
   const scaledAmount = (cantidad: number) =>
     Math.round(cantidad * porciones * 100) / 100;
 
-  const activeTags = TAGS.filter((t) => receta?.[t.key]);
+  const activeTags = TAGS.filter((tag) => receta?.[tag.key]);
   const tipoConfig =
     TIPO_CONFIG[receta?.tipo_comida] ?? TIPO_CONFIG["almuerzo"];
   const tiempoTotal =
@@ -173,14 +156,14 @@ export default function RecipeDetailScreen() {
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity onPress={() => router.back()}>
-              <Text style={styles.backText}>← Volver</Text>
+              <Text style={styles.backText}>{t("newTrip.back")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() =>
                 router.push({ pathname: "/newRecipe", params: { id } })
               }
             >
-              <Text style={styles.editText}>✏️ Editar</Text>
+              <Text style={styles.editText}>✏️ {t("common.edit")}</Text>
             </TouchableOpacity>
           </View>
 
@@ -217,20 +200,20 @@ export default function RecipeDetailScreen() {
             {receta?.tiempo_preparacion > 0 && (
               <View style={styles.headerMetaChip}>
                 <Text style={styles.headerMetaText}>
-                  🔪 Prep: {receta.tiempo_preparacion} min
+                  🔪 {t("recipeDetail.prepTime")}: {receta.tiempo_preparacion} min
                 </Text>
               </View>
             )}
             {receta?.tiempo_coccion > 0 && (
               <View style={styles.headerMetaChip}>
                 <Text style={styles.headerMetaText}>
-                  🔥 Cocción: {receta.tiempo_coccion} min
+                  🔥 {t("recipeDetail.cookTime")}: {receta.tiempo_coccion} min
                 </Text>
               </View>
             )}
             <View style={styles.headerMetaChip}>
               <Text style={styles.headerMetaText}>
-                👤 {receta?.porciones_base} porciones base
+                👤 {t("recipeDetail.servingsBase", { n: receta?.porciones_base })}
               </Text>
             </View>
           </View>
@@ -251,7 +234,7 @@ export default function RecipeDetailScreen() {
                   style={[styles.tag, { backgroundColor: tag.bg }]}
                 >
                   <Text style={[styles.tagText, { color: tag.color }]}>
-                    {tag.label}
+                    {t(tag.tKey)}
                   </Text>
                 </View>
               ))}
@@ -261,7 +244,7 @@ export default function RecipeDetailScreen() {
           {/* Palabras clave */}
           {(receta?.palabras_clave ?? []).length > 0 && (
             <View style={[styles.section, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>🔖 Palabras clave</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>🔖 {t("recipeDetail.keywords")}</Text>
               <View style={styles.kwRow}>
                 {(receta.palabras_clave as string[]).map((kw) => (
                   <View key={kw} style={styles.kwTag}>
@@ -275,7 +258,7 @@ export default function RecipeDetailScreen() {
           {/* Utensilios */}
           {(receta?.utensilios ?? []).length > 0 && (
             <View style={[styles.section, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>🍳 Equipos y utensilios</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>🍳 {t("recipeDetail.utensils")}</Text>
               <View style={styles.kwRow}>
                 {(receta.utensilios as string[]).map((u) => (
                   <View key={u} style={styles.utensilioTag}>
@@ -288,7 +271,7 @@ export default function RecipeDetailScreen() {
 
           {/* PORCIONES scaler */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🍽️ Porciones</Text>
+            <Text style={styles.sectionTitle}>🍽️ {t("recipeDetail.servings")}</Text>
             <View style={styles.scalerRow}>
               <TouchableOpacity
                 style={styles.scalerBtn}
@@ -298,7 +281,7 @@ export default function RecipeDetailScreen() {
               </TouchableOpacity>
               <View style={styles.scalerValue}>
                 <Text style={styles.scalerNumber}>{porciones}</Text>
-                <Text style={styles.scalerLabel}>porciones</Text>
+                <Text style={styles.scalerLabel}>{t("recipeDetail.servingsLabel")}</Text>
               </View>
               <TouchableOpacity
                 style={styles.scalerBtn}
@@ -312,7 +295,7 @@ export default function RecipeDetailScreen() {
                 onPress={() => setPorciones(receta?.porciones_base ?? 4)}
               >
                 <Text style={styles.resetText}>
-                  Restablecer a {receta?.porciones_base} porciones
+                  {t("recipeDetail.resetServings", { n: receta?.porciones_base })}
                 </Text>
               </TouchableOpacity>
             )}
@@ -320,11 +303,9 @@ export default function RecipeDetailScreen() {
 
           {/* INGREDIENTES */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🛒 Ingredientes</Text>
+            <Text style={styles.sectionTitle}>🛒 {t("recipeDetail.ingredients")}</Text>
             {ingredientes.length === 0 ? (
-              <Text style={styles.emptyText}>
-                No hay ingredientes registrados
-              </Text>
+              <Text style={styles.emptyText}>{t("recipeDetail.noIngredients")}</Text>
             ) : (
               ingredientes.map((ing, i) => (
                 <View
@@ -349,7 +330,7 @@ export default function RecipeDetailScreen() {
           {/* PREPARACIÓN */}
           {receta?.instrucciones && (
             <View style={[styles.section, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>📋 Preparación</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>📋 {t("recipeDetail.preparation")}</Text>
               {receta.instrucciones
                 .split("\n")
                 .filter(Boolean)
@@ -371,9 +352,7 @@ export default function RecipeDetailScreen() {
             style={styles.addToTripBtn}
             onPress={() => setShowAddToTripModal(true)}
           >
-            <Text style={styles.addToTripBtnText}>
-              🗺️ Agregar al menú de un paseo
-            </Text>
+            <Text style={styles.addToTripBtnText}>{t("recipeDetail.addToMenuBtn")}</Text>
           </TouchableOpacity>
         </View>
 
@@ -388,13 +367,13 @@ export default function RecipeDetailScreen() {
         >
           <View style={styles.overlay}>
             <View style={styles.modalBox}>
-              <Text style={styles.modalTitle}>⚠️ Error</Text>
+              <Text style={styles.modalTitle}>⚠️ {t("common.error")}</Text>
               <Text style={styles.modalMsg}>{errorMsg}</Text>
               <TouchableOpacity
                 style={[styles.modalBtn, { backgroundColor: "#1B4F72" }]}
                 onPress={() => setShowErrorModal(false)}
               >
-                <Text style={styles.modalBtnText}>Entendido</Text>
+                <Text style={styles.modalBtnText}>{t("common.ok")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -409,15 +388,13 @@ export default function RecipeDetailScreen() {
         >
           <View style={styles.overlay}>
             <View style={styles.modalBox}>
-              <Text style={styles.modalTitle}>✅ Agregado</Text>
-              <Text style={styles.modalMsg}>
-                Receta agregada al menú del paseo.
-              </Text>
+              <Text style={styles.modalTitle}>{t("recipeDetail.added")}</Text>
+              <Text style={styles.modalMsg}>{t("recipeDetail.addedMsg")}</Text>
               <TouchableOpacity
                 style={[styles.modalBtn, { backgroundColor: "#16a34a" }]}
                 onPress={() => setShowSuccessModal(false)}
               >
-                <Text style={styles.modalBtnText}>OK</Text>
+                <Text style={styles.modalBtnText}>{t("common.ok")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -433,19 +410,19 @@ export default function RecipeDetailScreen() {
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowAddToTripModal(false)}>
-                <Text style={styles.modalCancel}>Cancelar</Text>
+                <Text style={styles.modalCancel}>{t("common.cancel")}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalHeaderTitle}>Agregar al menú</Text>
+              <Text style={styles.modalHeaderTitle}>{t("recipeDetail.addToMenuTitle")}</Text>
               <TouchableOpacity onPress={handleAddToTrip} disabled={adding}>
                 <Text style={styles.modalSave}>
-                  {adding ? "..." : "Agregar"}
+                  {adding ? "..." : t("recipeDetail.addBtn")}
                 </Text>
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalContent}>
-              <Text style={styles.fieldLabel}>Paseo</Text>
+              <Text style={styles.fieldLabel}>{t("recipeDetail.paseoLabel")}</Text>
               {paseos.length === 0 ? (
-                <Text style={styles.emptyText}>No tienes paseos activos</Text>
+                <Text style={styles.emptyText}>{t("recipeDetail.noTrips")}</Text>
               ) : (
                 paseos.map((p) => (
                   <TouchableOpacity
@@ -472,7 +449,7 @@ export default function RecipeDetailScreen() {
               {selectedPaseoId && fechas.length > 0 && (
                 <>
                   <Text style={[styles.fieldLabel, { marginTop: 20 }]}>
-                    Fecha
+                    {t("recipeDetail.dateLabel")}
                   </Text>
                   <ScrollView
                     horizontal
@@ -515,7 +492,7 @@ export default function RecipeDetailScreen() {
               {selectedPaseoId && (
                 <>
                   <Text style={[styles.fieldLabel, { marginTop: 4 }]}>
-                    Tipo de comida
+                    {t("recipeDetail.mealTypeLabel")}
                   </Text>
                   <View style={styles.tipoRow}>
                     {Object.entries(TIPO_CONFIG).map(([tipo, config]) => (
@@ -537,7 +514,7 @@ export default function RecipeDetailScreen() {
                             selectedTipo === tipo && { color: config.color },
                           ]}
                         >
-                          {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
+                          {t(`attendance.meals.${tipo}`)}
                         </Text>
                       </TouchableOpacity>
                     ))}

@@ -11,6 +11,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../src/lib/supabase";
 
 // ─── CSV parser ──────────────────────────────────────────────
@@ -88,6 +89,7 @@ function transformIngrediente(row: Record<string, string>) {
 
 // ─── Component ───────────────────────────────────────────────
 export default function AdminUploadScreen() {
+  const { t } = useTranslation();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [tab, setTab] = useState<"recetas" | "ingredientes">("recetas");
   const [rows, setRows] = useState<Record<string, string>[]>([]);
@@ -135,7 +137,7 @@ export default function AdminUploadScreen() {
       setShowPreview(true);
     } catch (e) {
       setLoading(false);
-      Alert.alert("Error", "No se pudo leer el archivo.");
+      Alert.alert(t("common.error"), t("adminUpload.errors.readFile"));
     }
   };
 
@@ -160,7 +162,7 @@ export default function AdminUploadScreen() {
 
       const { error } = await supabase.from(table).insert(valid);
       if (error) {
-        errors.push(`Filas ${i + 1}–${i + valid.length}: ${error.message}`);
+        errors.push(t("adminUpload.batchError", { from: i + 1, to: i + valid.length, msg: error.message }));
       } else {
         ok += valid.length;
       }
@@ -183,23 +185,21 @@ export default function AdminUploadScreen() {
     return (
       <SafeAreaView style={styles.centered}>
         <Text style={styles.noAccessIcon}>🔒</Text>
-        <Text style={styles.noAccessTitle}>Acceso restringido</Text>
-        <Text style={styles.noAccessSub}>
-          Esta pantalla es solo para administradores.
-        </Text>
+        <Text style={styles.noAccessTitle}>{t("adminUpload.noAccessTitle")}</Text>
+        <Text style={styles.noAccessSub}>{t("adminUpload.noAccessSub")}</Text>
       </SafeAreaView>
     );
   }
+
+  const tabLabel = tab === "recetas" ? t("adminUpload.tabLabelRecetas") : t("adminUpload.tabLabelIngredientes");
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>⚙️ Admin — Carga masiva</Text>
-          <Text style={styles.headerSub}>
-            Solo visible para administradores
-          </Text>
+          <Text style={styles.headerTitle}>{t("adminUpload.title")}</Text>
+          <Text style={styles.headerSub}>{t("adminUpload.subtitle")}</Text>
         </View>
 
         {/* Tab selector */}
@@ -219,7 +219,7 @@ export default function AdminUploadScreen() {
                 tab === "recetas" && styles.tabBtnTextActive,
               ]}
             >
-              🍽️ Recetas
+              {t("adminUpload.tabRecetas")}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -240,7 +240,7 @@ export default function AdminUploadScreen() {
                 tab === "ingredientes" && styles.tabBtnTextActive,
               ]}
             >
-              🥕 Ingredientes
+              {t("adminUpload.tabIngredientes")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -248,56 +248,21 @@ export default function AdminUploadScreen() {
         {/* Instructions */}
         <View style={styles.instructionsCard}>
           <Text style={styles.instructionsTitle}>
-            📋 Formato esperado del CSV
+            {t("adminUpload.instructionsTitle")}
           </Text>
           {tab === "recetas" ? (
             <>
-              <Text style={styles.instructionsText}>
-                Columnas requeridas:{" "}
-                <Text style={styles.mono}>
-                  nombre, tipo_comida, porciones_base
-                </Text>
-              </Text>
-              <Text style={styles.instructionsText}>
-                Columnas opcionales:{" "}
-                <Text style={styles.mono}>
-                  descripcion, instrucciones, es_vegano, es_vegetariano,
-                  es_picante, contiene_nueces, sin_gluten, sin_lactosa,
-                  categoria, tiempo_preparacion, tiempo_coccion, creditos,
-                  palabras_clave, utensilios
-                </Text>
-              </Text>
-              <Text style={styles.instructionsText}>
-                • Booleanos: <Text style={styles.mono}>true</Text> o{" "}
-                <Text style={styles.mono}>false</Text>
-              </Text>
-              <Text style={styles.instructionsText}>
-                • Arrays (palabras_clave, utensilios): separados por{" "}
-                <Text style={styles.mono}>;</Text>
-              </Text>
-              <Text style={styles.instructionsText}>
-                • tipo_comida:{" "}
-                <Text style={styles.mono}>
-                  desayuno, almuerzo, cena, onces, snack, medias nueves
-                </Text>
-              </Text>
+              <Text style={styles.instructionsText}>{t("adminUpload.recetasRequired")}</Text>
+              <Text style={styles.instructionsText}>{t("adminUpload.recetasOptional")}</Text>
+              <Text style={styles.instructionsText}>{t("adminUpload.booleanHint")}</Text>
+              <Text style={styles.instructionsText}>{t("adminUpload.arrayHint")}</Text>
+              <Text style={styles.instructionsText}>{t("adminUpload.tipoHint")}</Text>
             </>
           ) : (
             <>
-              <Text style={styles.instructionsText}>
-                Columnas requeridas:{" "}
-                <Text style={styles.mono}>nombre, unidad_base, categoria</Text>
-              </Text>
-              <Text style={styles.instructionsText}>
-                Columnas opcionales:{" "}
-                <Text style={styles.mono}>observaciones, recomendaciones</Text>
-              </Text>
-              <Text style={styles.instructionsText}>
-                • unidad_base:{" "}
-                <Text style={styles.mono}>
-                  g, kg, ml, l, unidad, manojo, taza, cdta, cda
-                </Text>
-              </Text>
+              <Text style={styles.instructionsText}>{t("adminUpload.ingredientesRequired")}</Text>
+              <Text style={styles.instructionsText}>{t("adminUpload.ingredientesOptional")}</Text>
+              <Text style={styles.instructionsText}>{t("adminUpload.unidadHint")}</Text>
             </>
           )}
         </View>
@@ -309,13 +274,13 @@ export default function AdminUploadScreen() {
           disabled={loading || uploading}
         >
           <Text style={styles.uploadBtnText}>
-            {loading ? "Leyendo archivo..." : `📂 Seleccionar CSV de ${tab}`}
+            {loading ? t("adminUpload.reading") : t("adminUpload.selectCsvBtn", { tab: tabLabel })}
           </Text>
         </TouchableOpacity>
 
         {fileName ? (
           <Text style={styles.fileNameText}>
-            📄 {fileName} · {rows.length} filas
+            {t("adminUpload.fileInfo", { name: fileName, count: rows.length })}
           </Text>
         ) : null}
 
@@ -331,11 +296,11 @@ export default function AdminUploadScreen() {
           >
             <Text style={styles.resultsTitle}>
               {results.errors.length === 0
-                ? "✅ Carga completada"
-                : "⚠️ Carga con errores"}
+                ? t("adminUpload.uploadComplete")
+                : t("adminUpload.uploadWithErrors")}
             </Text>
             <Text style={styles.resultsOk}>
-              ✓ {results.ok} {tab} insertados correctamente
+              {t("adminUpload.insertedOk", { count: results.ok, tab: tabLabel })}
             </Text>
             {results.errors.map((e, i) => (
               <Text key={i} style={styles.resultsError}>
@@ -354,16 +319,16 @@ export default function AdminUploadScreen() {
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowPreview(false)}>
-                <Text style={styles.modalCancel}>Cancelar</Text>
+                <Text style={styles.modalCancel}>{t("common.cancel")}</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>
-                Vista previa — {rows.length} filas
+                {t("adminUpload.previewTitle", { count: rows.length })}
               </Text>
               <TouchableOpacity onPress={handleUpload} disabled={uploading}>
                 <Text
                   style={[styles.modalSave, uploading && { color: "#94a3b8" }]}
                 >
-                  {uploading ? "..." : "Subir"}
+                  {uploading ? "..." : t("adminUpload.uploadBtn")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -372,7 +337,7 @@ export default function AdminUploadScreen() {
               <View style={styles.uploadingBanner}>
                 <ActivityIndicator color="#fff" size="small" />
                 <Text style={styles.uploadingText}>
-                  Insertando en Supabase...
+                  {t("adminUpload.uploading")}
                 </Text>
               </View>
             )}
@@ -424,7 +389,7 @@ export default function AdminUploadScreen() {
                 ))}
                 {rows.length > 50 && (
                   <Text style={styles.moreRows}>
-                    ... y {rows.length - 50} filas más
+                    {t("adminUpload.moreRows", { count: rows.length - 50 })}
                   </Text>
                 )}
               </ScrollView>
@@ -432,8 +397,7 @@ export default function AdminUploadScreen() {
 
             <View style={styles.modalFooter}>
               <Text style={styles.modalFooterText}>
-                Se insertarán {rows.length} {tab} en Supabase. Las filas sin
-                nombre serán ignoradas.
+                {t("adminUpload.footerMsg", { count: rows.length, tab: tabLabel })}
               </Text>
               <TouchableOpacity
                 style={[
@@ -447,7 +411,7 @@ export default function AdminUploadScreen() {
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
                   <Text style={styles.confirmUploadBtnText}>
-                    ⬆️ Confirmar e insertar {rows.length} filas
+                    {t("adminUpload.confirmBtn", { count: rows.length })}
                   </Text>
                 )}
               </TouchableOpacity>
