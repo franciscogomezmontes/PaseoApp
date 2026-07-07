@@ -53,6 +53,7 @@ export default function GroceryScreen() {
 
   // ── Data ──
   const [itemsPorPaseo, setItemsPorPaseo] = useState<Record<string, any[]>>({});
+  const [paseoHasMenu, setPaseoHasMenu] = useState<Record<string, boolean>>({});
   const [loadingData, setLoadingData] = useState(false);
   const [generatingPaseoId, setGeneratingPaseoId] = useState<string | null>(
     null,
@@ -110,26 +111,23 @@ export default function GroceryScreen() {
       if (paseoList.length === 0) return;
       setLoadingData(true);
       const paseoIds = paseoList.map((p) => p.id);
-      const { data } = await supabase
-        .from("lista_mercado")
-        .select("*")
-        .in("paseo_id", paseoIds)
-        .order("categoria")
-        .order("nombre");
+      const [{ data }, { data: momentoData }] = await Promise.all([
+        supabase.from("lista_mercado").select("*").in("paseo_id", paseoIds).order("categoria").order("nombre"),
+        supabase.from("momentos_comida").select("paseo_id").in("paseo_id", paseoIds).not("receta_id", "is", null),
+      ]);
 
       const grouped: Record<string, any[]> = {};
-      paseoIds.forEach((pid) => {
-        grouped[pid!] = [];
-      });
-      (data ?? []).forEach((item: any) => {
-        grouped[item.paseo_id]?.push(item);
-      });
+      const hasMenu: Record<string, boolean> = {};
+      paseoIds.forEach((pid) => { grouped[pid!] = []; hasMenu[pid!] = false; });
+      (data ?? []).forEach((item: any) => { grouped[item.paseo_id]?.push(item); });
+      (momentoData ?? []).forEach((m: any) => { hasMenu[m.paseo_id] = true; });
       setItemsPorPaseo(grouped);
+      setPaseoHasMenu(hasMenu);
 
       if (!initialized) {
         const allCollapsed: Record<string, boolean> = {};
-        paseoIds.forEach((pid) => {
-          allCollapsed[pid!] = true;
+        paseoIds.forEach((pid, idx) => {
+          allCollapsed[pid!] = idx !== 0; // first trip starts expanded
         });
         setCollapsedPaseos(allCollapsed);
         setInitialized(true);
@@ -368,6 +366,7 @@ export default function GroceryScreen() {
               ...new Set(items.map((i: any) => i.categoria)),
             ].sort() as string[];
             const isGenerating = generatingPaseoId === pid;
+            const hasMenu = paseoHasMenu[pid] ?? false;
 
             return (
               <View key={pid} style={styles.paseoGroup}>
@@ -413,8 +412,12 @@ export default function GroceryScreen() {
                     {/* Action buttons */}
                     <View style={styles.actionRow}>
                       <TouchableOpacity
-                        style={[styles.actionBtn, styles.actionBtnPrimary]}
+                        style={[styles.actionBtn, styles.actionBtnPrimary, (!hasMenu || isGenerating) && { opacity: 0.5 }]}
                         onPress={() => {
+                          if (!hasMenu) {
+                            showError(t("grocery.errors.noMenu"));
+                            return;
+                          }
                           setConfirmGenerarPaseoId(pid);
                           setShowConfirmGenerar(true);
                         }}
@@ -551,17 +554,17 @@ export default function GroceryScreen() {
                                   </Text>
                                 ) : null}
 
-                                {/* Recommendations icon if no recom shown inline */}
-                                {item.recomendaciones ? (
-                                  <TouchableOpacity
-                                    onPress={() => {
-                                      setSelectedItem(item);
-                                      setShowRecomModal(true);
-                                    }}
-                                  >
-                                    <Text style={styles.recomIcon}>💡</Text>
-                                  </TouchableOpacity>
-                                ) : null}
+                                {/* ⋯ menu button */}
+                                <TouchableOpacity
+                                  style={styles.rowMenuBtn}
+                                  onPress={() => {
+                                    setOptionsTarget(item);
+                                    setShowOptionsModal(true);
+                                  }}
+                                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                >
+                                  <Text style={styles.rowMenuIcon}>⋯</Text>
+                                </TouchableOpacity>
                               </TouchableOpacity>
                             ))}
                           </View>
@@ -1032,6 +1035,9 @@ const styles = StyleSheet.create({
   },
 
   recomIcon: { fontSize: 18, marginLeft: 4 },
+
+  rowMenuBtn: { paddingHorizontal: 6, paddingVertical: 4, minWidth: 28, alignItems: "center", justifyContent: "center" },
+  rowMenuIcon: { fontSize: 18, color: "#94a3b8", fontWeight: "700" },
 
   // Modals
   overlay: {

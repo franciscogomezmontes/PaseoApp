@@ -1,4 +1,5 @@
 import { useFocusEffect } from "@react-navigation/native";
+import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import {
@@ -14,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SkeletonBox from "../../src/components/SkeletonBox";
 import TabTooltip from "../../src/components/TabTooltip";
+import { showSuccess } from "../../src/lib/toast";
 import { TOOLTIP_KEYS } from "../../src/constants";
 import { useTheme } from "../../src/hooks/useTheme";
 import { useAuthStore } from "../../src/store/useAuthStore";
@@ -25,6 +27,11 @@ export default function TripsScreen() {
   const { persona } = useAuthStore();
   const theme = useTheme();
   const { t } = useTranslation();
+
+  const handleCopiarCodigo = async (code: string) => {
+    await Clipboard.setStringAsync(code);
+    showSuccess(t("trips.codeCopied"));
+  };
 
   const handleCompartir = async (p: any) => {
     try {
@@ -158,11 +165,15 @@ export default function TripsScreen() {
                   📅 {p.fecha_inicio} → {p.fecha_fin}
                 </Text>
                 <View style={styles.cardFooter}>
-                  <View style={styles.codeChip}>
+                  <TouchableOpacity
+                    style={styles.codeChip}
+                    onPress={() => p.codigo_invitacion && handleCopiarCodigo(p.codigo_invitacion)}
+                    activeOpacity={0.7}
+                  >
                     <Text style={styles.codeChipText}>
-                      🔑 {p.codigo_invitacion}
+                      🔑 {p.codigo_invitacion} 📋
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.compartirBtn}
                     onPress={() => handleCompartir(p)}

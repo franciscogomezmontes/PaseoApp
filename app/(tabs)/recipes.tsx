@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SkeletonBox from "../../src/components/SkeletonBox";
 import TabTooltip from "../../src/components/TabTooltip";
@@ -30,6 +31,7 @@ export default function RecipesScreen() {
   const { recetas, loading, error, fetchRecetas } = useRecipeStore();
   const router = useRouter();
   const theme = useTheme();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"recetas" | "ingredientes">(
     "recetas",
   );
@@ -113,7 +115,7 @@ export default function RecipesScreen() {
 
   const handleSaveIng = async () => {
     if (!ingNombre.trim()) {
-      showError("El nombre es obligatorio.");
+      showError(t("recipes.ingredient.nameRequired"));
       return;
     }
     setSavingIng(true);
@@ -177,7 +179,7 @@ export default function RecipesScreen() {
       .order("nombre");
 
     if (error || !data) {
-      showError("No se pudo generar el PDF. Intenta de nuevo.");
+      showError(t("recipes.errors.pdfFailed"));
       setExportando(false);
       return;
     }
@@ -191,7 +193,7 @@ export default function RecipesScreen() {
         UTI: "com.adobe.pdf",
       });
     } catch {
-      showError("No se pudo exportar el PDF.");
+      showError(t("recipes.errors.exportFailed"));
     }
 
     setExportando(false);
@@ -245,18 +247,18 @@ export default function RecipesScreen() {
       <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.headerTitle, { color: theme.headerText }]}>📖 Recetas</Text>
-            <Text style={styles.headerSub}>Cargando...</Text>
+            <Text style={[styles.headerTitle, { color: theme.headerText }]}>{t("recipes.header")}</Text>
+            <Text style={styles.headerSub}>{t("recipes.headerLoading")}</Text>
           </View>
         </View>
         <View style={styles.tabRow}>
-          {(["recetas", "ingredientes"] as const).map((t) => (
+          {(["recetas", "ingredientes"] as const).map((tab) => (
             <View
-              key={t}
-              style={[styles.tab, t === "recetas" && styles.tabActive]}
+              key={tab}
+              style={[styles.tab, tab === "recetas" && styles.tabActive]}
             >
-              <Text style={[styles.tabText, t === "recetas" && styles.tabTextActive]}>
-                {t === "recetas" ? "📖 Recetas" : "🥕 Ingredientes"}
+              <Text style={[styles.tabText, tab === "recetas" && styles.tabTextActive]}>
+                {tab === "recetas" ? t("recipes.tabRecetas") : t("recipes.tabIngredientes")}
               </Text>
             </View>
           ))}
@@ -287,27 +289,27 @@ export default function RecipesScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["bottom", "left", "right"]}>
       <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.headerTitle, { color: theme.headerText }]}>📖 Recetas</Text>
+          <Text style={[styles.headerTitle, { color: theme.headerText }]}>{t("recipes.header")}</Text>
           <Text style={styles.headerSub}>
             {activeTab !== "recetas"
-              ? `${ingredientes.length} ingredientes en catálogo`
+              ? t("recipes.headerSubIngredients", { count: ingredientes.length })
               : selectionMode
-                ? `${selectedIds.size} seleccionada${selectedIds.size !== 1 ? "s" : ""}`
-                : `${recetas.length} recetas disponibles`}
+                ? t("recipes.headerSubSelection", { count: selectedIds.size })
+                : t("recipes.headerSubRecipes", { count: recetas.length })}
           </Text>
         </View>
         {activeTab === "recetas" ? (
           selectionMode ? (
             <View style={styles.headerBtnRow}>
               <TouchableOpacity onPress={cancelSelection}>
-                <Text style={styles.headerCancelText}>Cancelar</Text>
+                <Text style={styles.headerCancelText}>{t("recipes.cancelSelection")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.headerAddBtn}
                 onPress={toggleSelectAll}
               >
                 <Text style={styles.headerAddBtnText}>
-                  {allVisibleSelected ? "✗ Todo" : "✓ Todo"}
+                  {allVisibleSelected ? t("recipes.deselectAllBtn") : t("recipes.selectAllBtn")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -316,28 +318,28 @@ export default function RecipesScreen() {
               style={styles.headerAddBtn}
               onPress={() => router.push("/newRecipe")}
             >
-              <Text style={styles.headerAddBtnText}>+ Receta</Text>
+              <Text style={styles.headerAddBtnText}>{t("recipes.newRecipeBtn")}</Text>
             </TouchableOpacity>
           )
         ) : (
           <TouchableOpacity style={styles.headerAddBtn} onPress={openNewIng}>
-            <Text style={styles.headerAddBtnText}>+ Ingrediente</Text>
+            <Text style={styles.headerAddBtnText}>{t("recipes.addIngredientBtn")}</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {/* SUB-TABS */}
       <View style={styles.tabRow}>
-        {(["recetas", "ingredientes"] as const).map((t) => (
+        {(["recetas", "ingredientes"] as const).map((tab) => (
           <TouchableOpacity
-            key={t}
-            style={[styles.tab, activeTab === t && styles.tabActive]}
-            onPress={() => setActiveTab(t)}
+            key={tab}
+            style={[styles.tab, activeTab === tab && styles.tabActive]}
+            onPress={() => setActiveTab(tab)}
           >
             <Text
-              style={[styles.tabText, activeTab === t && styles.tabTextActive]}
+              style={[styles.tabText, activeTab === tab && styles.tabTextActive]}
             >
-              {t === "recetas" ? "📖 Recetas" : "🥕 Ingredientes"}
+              {tab === "recetas" ? t("recipes.tabRecetas") : t("recipes.tabIngredientes")}
             </Text>
           </TouchableOpacity>
         ))}
@@ -347,8 +349,8 @@ export default function RecipesScreen() {
         <TabTooltip
           storageKey={TOOLTIP_KEYS.recipes}
           emoji="📖"
-          titulo="Recetas"
-          descripcion="Explora el catálogo de recetas. Filtra por palabras clave, categoría o especificaciones dietarias. Toca una receta para ver los detalles."
+          titulo={t("recipes.tooltip.title")}
+          descripcion={t("recipes.tooltip.desc")}
           color="#6D28D9"
           bgColor="#F5F3FF"
         />
@@ -358,7 +360,7 @@ export default function RecipesScreen() {
           style={styles.exportActionRow}
           onPress={() => setSelectionMode(true)}
         >
-          <Text style={styles.exportActionText}>📄 Exportar recetario</Text>
+          <Text style={styles.exportActionText}>{t("recipes.exportAction")}</Text>
           <Text style={styles.exportActionChevron}>›</Text>
         </TouchableOpacity>
       )}
@@ -381,7 +383,7 @@ export default function RecipesScreen() {
                     setSearchReceta(t);
                     setActiveKeyword(null);
                   }}
-                  placeholder="🔍 Buscar por nombre o palabra clave..."
+                  placeholder={t("recipes.searchRecipePlaceholder")}
                   placeholderTextColor="#94a3b8"
                 />
               </View>
@@ -407,7 +409,7 @@ export default function RecipesScreen() {
                         !activeKeyword && styles.keywordChipTextActive,
                       ]}
                     >
-                      Todas
+                      {t("recipes.keyword.all")}
                     </Text>
                   </TouchableOpacity>
                   {allKeywords.map((kw) => (
@@ -441,24 +443,24 @@ export default function RecipesScreen() {
                   </Text>
                   <Text style={styles.emptySearchTitle}>
                     {searchReceta.length > 0
-                      ? `Sin resultados para "${searchReceta}"`
+                      ? t("recipes.emptySearch.noResultsFor", { query: searchReceta })
                       : activeKeyword
-                        ? `Sin recetas con "${activeKeyword}"`
-                        : "No hay recetas aún"}
+                        ? t("recipes.emptySearch.noKeywordFor", { keyword: activeKeyword })
+                        : t("recipes.noRecipes")}
                   </Text>
                   {searchReceta.length > 0 || activeKeyword ? (
                     <TouchableOpacity
                       style={styles.emptySearchClear}
                       onPress={() => { setSearchReceta(""); setActiveKeyword(null); }}
                     >
-                      <Text style={styles.emptySearchClearText}>Limpiar filtros</Text>
+                      <Text style={styles.emptySearchClearText}>{t("recipes.emptySearch.clearFilters")}</Text>
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
                       style={styles.emptySearchCta}
                       onPress={() => router.push("/newRecipe")}
                     >
-                      <Text style={styles.emptySearchCtaText}>+ Agregar primera receta</Text>
+                      <Text style={styles.emptySearchCtaText}>{t("recipes.emptySearch.addFirst")}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -532,25 +534,23 @@ export default function RecipesScreen() {
                       {receta.porciones_base > 0 && (
                         <View style={styles.metaChip}>
                           <Text style={styles.metaChipText}>
-                            👤 {receta.porciones_base} por persona
+                            👤 {receta.porciones_base} {t("recipes.perPerson")}
                           </Text>
                         </View>
                       )}
                       {receta.es_vegano && (
                         <View style={[styles.metaChip, styles.dietChip]}>
-                          <Text style={styles.dietChipText}>🌱 Vegano</Text>
+                          <Text style={styles.dietChipText}>{t("recipes.tags.vegan")}</Text>
                         </View>
                       )}
                       {receta.es_vegetariano && !receta.es_vegano && (
                         <View style={[styles.metaChip, styles.dietChip]}>
-                          <Text style={styles.dietChipText}>
-                            🥗 Vegetariano
-                          </Text>
+                          <Text style={styles.dietChipText}>{t("recipes.tags.vegetarian")}</Text>
                         </View>
                       )}
                       {receta.sin_gluten && (
                         <View style={[styles.metaChip, styles.dietChip]}>
-                          <Text style={styles.dietChipText}>🌾 Sin gluten</Text>
+                          <Text style={styles.dietChipText}>{t("recipes.tags.glutenFree")}</Text>
                         </View>
                       )}
                     </View>
@@ -585,7 +585,7 @@ export default function RecipesScreen() {
               style={styles.searchInput}
               value={searchIng}
               onChangeText={setSearchIng}
-              placeholder="🔍 Buscar ingrediente..."
+              placeholder={t("recipes.searchIngredientPlaceholder")}
               placeholderTextColor="#94a3b8"
             />
           </View>
@@ -622,12 +622,33 @@ export default function RecipesScreen() {
 
               {ingredientes.filter((i) =>
                 i.nombre.toLowerCase().includes(searchIng.toLowerCase()),
-              ).length === 0 &&
-                searchIng.length > 0 && (
+              ).length === 0 && (
                   <View style={styles.emptySearch}>
-                    <Text style={styles.emptySearchText}>
-                      No se encontraron ingredientes para "{searchIng}"
+                    <Text style={styles.emptySearchIcon}>
+                      {searchIng.length > 0 ? "🔍" : "🧂"}
                     </Text>
+                    <Text style={styles.emptySearchTitle}>
+                      {searchIng.length > 0
+                        ? t("recipes.ingNotFoundFor", { query: searchIng })
+                        : t("recipes.noIngredients")}
+                    </Text>
+                    {searchIng.length === 0 && (
+                      <TouchableOpacity
+                        style={styles.emptySearchCta}
+                        onPress={() => {
+                          setEditingIng(null);
+                          setIngNombre("");
+                          setIngUnidad("g");
+                          setIngCategoria("Otros");
+                          setIngRecomendaciones("");
+                          setShowIngModal(true);
+                        }}
+                      >
+                        <Text style={styles.emptySearchCtaText}>
+                          {t("recipes.addIngredientBtn")}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
             </ScrollView>
@@ -639,8 +660,7 @@ export default function RecipesScreen() {
       {selectionMode && selectedIds.size > 0 && (
         <View style={styles.exportBar}>
           <Text style={styles.exportBarCount}>
-            {selectedIds.size} receta{selectedIds.size !== 1 ? "s" : ""}{" "}
-            seleccionada{selectedIds.size !== 1 ? "s" : ""}
+            {t("recipes.exportBarCount", { count: selectedIds.size })}
           </Text>
           <TouchableOpacity
             style={[styles.exportBarBtn, exportando && { opacity: 0.6 }]}
@@ -648,7 +668,7 @@ export default function RecipesScreen() {
             disabled={exportando}
           >
             <Text style={styles.exportBarBtnText}>
-              {exportando ? "Generando..." : "📄 Exportar PDF"}
+              {exportando ? t("recipes.exporting") : t("recipes.exportBtn")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -671,7 +691,7 @@ export default function RecipesScreen() {
               style={[styles.confirmBtn, { backgroundColor: "#1B4F72" }]}
               onPress={() => setShowErrorModal(false)}
             >
-              <Text style={styles.confirmBtnText}>Entendido</Text>
+              <Text style={styles.confirmBtnText}>{t("common.ok")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -686,15 +706,15 @@ export default function RecipesScreen() {
       >
         <View style={styles.overlay}>
           <View style={styles.confirmBox}>
-            <Text style={styles.confirmTitle}>¿Eliminar ingrediente?</Text>
+            <Text style={styles.confirmTitle}>{t("recipes.deleteIngredientTitle")}</Text>
             <Text style={styles.confirmMsg}>
-              "{deleteTarget?.nombre}" será eliminado del catálogo.
+              {t("recipes.deleteIngredientMsg", { name: deleteTarget?.nombre })}
             </Text>
             <TouchableOpacity
               style={[styles.confirmBtn, { backgroundColor: "#DC2626" }]}
               onPress={confirmDeleteIng}
             >
-              <Text style={styles.confirmBtnText}>Eliminar</Text>
+              <Text style={styles.confirmBtnText}>{t("common.delete")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -704,7 +724,7 @@ export default function RecipesScreen() {
               onPress={() => setShowDeleteModal(false)}
             >
               <Text style={[styles.confirmBtnText, { color: "#1e293b" }]}>
-                Cancelar
+                {t("common.cancel")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -721,30 +741,30 @@ export default function RecipesScreen() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowIngModal(false)}>
-              <Text style={styles.modalCancel}>Cancelar</Text>
+              <Text style={styles.modalCancel}>{t("common.cancel")}</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>
-              {editingIng ? "✏️ Editar ingrediente" : "Nuevo ingrediente"}
+              {editingIng ? t("recipes.ingredient.editTitle") : t("recipes.ingredient.newTitle")}
             </Text>
             <TouchableOpacity onPress={handleSaveIng} disabled={savingIng}>
               <Text style={styles.modalSave}>
-                {savingIng ? "..." : "Guardar"}
+                {savingIng ? "..." : t("common.save")}
               </Text>
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.modalContent}>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Nombre *</Text>
+              <Text style={styles.fieldLabel}>{t("recipes.ingredient.nameLabel")}</Text>
               <TextInput
                 style={styles.input}
                 value={ingNombre}
                 onChangeText={setIngNombre}
-                placeholder="Ej: Aceite de oliva"
+                placeholder={t("recipes.ingredient.namePlaceholder")}
                 placeholderTextColor="#94a3b8"
               />
             </View>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Unidad base</Text>
+              <Text style={styles.fieldLabel}>{t("recipes.ingredient.unitLabel")}</Text>
               <View style={styles.chipRow}>
                 {UNIDADES.map((u) => (
                   <TouchableOpacity
@@ -765,7 +785,7 @@ export default function RecipesScreen() {
               </View>
             </View>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Categoría</Text>
+              <Text style={styles.fieldLabel}>{t("recipes.ingredient.categoryLabel")}</Text>
               <View style={styles.chipRow}>
                 {CATEGORIAS_ING.map((cat) => (
                   <TouchableOpacity
@@ -789,12 +809,12 @@ export default function RecipesScreen() {
               </View>
             </View>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Recomendaciones</Text>
+              <Text style={styles.fieldLabel}>{t("recipes.ingredient.notesLabel")}</Text>
               <TextInput
                 style={[styles.input, { height: 80 }]}
                 value={ingRecomendaciones}
                 onChangeText={setIngRecomendaciones}
-                placeholder="Marca, frescura, tamaño..."
+                placeholder={t("recipes.ingredient.notesPlaceholder")}
                 placeholderTextColor="#94a3b8"
                 multiline
                 textAlignVertical="top"
@@ -812,7 +832,7 @@ export default function RecipesScreen() {
                 }}
               >
                 <Text style={styles.deleteIngText}>
-                  🗑️ Eliminar ingrediente
+                  {t("recipes.ingredient.deleteBtn")}
                 </Text>
               </TouchableOpacity>
             )}

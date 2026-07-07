@@ -1,4 +1,5 @@
 export const ONBOARDING_KEY = "paseoapp_onboarding_done";
+export const NOTIFICACIONES_KEY = "paseoapp_notificaciones_enabled";
 
 export const TOOLTIP_KEYS = {
   trips:    "tooltip_trips_seen",

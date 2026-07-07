@@ -795,6 +795,13 @@ export default function TripDetailScreen() {
     setShowDeletePartModal(true);
   };
 
+  const formatDateInput = (raw: string): string => {
+    const digits = raw.replace(/\D/g, "").slice(0, 8);
+    if (digits.length <= 4) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+  };
+
   const handleEditFechas = (part: any) => {
     setFechasParticipante(part);
     setFechaDesdeInput(part.fecha_desde ?? paseo?.fecha_inicio ?? "");
@@ -1884,6 +1891,7 @@ export default function TripDetailScreen() {
             <TouchableOpacity
               style={styles.tripPhotoContainer}
               onPress={() => setShowPhotoModal(true)}
+              disabled={!isOrganizer}
             >
               {uploadingPhoto ? (
                 <View style={styles.tripPhotoPlaceholder}>
@@ -2072,8 +2080,10 @@ export default function TripDetailScreen() {
                       <TextInput
                         style={styles.input}
                         value={editFechaInicio}
-                        onChangeText={setEditFechaInicio}
+                        onChangeText={(v) => setEditFechaInicio(formatDateInput(v))}
                         placeholder="AAAA-MM-DD"
+                        keyboardType="number-pad"
+                        maxLength={10}
                       />
                     </View>
                     <View style={{ width: 8 }} />
@@ -2082,8 +2092,10 @@ export default function TripDetailScreen() {
                       <TextInput
                         style={styles.input}
                         value={editFechaFin}
-                        onChangeText={setEditFechaFin}
+                        onChangeText={(v) => setEditFechaFin(formatDateInput(v))}
                         placeholder="AAAA-MM-DD"
+                        keyboardType="number-pad"
+                        maxLength={10}
                       />
                     </View>
                   </View>
@@ -3278,9 +3290,10 @@ export default function TripDetailScreen() {
                   { fontSize: 15, fontWeight: "600", width: "100%" },
                 ]}
                 value={fechaDesdeInput}
-                onChangeText={setFechaDesdeInput}
+                onChangeText={(v) => setFechaDesdeInput(formatDateInput(v))}
                 placeholder="YYYY-MM-DD"
-                keyboardType="numbers-and-punctuation"
+                keyboardType="number-pad"
+                maxLength={10}
               />
               <Text style={[styles.fieldLabel, { marginTop: 12 }]}>
                 {t("tripDetail.gente.fechasModalSalida")}
@@ -3291,9 +3304,10 @@ export default function TripDetailScreen() {
                   { fontSize: 15, fontWeight: "600", width: "100%" },
                 ]}
                 value={fechaHastaInput}
-                onChangeText={setFechaHastaInput}
+                onChangeText={(v) => setFechaHastaInput(formatDateInput(v))}
                 placeholder="YYYY-MM-DD"
-                keyboardType="numbers-and-punctuation"
+                keyboardType="number-pad"
+                maxLength={10}
               />
               <View style={styles.familiaModalButtons}>
                 <TouchableOpacity
@@ -3861,9 +3875,10 @@ export default function TripDetailScreen() {
                     <TextInput
                       style={styles.input}
                       value={nuevoFechaDesde}
-                      onChangeText={setNuevoFechaDesde}
+                      onChangeText={(v) => setNuevoFechaDesde(formatDateInput(v))}
                       placeholder="YYYY-MM-DD"
-                      keyboardType="numbers-and-punctuation"
+                      keyboardType="number-pad"
+                      maxLength={10}
                     />
                     <Text style={[styles.fieldLabel, { marginTop: 10 }]}>
                       {t("tripDetail.gente.fechaSalida")}
@@ -3871,9 +3886,10 @@ export default function TripDetailScreen() {
                     <TextInput
                       style={styles.input}
                       value={nuevoFechaHasta}
-                      onChangeText={setNuevoFechaHasta}
+                      onChangeText={(v) => setNuevoFechaHasta(formatDateInput(v))}
                       placeholder="YYYY-MM-DD"
-                      keyboardType="numbers-and-punctuation"
+                      keyboardType="number-pad"
+                      maxLength={10}
                     />
                   </View>
                 )}
