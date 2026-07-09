@@ -43,6 +43,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ session, user: session.user });
       await loadPersona(session.user.id, set);
     }
+    set({ loading: false });
 
     authSubscription?.unsubscribe();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {

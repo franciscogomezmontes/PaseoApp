@@ -1,3 +1,4 @@
+import { Paths, File as FSFile } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import * as Print from "expo-print";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -19,15 +20,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { MapView, Marker } from "../src/lib/maps";
+import { MapView, Marker } from "../../src/lib/maps";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ESTADO_CONFIG, GASTO_CATEGORIAS, TIPO_CONFIG } from "../src/constants";
-import WebModalWrapper from "../src/components/WebModalWrapper";
-import { useTheme } from "../src/hooks/useTheme";
-import { calcularTransferenciasMinimas } from "../src/lib/liquidacion";
-import { supabase } from "../src/lib/supabase";
-import { useRecipeStore } from "../src/store/useRecipeStore";
-import { useTripStore } from "../src/store/useTripStore";
+import { ESTADO_CONFIG, GASTO_CATEGORIAS, TIPO_CONFIG } from "../../src/constants";
+import WebModalWrapper from "../../src/components/WebModalWrapper";
+import { useTheme } from "../../src/hooks/useTheme";
+import { calcularTransferenciasMinimas } from "../../src/lib/liquidacion";
+import { supabase } from "../../src/lib/supabase";
+import { useRecipeStore } from "../../src/store/useRecipeStore";
+import { useTripStore } from "../../src/store/useTripStore";
 
 // ─────────────────────────────────────────────
 // Constants
@@ -356,7 +357,7 @@ export default function TripDetailScreen() {
 
     const { data: momentosData } = await supabase
       .from("momentos_comida")
-      .select("*, recetas(id, nombre)")
+      .select("*, recetas(id, nombre, porciones_base, descripcion, instrucciones, tiempo_preparacion, tiempo_coccion, utensilios, receta_ingredientes(cantidad_por_porcion, ingredientes(nombre, unidad_base)))")
       .eq("paseo_id", id)
       .order("fecha")
       .order("tipo_comida");
@@ -1766,15 +1767,205 @@ export default function TripDetailScreen() {
     });
   };
 
+  const generarHTMLMenu = () => {
+    const MEAL_ICONS: Record<string, string> = {
+      desayuno: "☀️",
+      "medias nueves": "🥐",
+      almuerzo: "🍽️",
+      onces: "☕",
+      cena: "🌙",
+      snack: "🥤",
+    };
+    const MEAL_COLORS: Record<string, string> = {
+      desayuno: "#F59E0B",
+      "medias nueves": "#F97316",
+      almuerzo: "#3B82F6",
+      onces: "#8B5CF6",
+      cena: "#1B4F72",
+      snack: "#10B981",
+    };
+
+    // ── Part 1: daily schedule ──
+    const diasHTML = fechas
+      .map((fecha) => {
+        const comidas = momentos
+          .filter((m) => m.fecha === fecha)
+          .sort((a, b) => TIPOS_COMIDA.indexOf(a.tipo_comida) - TIPOS_COMIDA.indexOf(b.tipo_comida));
+        if (comidas.length === 0) return "";
+        const d = new Date(fecha + "T12:00:00");
+        const labelDia = d.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+        const comidasHTML = comidas
+          .map((m) => {
+            const icon = MEAL_ICONS[m.tipo_comida] ?? "🍴";
+            const color = MEAL_COLORS[m.tipo_comida] ?? "#1B4F72";
+            const nombre = m.recetas?.nombre ?? "Sin receta";
+            const porciones = m.porciones ?? participaciones.length;
+            const tipo = m.tipo_comida.charAt(0).toUpperCase() + m.tipo_comida.slice(1);
+            return `
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f1f5f9">
+              <div style="width:36px;height:36px;border-radius:10px;background:${color}22;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${icon}</div>
+              <div style="flex:1">
+                <div style="font-size:10px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:0.5px">${tipo}</div>
+                <div style="font-size:14px;font-weight:600;color:#1e293b;margin-top:1px">${nombre}</div>
+              </div>
+              <div style="font-size:11px;color:#94a3b8;text-align:right;flex-shrink:0">${porciones} porciones</div>
+            </div>`;
+          })
+          .join("");
+        return `
+        <div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.08)">
+          <div style="font-size:15px;font-weight:700;color:#1B4F72;margin-bottom:4px;text-transform:capitalize">${labelDia}</div>
+          <div>${comidasHTML}</div>
+        </div>`;
+      })
+      .join("");
+
+    // ── Part 2: recipe detail pages (deduplicated by recipe id) ──
+    const seenIds = new Set<string>();
+    const recetasHTML = momentos
+      .filter((m) => m.recetas?.id && !seenIds.has(m.recetas.id) && seenIds.add(m.recetas.id))
+      .map((m) => {
+        const r = m.recetas;
+        const porciones = m.porciones ?? participaciones.length;
+        const base = r.porciones_base ?? 1;
+        const factor = porciones / base;
+        const icon = MEAL_ICONS[m.tipo_comida] ?? "🍴";
+        const color = MEAL_COLORS[m.tipo_comida] ?? "#1B4F72";
+
+        // Scaled ingredients table
+        const ings = (r.receta_ingredientes ?? []) as any[];
+        const ingsHTML = ings.length > 0
+          ? `<table style="width:100%;border-collapse:collapse;margin-top:8px">
+              <thead>
+                <tr style="border-bottom:2px solid #e2e8f0">
+                  <th style="text-align:left;padding:6px 4px;font-size:11px;color:#64748b;font-weight:700">INGREDIENTE</th>
+                  <th style="text-align:right;padding:6px 4px;font-size:11px;color:#64748b;font-weight:700">CANTIDAD</th>
+                  <th style="text-align:left;padding:6px 4px;font-size:11px;color:#64748b;font-weight:700">UNIDAD</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${ings.map((ri) => {
+                  const total = Math.round(ri.cantidad_por_porcion * base * factor * 100) / 100;
+                  return `<tr style="border-bottom:1px solid #f1f5f9">
+                    <td style="padding:7px 4px;font-size:13px;color:#1e293b">${ri.ingredientes?.nombre ?? ""}</td>
+                    <td style="padding:7px 4px;font-size:13px;font-weight:700;color:#1B4F72;text-align:right">${total}</td>
+                    <td style="padding:7px 4px;font-size:13px;color:#64748b">${ri.ingredientes?.unidad_base ?? ""}</td>
+                  </tr>`;
+                }).join("")}
+              </tbody>
+            </table>`
+          : "";
+
+        // Preparation steps
+        const pasos = r.instrucciones ? (r.instrucciones as string).split("\n").filter(Boolean) : [];
+        const pasosHTML = pasos.length > 0
+          ? pasos.map((paso: string, i: number) => `
+              <div style="display:flex;gap:12px;margin-bottom:12px">
+                <div style="width:26px;height:26px;border-radius:13px;background:#1B4F72;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i + 1}</div>
+                <div style="flex:1;font-size:13px;color:#374151;line-height:1.6;padding-top:4px">${paso}</div>
+              </div>`).join("")
+          : `<p style="font-size:13px;color:#94a3b8;font-style:italic">Sin instrucciones registradas.</p>`;
+
+        // Time + utensilios chips
+        const tiempoPre = r.tiempo_preparacion ?? 0;
+        const tiempoCoc = r.tiempo_coccion ?? 0;
+        const totalMin = tiempoPre + tiempoCoc;
+        const metaChips = [
+          totalMin > 0 ? `<span style="background:#EFF6FF;color:#1B4F72;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">⏱ ${totalMin} min</span>` : "",
+          `<span style="background:#F0FDF4;color:#16a34a;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">🍽 ${porciones} porciones</span>`,
+        ].filter(Boolean).join(" ");
+
+        const utensHTML = r.utensilios && (r.utensilios as string[]).length > 0
+          ? `<div style="margin-top:16px">
+              <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Utensilios</div>
+              <div>${(r.utensilios as string[]).map((u) => `<span style="background:#f1f5f9;color:#475569;padding:3px 8px;border-radius:12px;font-size:12px;margin-right:6px;margin-bottom:4px;display:inline-block">${u}</span>`).join("")}</div>
+            </div>`
+          : "";
+
+        return `
+        <div style="page-break-before:always;padding-top:8px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+            <span style="font-size:22px">${icon}</span>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:0.5px">${m.tipo_comida.charAt(0).toUpperCase() + m.tipo_comida.slice(1)}</div>
+              <div style="font-size:20px;font-weight:800;color:#1e293b">${r.nombre}</div>
+            </div>
+          </div>
+          ${r.descripcion ? `<p style="font-size:13px;color:#64748b;margin:4px 0 12px">${r.descripcion}</p>` : ""}
+          <div style="margin-bottom:16px">${metaChips}</div>
+
+          <div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.08)">
+            <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">🛒 Ingredientes</div>
+            ${ingsHTML || '<p style="font-size:13px;color:#94a3b8;font-style:italic">Sin ingredientes registrados.</p>'}
+          </div>
+
+          <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.08)">
+            <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">📋 Preparación</div>
+            ${pasosHTML}
+          </div>
+          ${utensHTML}
+        </div>`;
+      })
+      .join("");
+
+    return `<!DOCTYPE html>
+    <html><head><meta charset="utf-8">
+    <style>
+      body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:24px;background:#f8fafc;color:#1e293b}
+      @media print{body{background:#fff;padding:12px}}
+    </style>
+    </head><body>
+    <div style="max-width:640px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #1B4F72">
+        <div style="font-size:26px;font-weight:800;color:#1B4F72">${paseo?.nombre ?? "Paseo"}</div>
+        <div style="font-size:13px;color:#94a3b8;margin-top:4px">Menú del Paseo</div>
+      </div>
+      ${diasHTML || '<div style="text-align:center;padding:32px;color:#94a3b8">Sin comidas programadas</div>'}
+      ${recetasHTML}
+    </div>
+    </body></html>`;
+  };
+
+  const compartirMenuPDF = async () => {
+    setExportando(true);
+    try {
+      const html = generarHTMLMenu();
+      if (Platform.OS === "web") {
+        const w = window.open("", "_blank");
+        if (w) { w.document.write(html); w.document.close(); }
+      } else {
+        const { uri } = await Print.printToFileAsync({ html, base64: false });
+        const safeName = (paseo?.nombre ?? "Paseo").replace(/[^a-zA-Z0-9_\- ]/g, "");
+        const dest = new FSFile(Paths.cache, `Menu - ${safeName}.pdf`);
+        new FSFile(uri).copy(dest);
+        await Sharing.shareAsync(dest.uri, {
+          mimeType: "application/pdf",
+          dialogTitle: `Menú — ${paseo?.nombre}`,
+        });
+      }
+    } catch (e) {
+      showError(t("tripDetail.errors.noPdfError"));
+    }
+    setExportando(false);
+  };
+
   const compartirPDF = async () => {
     setExportando(true);
     try {
       const html = generarHTML();
-      const { uri } = await Print.printToFileAsync({ html, base64: false });
-      await Sharing.shareAsync(uri, {
-        mimeType: "application/pdf",
-        dialogTitle: `Liquidación — ${paseo?.nombre}`,
-      });
+      if (Platform.OS === "web") {
+        const w = window.open("", "_blank");
+        if (w) { w.document.write(html); w.document.close(); }
+      } else {
+        const { uri } = await Print.printToFileAsync({ html, base64: false });
+        const safeName = (paseo?.nombre ?? "Paseo").replace(/[^a-zA-Z0-9_\- ]/g, "");
+        const dest = new FSFile(Paths.cache, `Gastos - ${safeName}.pdf`);
+        new FSFile(uri).copy(dest);
+        await Sharing.shareAsync(dest.uri, {
+          mimeType: "application/pdf",
+          dialogTitle: `Gastos — ${paseo?.nombre}`,
+        });
+      }
     } catch (e) {
       showError(t("tripDetail.errors.noPdfError"));
     }
@@ -2352,10 +2543,10 @@ export default function TripDetailScreen() {
                           )}
                         </View>
                         <View style={styles.participanteInfo}>
-                          <Text style={styles.participanteNombre}>
+                          <Text style={[styles.participanteNombre, { color: theme.text }]}>
                             {m.personas.nombre}
                           </Text>
-                          <Text style={styles.participanteSub}>
+                          <Text style={[styles.participanteSub, { color: theme.textSecondary }]}>
                             {t("tripDetail.gente.factor", { factor: m.factor ?? 1 })}
                           </Text>
                         </View>
@@ -2467,6 +2658,17 @@ export default function TripDetailScreen() {
               >
                 <Text style={styles.addMealButtonText}>{t("tripDetail.menu.addMealBtn")}</Text>
               </TouchableOpacity>
+              {momentos.length > 0 && (
+                <TouchableOpacity
+                  style={[styles.exportButton, { opacity: exportando ? 0.6 : 1 }]}
+                  onPress={compartirMenuPDF}
+                  disabled={exportando}
+                >
+                  <Text style={styles.exportButtonText}>
+                    {exportando ? "⏳ Generando..." : "📄 Exportar menú"}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </ScrollView>
           </View>
         )}
@@ -5735,6 +5937,15 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   addMealButtonText: { color: "#64748b", fontSize: 14, fontWeight: "600" },
+  exportButton: {
+    backgroundColor: "#1B4F72",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  exportButtonText: { color: "#fff", fontSize: 14, fontWeight: "700" },
 
   // Meal detail modal content
   mealDetailHeader: {

@@ -92,7 +92,7 @@ export default function RootLayout() {
     const inOnboarding = segments[0] === "onboarding";
 
     if (!session) {
-      if (!onboardingDone && !inOnboarding) {
+      if (!onboardingDone && !inOnboarding && !inAuthScreen) {
         router.replace("/onboarding");
       } else if (onboardingDone && !inAuthScreen && !inOnboarding) {
         // @ts-ignore — expo-router types use /auth/index but runtime path is /auth

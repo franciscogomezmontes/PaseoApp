@@ -303,8 +303,8 @@ export default function RecipeDetailScreen() {
           </View>
 
           {/* INGREDIENTES */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🛒 {t("recipeDetail.ingredients")}</Text>
+          <View style={[styles.section, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>🛒 {t("recipeDetail.ingredients")}</Text>
             {ingredientes.length === 0 ? (
               <Text style={styles.emptyText}>{t("recipeDetail.noIngredients")}</Text>
             ) : (
@@ -340,7 +340,7 @@ export default function RecipeDetailScreen() {
                     <View style={styles.stepNumber}>
                       <Text style={styles.stepNumberText}>{i + 1}</Text>
                     </View>
-                    <Text style={styles.stepText}>{step}</Text>
+                    <Text style={[styles.stepText, { color: theme.text }]}>{step}</Text>
                   </View>
                 ))}
             </View>

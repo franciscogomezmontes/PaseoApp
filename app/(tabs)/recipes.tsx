@@ -1,4 +1,5 @@
 import { useFocusEffect } from "@react-navigation/native";
+import { Paths, File as FSFile } from "expo-file-system";
 import * as Print from "expo-print";
 import { useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
@@ -7,6 +8,7 @@ import {
   ActivityIndicator,
   FlatList,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -187,12 +189,19 @@ export default function RecipesScreen() {
 
     try {
       const html = buildRecetarioHtml(data);
-      const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri, {
-        mimeType: "application/pdf",
-        dialogTitle: "Exportar recetario",
-        UTI: "com.adobe.pdf",
-      });
+      if (Platform.OS === "web") {
+        const w = window.open("", "_blank");
+        if (w) { w.document.write(html); w.document.close(); }
+      } else {
+        const { uri } = await Print.printToFileAsync({ html });
+        const dest = new FSFile(Paths.cache, "Recetario.pdf");
+        new FSFile(uri).copy(dest);
+        await Sharing.shareAsync(dest.uri, {
+          mimeType: "application/pdf",
+          dialogTitle: "Exportar recetario",
+          UTI: "com.adobe.pdf",
+        });
+      }
     } catch {
       showError(t("recipes.errors.exportFailed"));
     }
@@ -874,19 +883,22 @@ function buildRecetarioHtml(recetas: any[]): string {
 
       const metaParts = [
         tiempoTotal > 0 ? `⏱ ${tiempoTotal} min` : null,
-        r.porciones_base ? `👤 ${r.porciones_base} porción base` : null,
+        r.porciones_base ? `👤 ${r.porciones_base} porciones` : null,
       ]
         .filter(Boolean)
         .join(" &nbsp;·&nbsp; ");
 
+      const base = r.porciones_base ?? 1;
       const ingsHtml = (r.receta_ingredientes ?? [])
         .map(
-          (ri: any) =>
-            `<tr>
+          (ri: any) => {
+            const total = Math.round(ri.cantidad_por_porcion * base * 100) / 100;
+            return `<tr>
               <td>${ri.ingredientes?.nombre ?? ""}</td>
-              <td style="text-align:right">${ri.cantidad_por_porcion}</td>
-              <td>${ri.ingredientes?.unidad_base ?? ""} <span style="color:#94a3b8">/ porción</span></td>
-            </tr>`,
+              <td style="text-align:right">${total}</td>
+              <td>${ri.ingredientes?.unidad_base ?? ""}</td>
+            </tr>`;
+          }
         )
         .join("");
 

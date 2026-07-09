@@ -1,8 +1,12 @@
 import { useFocusEffect } from "@react-navigation/native";
+import { Paths, File as FSFile } from "expo-file-system";
+import * as Print from "expo-print";
 import { useRouter } from "expo-router";
+import * as Sharing from "expo-sharing";
 import { useCallback, useEffect, useState } from "react";
 import {
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -94,6 +98,13 @@ export default function GastosScreen() {
   const [showBalancesModal, setShowBalancesModal] = useState(false);
   const [balancesPaseoId, setBalancesPaseoId] = useState<string>("");
 
+  // ── Liquidaciones pagadas (per-paseo) ──
+  const [liquidacionesPagadasPorPaseo, setLiquidacionesPagadasPorPaseo] = useState<
+    Record<string, Record<string, boolean>>
+  >({});
+  const [savingLiquidacion, setSavingLiquidacion] = useState(false);
+  const [exportandoGastos, setExportandoGastos] = useState(false);
+
   // ─────────────────────────────────────────────
   // Load all data
   // ─────────────────────────────────────────────
@@ -109,6 +120,7 @@ export default function GastosScreen() {
       { data: partData },
       { data: familiasData },
       { data: momentosData },
+      { data: liqPagadasData },
     ] = await Promise.all([
       supabase
         .from("gastos")
@@ -129,6 +141,10 @@ export default function GastosScreen() {
         .in("paseo_id", paseoIds)
         .order("fecha")
         .order("tipo_comida"),
+      supabase
+        .from("liquidaciones_pagadas")
+        .select("*")
+        .in("paseo_id", paseoIds),
     ]);
 
     // Tier 2: queries that depend on tier-1 results, also run in parallel
@@ -193,6 +209,13 @@ export default function GastosScreen() {
       cmxp[momento.paseo_id][r.momento_id][r.participacion_id] = r.activo;
     });
 
+    const lqp: Record<string, Record<string, boolean>> = {};
+    paseoIds.forEach((pid) => { lqp[pid] = {}; });
+    (liqPagadasData ?? []).forEach((r: any) => {
+      if (!lqp[r.paseo_id]) lqp[r.paseo_id] = {};
+      lqp[r.paseo_id][`${r.de_familia_id}_${r.para_familia_id}`] = r.pagado;
+    });
+
     setGastosPorPaseo(gxp);
     setParticipacionesPorPaseo(pxp);
     setPersonasPorPaseo(persxp);
@@ -200,6 +223,7 @@ export default function GastosScreen() {
     setGastosPartMap(gpm);
     setMomentosPorPaseo(mxp);
     setComidaMapPorPaseo(cmxp);
+    setLiquidacionesPagadasPorPaseo(lqp);
     setInitialized((prev) => {
       if (!prev) {
         const allCollapsed: Record<string, boolean> = {};
@@ -516,6 +540,101 @@ export default function GastosScreen() {
 
   const calcularLiquidacionesPaseo = (paseoId: string) =>
     calcularBalancesFamilia(paseoId).liquidaciones;
+
+  const toggleLiquidacionPagada = async (paseoId: string, liq: { deFamId: string; paraFamId: string; monto: number }) => {
+    const key = `${liq.deFamId}_${liq.paraFamId}`;
+    const currentVal = (liquidacionesPagadasPorPaseo[paseoId] ?? {})[key] ?? false;
+    const newVal = !currentVal;
+    setSavingLiquidacion(true);
+    setLiquidacionesPagadasPorPaseo((prev) => ({
+      ...prev,
+      [paseoId]: { ...(prev[paseoId] ?? {}), [key]: newVal },
+    }));
+    await supabase.from("liquidaciones_pagadas").upsert(
+      { paseo_id: paseoId, de_familia_id: liq.deFamId, para_familia_id: liq.paraFamId, monto: liq.monto, pagado: newVal },
+      { onConflict: "paseo_id,de_familia_id,para_familia_id" },
+    );
+    setSavingLiquidacion(false);
+  };
+
+  const exportarGastosPDF = async (paseoId: string) => {
+    setExportandoGastos(true);
+    try {
+      const paseo = paseos.find((p) => p.id === paseoId);
+      const gastos = gastosPorPaseo[paseoId] ?? [];
+      const parts = participacionesPorPaseo[paseoId] ?? [];
+      const { balancePorFamilia, liquidaciones } = calcularBalancesFamilia(paseoId);
+      const total = gastos.reduce((s, g) => s + g.monto, 0);
+
+      const balancesHTML = balancePorFamilia
+        .map((b: any) => {
+          const isPos = b.balance >= 0;
+          const color = isPos ? "#16a34a" : "#DC2626";
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9">
+            <div>
+              <div style="font-weight:700;font-size:14px;color:#1e293b">${b.nombre}</div>
+              <div style="font-size:11px;color:#94a3b8">Factor ${b.factorTotal?.toFixed(1) ?? "1.0"} · Puso ${formatCOP(b.puso)}</div>
+            </div>
+            <div style="font-weight:800;font-size:15px;color:${color}">${isPos ? "+" : ""}${formatCOP(b.balance)}</div>
+          </div>`;
+        })
+        .join("");
+
+      const liqPagadas = liquidacionesPagadasPorPaseo[paseoId] ?? {};
+      const liquidacionesHTML = liquidaciones.length === 0
+        ? `<div style="text-align:center;padding:16px;color:#16a34a;font-weight:700">✅ ¡Todo cuadrado!</div>`
+        : liquidaciones
+            .map((l: any) => {
+              const key = `${l.deFamId}_${l.paraFamId}`;
+              const pagada = liqPagadas[key] ?? false;
+              return `<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #f1f5f9;${pagada ? "opacity:0.5;text-decoration:line-through" : ""}">
+                <div style="font-weight:600;flex:1;color:#1e293b">${l.de}</div>
+                <div style="color:#94a3b8">→</div>
+                <div style="font-weight:600;flex:1;color:#1e293b">${l.para}</div>
+                <div style="font-weight:800;color:#1B4F72">${formatCOP(l.monto)}</div>
+                ${pagada ? '<div style="color:#16a34a;font-size:12px">✓ Pagado</div>' : ""}
+              </div>`;
+            })
+            .join("");
+
+      const html = `<!DOCTYPE html>
+      <html><head><meta charset="utf-8">
+      <style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:20px;background:#f8fafc;color:#1e293b}</style>
+      </head><body>
+      <div style="max-width:600px;margin:0 auto">
+        <div style="text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #1B4F72">
+          <div style="font-size:24px;font-weight:800;color:#1B4F72">${paseo?.nombre ?? "Paseo"}</div>
+          <div style="font-size:13px;color:#94a3b8;margin-top:4px">Resumen de Gastos · Total: ${formatCOP(total)}</div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.08)">
+          <div style="font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Balances por familia</div>
+          ${balancesHTML || '<div style="color:#94a3b8;text-align:center;padding:12px">Sin participantes</div>'}
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.08)">
+          <div style="font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Liquidaciones</div>
+          ${liquidacionesHTML}
+        </div>
+      </div>
+      </body></html>`;
+
+      if (Platform.OS === "web") {
+        const w = window.open("", "_blank");
+        if (w) { w.document.write(html); w.document.close(); }
+      } else {
+        const { uri } = await Print.printToFileAsync({ html, base64: false });
+        const safeName = (paseo?.nombre ?? "Paseo").replace(/[^a-zA-Z0-9_\- ]/g, "");
+        const dest = new FSFile(Paths.cache, `Gastos - ${safeName}.pdf`);
+        new FSFile(uri).copy(dest);
+        await Sharing.shareAsync(dest.uri, {
+          mimeType: "application/pdf",
+          dialogTitle: `Gastos — ${paseo?.nombre}`,
+        });
+      }
+    } catch (e) {
+      showError("No se pudo generar el PDF.");
+    }
+    setExportandoGastos(false);
+  };
 
   // ─────────────────────────────────────────────
   // Render
@@ -1116,17 +1235,39 @@ export default function GastosScreen() {
                   {liquidaciones.length === 0 ? (
                     <Text style={styles.liqEmpty}>{t("expenses.balances.allClear")}</Text>
                   ) : (
-                    liquidaciones.map((liqItem, i) => (
-                      <View key={i} style={styles.liqRow}>
-                        <Text style={styles.liqDe}>{liqItem.de}</Text>
-                        <Text style={styles.liqArrow}>→</Text>
-                        <Text style={styles.liqPara}>{liqItem.para}</Text>
-                        <Text style={styles.liqMonto}>
-                          {formatCOP(liqItem.monto)}
-                        </Text>
-                      </View>
-                    ))
+                    liquidaciones.map((liqItem, i) => {
+                      const key = `${liqItem.deFamId}_${liqItem.paraFamId}`;
+                      const pagada = (liquidacionesPagadasPorPaseo[balancesPaseoId] ?? {})[key] ?? false;
+                      return (
+                        <TouchableOpacity
+                          key={i}
+                          style={[styles.liqRow, pagada && styles.liqRowPagada]}
+                          onPress={() => toggleLiquidacionPagada(balancesPaseoId, liqItem)}
+                          disabled={savingLiquidacion}
+                        >
+                          <View style={[styles.liqCheckbox, pagada && styles.liqCheckboxPagada]}>
+                            {pagada && <Text style={styles.liqCheckmark}>✓</Text>}
+                          </View>
+                          <Text style={[styles.liqDe, pagada && styles.liqTextPagada]}>{liqItem.de}</Text>
+                          <Text style={[styles.liqArrow, pagada && styles.liqTextPagada]}>→</Text>
+                          <Text style={[styles.liqPara, pagada && styles.liqTextPagada]}>{liqItem.para}</Text>
+                          <Text style={[styles.liqMonto, pagada && styles.liqTextPagada]}>
+                            {formatCOP(liqItem.monto)}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })
                   )}
+
+                  <TouchableOpacity
+                    style={[styles.exportPDFBtn, { opacity: exportandoGastos ? 0.6 : 1 }]}
+                    onPress={() => exportarGastosPDF(balancesPaseoId)}
+                    disabled={exportandoGastos}
+                  >
+                    <Text style={styles.exportPDFBtnText}>
+                      {exportandoGastos ? "⏳ Generando..." : "📄 Exportar PDF"}
+                    </Text>
+                  </TouchableOpacity>
                 </>
               );
             })()}
@@ -1488,4 +1629,26 @@ const styles = StyleSheet.create({
   liqArrow: { fontSize: 16, color: "#94a3b8" },
   liqPara: { fontSize: 13, fontWeight: "700", color: "#16a34a", flex: 1 },
   liqMonto: { fontSize: 14, fontWeight: "800", color: "#1B4F72" },
+  liqRowPagada: { opacity: 0.55, backgroundColor: "#f0fdf4", borderRadius: 8 },
+  liqTextPagada: { textDecorationLine: "line-through" as const },
+  liqCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#cbd5e1",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  liqCheckboxPagada: { backgroundColor: "#16a34a", borderColor: "#16a34a" },
+  liqCheckmark: { color: "#fff", fontSize: 11, fontWeight: "800" as const },
+  exportPDFBtn: {
+    backgroundColor: "#1B4F72",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  exportPDFBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" as const },
 });

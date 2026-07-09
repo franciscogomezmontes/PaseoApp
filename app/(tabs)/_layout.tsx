@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import { Map, BookOpen, ShoppingCart, Receipt } from "lucide-react-native";
 import { Platform, useColorScheme } from "react-native";
+import { useTranslation } from "react-i18next";
 import AddTabButton from "../../src/components/AddTabButton";
 import TopBar from "../../src/components/TopBar";
 import { lightTheme, darkTheme } from "../../src/theme";
@@ -8,6 +9,7 @@ import { lightTheme, darkTheme } from "../../src/theme";
 export default function TabLayout() {
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? darkTheme : lightTheme;
+  const { t } = useTranslation();
 
   return (
     <Tabs
@@ -31,18 +33,19 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="tripDetail" options={{ href: null, headerShown: false }} />
       <Tabs.Screen
         name="trips"
         options={{
           tabBarIcon: ({ color, size }) => <Map color={color} size={size} />,
-          tabBarLabel: "Mis Paseos",
+          tabBarLabel: t("tabs.trips"),
         }}
       />
       <Tabs.Screen
         name="recipes"
         options={{
           tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size} />,
-          tabBarLabel: "Recetas",
+          tabBarLabel: t("tabs.recipes"),
         }}
       />
       <Tabs.Screen
@@ -56,14 +59,14 @@ export default function TabLayout() {
         name="grocery"
         options={{
           tabBarIcon: ({ color, size }) => <ShoppingCart color={color} size={size} />,
-          tabBarLabel: "Mercado",
+          tabBarLabel: t("tabs.grocery"),
         }}
       />
       <Tabs.Screen
         name="expenses"
         options={{
           tabBarIcon: ({ color, size }) => <Receipt color={color} size={size} />,
-          tabBarLabel: "Gastos",
+          tabBarLabel: t("tabs.expenses"),
         }}
       />
     </Tabs>
