@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Eliminar cuenta — PaseoApp</title>
+  <style>
+    /* ── Tokens ── */
+    :root {
+      --accent:        #1B4F72;
+      --accent-hover:  #154060;
+      --bg:            #f1f5f9;
+      --surface:       #ffffff;
+      --border:        #dde3ec;
+      --text:          #1e293b;
+      --text-muted:    #5a6a82;
+      --danger-bg:     #fff5f5;
+      --danger-border: #fecaca;
+      --danger-text:   #991b1b;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:            #0c1521;
+        --surface:       #162032;
+        --border:        #243347;
+        --text:          #dde6f0;
+        --text-muted:    #7a90a8;
+        --danger-bg:     #1f0f0f;
+        --danger-border: #7f1d1d;
+        --danger-text:   #fca5a5;
+      }
+    }
+    :root[data-theme="light"] {
+      --bg:            #f1f5f9;
+      --surface:       #ffffff;
+      --border:        #dde3ec;
+      --text:          #1e293b;
+      --text-muted:    #5a6a82;
+      --danger-bg:     #fff5f5;
+      --danger-border: #fecaca;
+      --danger-text:   #991b1b;
+    }
+    :root[data-theme="dark"] {
+      --bg:            #0c1521;
+      --surface:       #162032;
+      --border:        #243347;
+      --text:          #dde6f0;
+      --text-muted:    #7a90a8;
+      --danger-bg:     #1f0f0f;
+      --danger-border: #7f1d1d;
+      --danger-text:   #fca5a5;
+    }
+
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100%; }
+    body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 520px;
+      padding: 40px 40px 36px;
+    }
+    @media (max-width: 540px) {
+      .card { padding: 28px 20px 24px; }
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .app-mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 13px;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .header-text { display: flex; flex-direction: column; gap: 4px; }
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--text);
+      text-wrap: balance;
+    }
+
+    /* ── Divider ── */
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0 0 24px;
+    }
+
+    /* ── Body text ── */
+    .body { display: flex; flex-direction: column; gap: 20px; }
+    p { font-size: 15px; color: var(--text-muted); max-width: 58ch; }
+    p strong { color: var(--text); font-weight: 600; }
+
+    /* ── Deletion list ── */
+    .deletion-box {
+      background: var(--danger-bg);
+      border: 1px solid var(--danger-border);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .deletion-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--danger-text);
+      margin-bottom: 10px;
+    }
+    .deletion-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .deletion-list li {
+      font-size: 14px;
+      color: var(--text);
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .deletion-list li::before {
+      content: "—";
+      color: var(--danger-text);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* ── CTA ── */
+    .cta-wrap { display: flex; flex-direction: column; gap: 10px; }
+    .btn-primary {
+      display: block;
+      width: 100%;
+      padding: 13px 20px;
+      background: var(--accent);
+      color: #fff;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      text-align: center;
+      text-decoration: none;
+      border: none;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-primary:hover, .btn-primary:focus-visible { background: var(--accent-hover); }
+    .btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .note {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 28px;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .footer a { color: var(--text-muted); text-decoration: underline; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn-primary { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="app-mark" aria-hidden="true">🌴</div>
+      <div class="header-text">
+        <span class="eyebrow">PaseoApp</span>
+        <h1>Eliminar tu cuenta</h1>
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="body">
+      <p>
+        Puedes solicitar la eliminación permanente de tu cuenta y todos los datos
+        asociados. Procesamos cada solicitud en un plazo máximo de
+        <strong>30 días</strong>.
+      </p>
+
+      <div class="deletion-box">
+        <div class="deletion-label">Qué se elimina</div>
+        <ul class="deletion-list">
+          <li>Tu perfil y dirección de correo electrónico</li>
+          <li>Tus paseos y participaciones en paseos</li>
+          <li>Tus recetas personales y listas del mercado</li>
+          <li>Tus gastos y registros de asistencia</li>
+          <li>Todas las fotos que hayas subido</li>
+        </ul>
+      </div>
+
+      <p>
+        Una vez eliminada, esta acción <strong>no se puede deshacer</strong>.
+        Los datos compartidos dentro de un paseo (gastos grupales, asistencia)
+        pueden permanecer en forma anónima para los demás participantes.
+      </p>
+
+      <div class="cta-wrap">
+        <a
+          class="btn-primary"
+          href="mailto:franciscogomezmontes@gmail.com?subject=Solicitud%20de%20eliminaci%C3%B3n%20de%20cuenta%20%E2%80%94%20PaseoApp&body=Hola%2C%0A%0ASolicito%20la%20eliminaci%C3%B3n%20permanente%20de%20mi%20cuenta%20en%20PaseoApp.%0A%0ACorreo%20de%20la%20cuenta%3A%20"
+        >
+          Solicitar eliminación por correo
+        </a>
+        <p class="note">
+          Se abrirá tu cliente de correo con el asunto prellenado.<br>
+          Asegúrate de enviar desde el correo registrado en la app.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>© 2025 PaseoApp &nbsp;·&nbsp; <a href="privacy.html">Política de privacidad</a></p>
+  </footer>
+</body>
+</html>
