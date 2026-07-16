@@ -1,41 +1,229 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PaseoApp</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PaseoApp — Organiza tus paseos grupales</title>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #1B4F72;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      text-align: center;
-      padding: 24px;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:       #1B4F72;
+      --blue-dark:  #123650;
+      --blue-mid:   #2563a8;
+      --blue-light: #d0e8f7;
+      --sand:       #f8fafc;
+      --text:       #1e293b;
+      --muted:      #64748b;
+      --white:      #ffffff;
     }
-    h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 12px; }
-    p  { font-size: 1.1rem; opacity: 0.85; margin-bottom: 32px; }
-    a  {
-      display: inline-block;
-      background: #fff;
-      color: #1B4F72;
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--sand);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: var(--blue);
+      color: var(--white);
+      padding: 72px 24px 80px;
+      text-align: center;
+    }
+    .hero-icon {
+      font-size: 64px;
+      line-height: 1;
+      margin-bottom: 20px;
+      display: block;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    .hero p {
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      opacity: 0.82;
+      max-width: 480px;
+      margin: 0 auto 36px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 100px;
+      padding: 8px 20px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .badge-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+      flex-shrink: 0;
+    }
+
+    /* ── Features ── */
+    .features {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 64px 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--white);
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 28px 24px;
+    }
+    .feature-icon {
+      font-size: 32px;
+      margin-bottom: 14px;
+      display: block;
+    }
+    .feature-card h3 {
+      font-size: 1rem;
       font-weight: 700;
-      padding: 12px 28px;
-      border-radius: 10px;
-      text-decoration: none;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    /* ── CTA strip ── */
+    .cta-strip {
+      background: var(--blue-dark);
+      color: var(--white);
+      text-align: center;
+      padding: 56px 24px;
+    }
+    .cta-strip h2 {
+      font-size: clamp(1.4rem, 3vw, 1.9rem);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .cta-strip p {
+      opacity: 0.75;
+      margin-bottom: 28px;
       font-size: 0.95rem;
     }
-    a:hover { opacity: 0.9; }
+    .play-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--white);
+      color: var(--blue);
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 13px 28px;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: opacity .15s;
+    }
+    .play-btn:hover { opacity: 0.9; }
+    .play-icon { font-size: 22px; }
+
+    /* ── Footer ── */
+    footer {
+      background: var(--white);
+      border-top: 1px solid #e2e8f0;
+      text-align: center;
+      padding: 28px 24px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    footer a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+    footer a:hover { color: var(--blue); text-decoration: underline; }
   </style>
 </head>
 <body>
-  <h1>🧳 PaseoApp</h1>
-  <p>Organiza tus viajes grupales de forma fácil y justa.</p>
-  <a href="privacy-policy.html">Política de Privacidad</a>
+
+  <section class="hero">
+    <span class="hero-icon">🌴</span>
+    <h1>PaseoApp</h1>
+    <p>Organiza tus paseos grupales: menús, mercado, gastos y más — todo en un solo lugar.</p>
+    <div class="badge">
+      <span class="badge-dot"></span>
+      Próximamente en Google Play
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="feature-card">
+      <span class="feature-icon">🧳</span>
+      <h3>Planifica el paseo</h3>
+      <p>Crea el viaje, invita a tu grupo con un código y coordina fechas y lugar.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🍽️</span>
+      <h3>Menús y recetas</h3>
+      <p>Asigna recetas a cada comida del paseo y consulta el recetario compartido.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🛒</span>
+      <h3>Lista del mercado</h3>
+      <p>Genera automáticamente los ingredientes según los menús y porciones del grupo.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">💸</span>
+      <h3>Divide los gastos</h3>
+      <p>Registra quién pagó qué y calcula las transferencias mínimas para liquidar cuentas.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">👨‍👩‍👧</span>
+      <h3>Por familias</h3>
+      <p>Agrupa participantes por familia y ajusta factores de consumo para cada uno.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">✅</span>
+      <h3>Asistencia a comidas</h3>
+      <p>Marca quién asiste a cada comida para calcular porciones exactas.</p>
+    </div>
+  </section>
+
+  <section class="cta-strip">
+    <h2>Disponible pronto para Android</h2>
+    <p>Regístrate y empieza a organizar tu próximo paseo.</p>
+    <a class="play-btn" href="https://play.google.com/store/apps/details?id=com.frang_x1.PaseoApp">
+      <span class="play-icon">▶</span>
+      Descargar en Google Play
+    </a>
+  </section>
+
+  <footer>
+    <div class="footer-links">
+      <a href="privacy-policy.html">Política de privacidad</a>
+      <a href="delete-account.html">Eliminar mi cuenta</a>
+      <a href="email-confirmed.html">Confirmación de email</a>
+    </div>
+    <p>© 2025 PaseoApp · Hecho con ❤️ para los que disfrutan salir en grupo</p>
+  </footer>
+
 </body>
 </html>
