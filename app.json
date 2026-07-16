@@ -59,7 +59,7 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true,
-      "baseUrl": "/PaseoApp"
+      "baseUrl": "/PaseoApp/app"
     },
     "extra": {
       "router": {},
