@@ -52,6 +52,24 @@
       max-width: 480px;
       margin: 0 auto 36px;
     }
+    .hero-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .btn-web {
+      display: inline-block;
+      background: var(--white);
+      color: var(--blue);
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 13px 32px;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: opacity .15s;
+    }
+    .btn-web:hover { opacity: 0.88; }
     .badge {
       display: inline-flex;
       align-items: center;
@@ -168,9 +186,14 @@
     <span class="hero-icon">🌴</span>
     <h1>PaseoApp</h1>
     <p>Organiza tus paseos grupales: menús, mercado, gastos y más — todo en un solo lugar.</p>
-    <div class="badge">
-      <span class="badge-dot"></span>
-      Próximamente en Google Play
+    <div class="hero-actions">
+      <a class="btn-web" href="https://franciscogomezmontes.github.io/PaseoApp/auth">
+        Abrir app web
+      </a>
+      <div class="badge">
+        <span class="badge-dot"></span>
+        Próximamente en Google Play
+      </div>
     </div>
   </section>
 
@@ -220,7 +243,6 @@
     <div class="footer-links">
       <a href="privacy-policy.html">Política de privacidad</a>
       <a href="delete-account.html">Eliminar mi cuenta</a>
-      <a href="email-confirmed.html">Confirmación de email</a>
     </div>
     <p>© 2025 PaseoApp · Hecho con ❤️ para los que disfrutan salir en grupo</p>
   </footer>
