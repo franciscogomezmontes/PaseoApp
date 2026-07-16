@@ -96,11 +96,12 @@ interface IngredienteRow {
 export default function NewRecipeScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, forkId } = useLocalSearchParams<{ id?: string; forkId?: string }>();
   const isEditing = !!id;
+  const isFork = !!forkId && !id;
   const savingRef = useRef(0);
 
-  const [loading, setLoading] = useState(isEditing);
+  const [loading, setLoading] = useState(isEditing || isFork);
   const [saving, setSaving] = useState(false);
 
   // Basic info
@@ -160,7 +161,8 @@ export default function NewRecipeScreen() {
   useEffect(() => {
     loadCatalogo();
     if (isEditing) loadReceta();
-  }, [id]);
+    else if (isFork) loadReceta(forkId);
+  }, [id, forkId]);
 
   const loadCatalogo = async () => {
     const { data } = await supabase
@@ -170,12 +172,13 @@ export default function NewRecipeScreen() {
     setCatalogoIngredientes(data ?? []);
   };
 
-  const loadReceta = async () => {
+  const loadReceta = async (overrideId?: string) => {
     setLoading(true);
+    const targetId = overrideId ?? id!;
     const { data: receta } = await supabase
       .from("recetas")
       .select("*")
-      .eq("id", id!)
+      .eq("id", targetId)
       .single();
     if (receta) {
       setNombre(receta.nombre ?? "");
@@ -207,7 +210,7 @@ export default function NewRecipeScreen() {
     const { data: ingData } = await supabase
       .from("receta_ingredientes")
       .select("*, ingredientes(nombre, unidad_base)")
-      .eq("receta_id", id!);
+      .eq("receta_id", targetId);
     if (ingData) {
       setIngredientes(
         ingData.map((i: any) => ({
@@ -421,9 +424,22 @@ export default function NewRecipeScreen() {
         return;
       }
     } else {
+      // Para fork y nueva receta necesitamos el user id
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      if (!userId) {
+        showError("No autenticado");
+        setSaving(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("recetas")
-        .insert(recetaPayload)
+        .insert({
+          ...recetaPayload,
+          creado_por: userId,
+          ...(isFork ? { receta_origen_id: forkId } : {}),
+        })
         .select()
         .single();
       if (error) {
@@ -432,6 +448,13 @@ export default function NewRecipeScreen() {
         return;
       }
       recetaId = data.id;
+
+      // Si es fork, ocultar la receta base original para este usuario
+      if (isFork && forkId) {
+        await supabase
+          .from("recetas_ocultas_por_usuario")
+          .insert({ user_id: userId, receta_id: forkId });
+      }
     }
 
     const ok = await saveIngredientes(recetaId!);
@@ -443,6 +466,8 @@ export default function NewRecipeScreen() {
     setSuccessMsg(
       isEditing
         ? t("newRecipe.successMsgUpdated", { name: nombre })
+        : isFork
+        ? `✅ Tu versión de "${nombre}" fue guardada en tu recetario.`
         : t("newRecipe.successMsgCreated", { name: nombre }),
     );
     setShowSuccessModal(true);
@@ -477,7 +502,7 @@ export default function NewRecipeScreen() {
           </TouchableOpacity>
           <View style={styles.headerRow}>
             <Text style={styles.headerTitle}>
-              {isEditing ? t("newRecipe.editTitle") : t("newRecipe.title")}
+              {isEditing ? t("newRecipe.editTitle") : isFork ? "✏️ Mi versión" : t("newRecipe.title")}
             </Text>
             {isEditing && (
               <TouchableOpacity onPress={() => setShowDeleteModal(true)}>

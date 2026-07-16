@@ -511,7 +511,12 @@ export default function RecipesScreen() {
                     }
                   >
                     <View style={styles.cardTop}>
-                      <Text style={styles.recetaNombre}>{receta.nombre}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.recetaNombre}>{receta.nombre}</Text>
+                        {receta.creado_por == null && (
+                          <Text style={styles.baseBadge}>📖 Base</Text>
+                        )}
+                      </View>
                       {selectionMode ? (
                         <View
                           style={[
@@ -1083,11 +1088,16 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 4,
   },
+  baseBadge: {
+    fontSize: 10,
+    color: "#64748b",
+    fontWeight: "600",
+    marginTop: 2,
+  },
   recetaNombre: {
     fontSize: 15,
     fontWeight: "700",
     color: "#1e293b",
-    flex: 1,
     marginRight: 8,
   },
   tipoIcon: { fontSize: 18 },

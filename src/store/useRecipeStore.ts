@@ -38,6 +38,8 @@ export interface Receta {
   utensilios?: string[] | null;
   palabras_clave?: string[] | null;
   receta_ingredientes?: RecetaIngrediente[];
+  creado_por?: string | null;
+  receta_origen_id?: string | null;
 }
 
 interface RecipeStore {
@@ -46,7 +48,9 @@ interface RecipeStore {
   error: string | null;
   fetchRecetas: () => Promise<void>;
   fetchRecetaById: (id: string) => Promise<Receta | null>;
-  agregarReceta: (receta: Omit<Receta, "id">) => Promise<void>;
+  agregarReceta: (receta: Omit<Receta, "id" | "creado_por" | "receta_origen_id">) => Promise<string | null>;
+  eliminarReceta: (id: string) => Promise<void>;
+  ocultarReceta: (recetaId: string) => Promise<void>;
 }
 
 export const useRecipeStore = create<RecipeStore>((set) => ({
@@ -56,10 +60,28 @@ export const useRecipeStore = create<RecipeStore>((set) => ({
 
   fetchRecetas: async () => {
     set({ loading: true, error: null });
-    const { data, error } = await supabase
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+
+    // Get hidden recipe IDs for this user
+    const { data: hiddenRows } = await supabase
+      .from("recetas_ocultas_por_usuario")
+      .select("receta_id");
+    const hiddenIds = hiddenRows?.map((r) => r.receta_id) ?? [];
+
+    // Fetch base recipes + own recipes, excluding hidden ones
+    let query = supabase
       .from("recetas")
       .select("*")
-      .order("nombre"); // alfabético, coincide con el índice del tab
+      .or(`creado_por.is.null,creado_por.eq.${userId}`)
+      .order("nombre");
+
+    if (hiddenIds.length > 0) {
+      query = query.not("id", "in", `(${hiddenIds.join(",")})`);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       set({ error: error.message, loading: false });
@@ -91,19 +113,46 @@ export const useRecipeStore = create<RecipeStore>((set) => ({
 
   agregarReceta: async (receta) => {
     set({ loading: true, error: null });
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) {
+      set({ error: "No autenticado", loading: false });
+      return null;
+    }
+
     const { data, error } = await supabase
       .from("recetas")
-      .insert(receta)
+      .insert({ ...receta, creado_por: userId })
       .select()
       .single();
 
     if (error) {
       set({ error: error.message, loading: false });
-      return;
+      return null;
     }
     set((state) => ({
       recetas: [...state.recetas, data],
       loading: false,
+    }));
+    return data.id;
+  },
+
+  eliminarReceta: async (id) => {
+    await supabase.from("recetas").delete().eq("id", id);
+    set((state) => ({
+      recetas: state.recetas.filter((r) => r.id !== id),
+    }));
+  },
+
+  ocultarReceta: async (recetaId) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return;
+    await supabase
+      .from("recetas_ocultas_por_usuario")
+      .insert({ user_id: userId, receta_id: recetaId });
+    set((state) => ({
+      recetas: state.recetas.filter((r) => r.id !== recetaId),
     }));
   },
 }));

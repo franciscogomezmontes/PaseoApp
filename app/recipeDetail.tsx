@@ -18,6 +18,8 @@ import WebModalWrapper from "../src/components/WebModalWrapper";
 import { TIPO_CONFIG } from "../src/constants";
 import { useTheme } from "../src/hooks/useTheme";
 import { supabase } from "../src/lib/supabase";
+import { useAuthStore } from "../src/store/useAuthStore";
+import { useRecipeStore } from "../src/store/useRecipeStore";
 import { useTripStore } from "../src/store/useTripStore";
 
 const TAGS = [
@@ -37,6 +39,8 @@ export default function RecipeDetailScreen() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { paseos, fetchPaseos } = useTripStore();
+  const { user } = useAuthStore();
+  const { ocultarReceta, eliminarReceta } = useRecipeStore();
 
   const [receta, setReceta] = useState<any>(null);
   const [ingredientes, setIngredientes] = useState<any[]>([]);
@@ -55,6 +59,8 @@ export default function RecipeDetailScreen() {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showConfirmHideModal, setShowConfirmHideModal] = useState(false);
+  const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
 
   const { t } = useTranslation();
 
@@ -132,6 +138,30 @@ export default function RecipeDetailScreen() {
   const scaledAmount = (cantidad: number) =>
     Math.round(cantidad * porciones * 100) / 100;
 
+  // Una receta es "base" si no tiene creado_por (fue subida por el admin)
+  const esRecetaBase = receta?.creado_por == null;
+
+  const handleEditar = () => {
+    if (esRecetaBase) {
+      // Fork: abrir newRecipe con forkId para crear copia propia
+      router.push({ pathname: "/newRecipe", params: { forkId: id } });
+    } else {
+      router.push({ pathname: "/newRecipe", params: { id } });
+    }
+  };
+
+  const handleOcultar = async () => {
+    setShowConfirmHideModal(false);
+    await ocultarReceta(id);
+    router.back();
+  };
+
+  const handleEliminar = async () => {
+    setShowConfirmDeleteModal(false);
+    await eliminarReceta(id);
+    router.back();
+  };
+
   const activeTags = TAGS.filter((tag) => receta?.[tag.key]);
   const tipoConfig =
     TIPO_CONFIG[receta?.tipo_comida] ?? TIPO_CONFIG["almuerzo"];
@@ -159,14 +189,29 @@ export default function RecipeDetailScreen() {
             <TouchableOpacity onPress={() => router.back()}>
               <Text style={styles.backText}>{t("newTrip.back")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() =>
-                router.push({ pathname: "/newRecipe", params: { id } })
-              }
-            >
-              <Text style={styles.editText}>✏️ {t("common.edit")}</Text>
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                onPress={() =>
+                  esRecetaBase
+                    ? setShowConfirmHideModal(true)
+                    : setShowConfirmDeleteModal(true)
+                }
+                style={styles.deleteBtn}
+              >
+                <Text style={styles.deleteBtnText}>🗑️</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleEditar}>
+                <Text style={styles.editText}>
+                  {esRecetaBase ? `✏️ Mi versión` : `✏️ ${t("common.edit")}`}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
+          {esRecetaBase && (
+            <View style={styles.baseBadge}>
+              <Text style={styles.baseBadgeText}>📖 Receta base</Text>
+            </View>
+          )}
 
           {/* Foto hero */}
           {receta?.foto_url ? (
@@ -401,6 +446,64 @@ export default function RecipeDetailScreen() {
           </View>
         </Modal>
 
+        {/* Confirmar ocultar receta base */}
+        <Modal
+          visible={showConfirmHideModal}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setShowConfirmHideModal(false)}
+        >
+          <View style={styles.overlay}>
+            <View style={styles.modalBox}>
+              <Text style={styles.modalTitle}>🙈 Ocultar receta</Text>
+              <Text style={styles.modalMsg}>
+                Esta receta desaparecerá de tu recetario. Los demás usuarios seguirán viéndola. Puedes crear tu propia versión con "Mi versión".
+              </Text>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: "#DC2626", marginBottom: 8 }]}
+                onPress={handleOcultar}
+              >
+                <Text style={styles.modalBtnText}>Ocultar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: "#e2e8f0" }]}
+                onPress={() => setShowConfirmHideModal(false)}
+              >
+                <Text style={[styles.modalBtnText, { color: "#1e293b" }]}>{t("common.cancel")}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Confirmar eliminar receta propia */}
+        <Modal
+          visible={showConfirmDeleteModal}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setShowConfirmDeleteModal(false)}
+        >
+          <View style={styles.overlay}>
+            <View style={styles.modalBox}>
+              <Text style={styles.modalTitle}>🗑️ Eliminar receta</Text>
+              <Text style={styles.modalMsg}>
+                Esta acción eliminará la receta permanentemente de tu recetario.
+              </Text>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: "#DC2626", marginBottom: 8 }]}
+                onPress={handleEliminar}
+              >
+                <Text style={styles.modalBtnText}>Eliminar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: "#e2e8f0" }]}
+                onPress={() => setShowConfirmDeleteModal(false)}
+              >
+                <Text style={[styles.modalBtnText, { color: "#1e293b" }]}>{t("common.cancel")}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
         {/* Add to trip */}
         <Modal
           visible={showAddToTripModal}
@@ -553,6 +656,18 @@ const styles = StyleSheet.create({
   },
   backText: { color: "rgba(255,255,255,0.8)", fontSize: 14 },
   editText: { color: "rgba(255,255,255,0.9)", fontSize: 14, fontWeight: "600" },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
+  deleteBtn: { padding: 4 },
+  deleteBtnText: { fontSize: 18 },
+  baseBadge: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignSelf: "flex-start",
+    marginBottom: 8,
+  },
+  baseBadgeText: { color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: "600" },
 
   fotoHero: { width: "100%", height: 200, borderRadius: 12, marginBottom: 14 },
 

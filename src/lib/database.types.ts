@@ -602,6 +602,7 @@ export type Database = {
         Row: {
           categoria: string | null
           contiene_nueces: boolean | null
+          creado_por: string | null
           created_at: string | null
           creditos: string | null
           descripcion: string | null
@@ -616,6 +617,7 @@ export type Database = {
           palabras_clave: string[] | null
           pasos_fotos: Json | null
           porciones_base: number
+          receta_origen_id: string | null
           sin_gluten: boolean | null
           sin_lactosa: boolean | null
           tiempo_coccion: number | null
@@ -626,6 +628,7 @@ export type Database = {
         Insert: {
           categoria?: string | null
           contiene_nueces?: boolean | null
+          creado_por?: string | null
           created_at?: string | null
           creditos?: string | null
           descripcion?: string | null
@@ -640,6 +643,7 @@ export type Database = {
           palabras_clave?: string[] | null
           pasos_fotos?: Json | null
           porciones_base?: number
+          receta_origen_id?: string | null
           sin_gluten?: boolean | null
           sin_lactosa?: boolean | null
           tiempo_coccion?: number | null
@@ -650,6 +654,7 @@ export type Database = {
         Update: {
           categoria?: string | null
           contiene_nueces?: boolean | null
+          creado_por?: string | null
           created_at?: string | null
           creditos?: string | null
           descripcion?: string | null
@@ -664,6 +669,7 @@ export type Database = {
           palabras_clave?: string[] | null
           pasos_fotos?: Json | null
           porciones_base?: number
+          receta_origen_id?: string | null
           sin_gluten?: boolean | null
           sin_lactosa?: boolean | null
           tiempo_coccion?: number | null
@@ -671,7 +677,38 @@ export type Database = {
           tipo_comida?: string
           utensilios?: string[] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "recetas_receta_origen_id_fkey"
+            columns: ["receta_origen_id"]
+            isOneToOne: false
+            referencedRelation: "recetas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recetas_ocultas_por_usuario: {
+        Row: {
+          receta_id: string
+          user_id: string
+        }
+        Insert: {
+          receta_id: string
+          user_id: string
+        }
+        Update: {
+          receta_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recetas_ocultas_por_usuario_receta_id_fkey"
+            columns: ["receta_id"]
+            isOneToOne: false
+            referencedRelation: "recetas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
