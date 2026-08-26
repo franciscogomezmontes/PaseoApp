@@ -22,7 +22,12 @@ export default function JoinTripScreen() {
   const { t } = useTranslation();
   const { code } = useLocalSearchParams<{ code?: string }>();
   const { persona } = useAuthStore();
-  const [codigo, setCodigo] = useState(code ?? "");
+  // Strip anything that isn't a letter/digit — protects against stray characters
+  // (WhatsApp's *bold* asterisks, spaces, newlines) picked up by an imprecise
+  // copy-paste, which combined with the fixed maxLength below would otherwise
+  // silently truncate off the last real character of the code.
+  const sanitizeCode = (v: string) => v.replace(/[^a-z0-9]/gi, "").toLowerCase();
+  const [codigo, setCodigo] = useState(sanitizeCode(code ?? ""));
   const [loading, setLoading] = useState(false);
 
   const handleJoin = async () => {
@@ -116,10 +121,10 @@ export default function JoinTripScreen() {
               placeholder={t("joinTrip.placeholder")}
               placeholderTextColor={theme.textTertiary}
               value={codigo}
-              onChangeText={(v) => setCodigo(v.toLowerCase())}
+              onChangeText={(v) => setCodigo(sanitizeCode(v))}
               autoCapitalize="none"
               autoCorrect={false}
-              maxLength={8}
+              maxLength={20}
             />
             <Text style={[styles.hint, { color: theme.textTertiary }]}>{t("joinTrip.codeHint")}</Text>
           </View>

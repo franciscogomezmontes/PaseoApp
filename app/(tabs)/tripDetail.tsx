@@ -2050,13 +2050,13 @@ export default function TripDetailScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={[styles.tabsScroll, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}
-          contentContainerStyle={styles.tabs}
+          style={[styles.tabsScroll, { backgroundColor: theme.surface }]}
+          contentContainerStyle={[styles.tabs, { backgroundColor: theme.surfaceSecondary }]}
         >
           {(["resumen", "gente", "menu", "gastos", "info"] as const).map((tabKey) => (
             <TouchableOpacity
               key={tabKey}
-              style={[styles.tab, activeTab === tabKey && [styles.tabActive, { borderBottomColor: theme.tabActive }]]}
+              style={[styles.tab, activeTab === tabKey && [styles.tabActive, { backgroundColor: theme.primaryLight }]]}
               onPress={() => setActiveTab(tabKey)}
             >
               <Text
@@ -5639,15 +5639,30 @@ const styles = StyleSheet.create({
   estadoBadge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   estadoText: { fontSize: 11, fontWeight: "700" },
 
-  // Tabs
+  // Tabs — segmented control: rounded track + filled pill on the active tab
   tabs: {
     flexDirection: "row",
-    paddingHorizontal: 4,
+    gap: 4,
+    padding: 4,
+    borderRadius: 14,
   },
-  tab: { paddingVertical: 12, paddingHorizontal: 18, alignItems: "center" },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: "#1B4F72" },
-  tabText: { fontSize: 11, fontWeight: "600", color: "#94a3b8" },
-  tabTextActive: { color: "#1B4F72" },
+  tab: {
+    minHeight: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+  },
+  tabActive: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  tabText: { fontSize: 13, fontWeight: "600", color: "#94a3b8" },
+  tabTextActive: { fontWeight: "800", color: "#1B4F72" },
 
   flex1: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
@@ -6667,7 +6682,7 @@ const styles = StyleSheet.create({
   switchSub: { fontSize: 11, color: "#94a3b8", marginTop: 2 },
 
   // Tab scroll
-  tabsScroll: { backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#e2e8f0", maxHeight: 44 },
+  tabsScroll: { paddingHorizontal: 12, paddingVertical: 8, maxHeight: 64 },
 
   // Resumen tab
   statsRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
