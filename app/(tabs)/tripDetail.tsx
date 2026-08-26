@@ -1466,28 +1466,42 @@ export default function TripDetailScreen() {
           });
           acumuladoPorCat[cat.key] = total;
         } else {
-          // NON-COMIDA: per gasto, check if this person is active in that specific gasto
+          // NON-COMIDA: per gasto, check if this person is active in that specific
+          // gasto, prorated by days present — must mirror the weightOf() logic in
+          // leCorrespondePorCategoria() exactly, or per-persona totals drift from
+          // the per-familia totals whenever someone's fecha_desde/fecha_hasta
+          // don't span the whole trip.
+          const totalTripDays = paseo
+            ? daysInRange(paseo.fecha_inicio, paseo.fecha_fin)
+            : 1;
           let total = 0;
           gastosCat.forEach((g) => {
             const registros = gastosPartMap[g.id] ?? {};
             const allActive = Object.keys(registros).length === 0;
-            const personaActiva = allActive
-              ? true
-              : registros[p.id] !== undefined
-                ? registros[p.id]
-                : true;
-            if (!personaActiva) return;
-            const factorPersona = p.factor ?? 1;
-            const factorActivoTotal = participaciones.reduce((s, q) => {
+
+            const weightOf = (q: any) => {
               const activo = allActive
                 ? true
                 : registros[q.id] !== undefined
                   ? registros[q.id]
                   : true;
-              return s + (activo ? (q.factor ?? 1) : 0);
-            }, 0);
-            if (factorActivoTotal > 0)
-              total += g.monto * (factorPersona / factorActivoTotal);
+              if (!activo) return 0;
+              const daysQ = paseo
+                ? daysInRange(
+                    q.fecha_desde ?? paseo.fecha_inicio,
+                    q.fecha_hasta ?? paseo.fecha_fin,
+                  )
+                : totalTripDays;
+              return (q.factor ?? 1) * (daysQ / totalTripDays);
+            };
+
+            const weightPersona = weightOf(p);
+            const weightTotal = participaciones.reduce(
+              (s, q) => s + weightOf(q),
+              0,
+            );
+            if (weightTotal > 0)
+              total += g.monto * (weightPersona / weightTotal);
           });
           acumuladoPorCat[cat.key] = total;
         }

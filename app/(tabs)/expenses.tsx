@@ -1145,6 +1145,15 @@ export default function GastosScreen() {
               const momentos = momentosPorPaseo[balancesPaseoId] ?? [];
               const comidaMap = comidaMapPorPaseo[balancesPaseoId] ?? {};
               const totalPorciones = momentos.reduce((s, m) => s + (m.porciones ?? 1), 0) || 1;
+              const paseoInfo = paseos.find((p) => p.id === balancesPaseoId);
+              const daysInRange = (start: string, end: string) => {
+                const s = new Date(start + "T12:00:00");
+                const e = new Date(end + "T12:00:00");
+                return Math.max(0, Math.round((e.getTime() - s.getTime()) / 86400000) + 1);
+              };
+              const totalTripDays = paseoInfo
+                ? daysInRange(paseoInfo.fecha_inicio, paseoInfo.fecha_fin)
+                : 1;
 
               const balance: Record<string, number> = {};
               parts.forEach((p) => { balance[p.id] = 0; });
@@ -1182,18 +1191,29 @@ export default function GastosScreen() {
                 }
               }
 
+              // prorated by days present — must mirror calcularBalancesFamilia's
+              // weightOf() above, or per-persona totals drift from per-familia totals
+              // whenever someone's fecha_desde/fecha_hasta don't span the whole trip.
               gastos.filter((g) => g.categoria !== "comida").forEach((g) => {
                 const registros = gastosPartMap[g.id] ?? {};
                 const noRegistros = Object.keys(registros).length === 0;
-                const factorTotal = parts.reduce((sum, p) => {
+                const weightOf = (p: any) => {
                   const activo = noRegistros ? true : registros[p.id] !== undefined ? registros[p.id] : true;
-                  return sum + (activo ? (p.factor ?? 1) : 0);
-                }, 0);
-                if (factorTotal === 0) return;
+                  if (!activo) return 0;
+                  const daysP = paseoInfo
+                    ? daysInRange(
+                        p.fecha_desde ?? paseoInfo.fecha_inicio,
+                        p.fecha_hasta ?? paseoInfo.fecha_fin,
+                      )
+                    : totalTripDays;
+                  return (p.factor ?? 1) * (daysP / totalTripDays);
+                };
+                const weightTotal = parts.reduce((sum, p) => sum + weightOf(p), 0);
+                if (weightTotal === 0) return;
                 parts.forEach((p) => {
-                  const activo = noRegistros ? true : registros[p.id] !== undefined ? registros[p.id] : true;
-                  if (!activo) return;
-                  balance[p.id] -= g.monto * ((p.factor ?? 1) / factorTotal);
+                  const w = weightOf(p);
+                  if (w === 0) return;
+                  balance[p.id] -= g.monto * (w / weightTotal);
                 });
               });
 
